@@ -14,3 +14,15 @@ index_state*.json
 test/index_state.json
 test/test-vault/
 test/tmp-transformers-cache/
+
+# Internal docs and tests are not part of the public Obsidian plugin source release.
+docs/
+test/
+
+# Private service and deployment assets must stay private.
+mcp-server/src/com*/
+mcp-server/Dockerfile.*
+mcp-server/docker-compose.*.yml
+mcp-server/dist/com*/
+*-data*.json
+mcp-server/*-data*.json
