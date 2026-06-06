@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+mcp-server/node_modules/
+
+# Build/runtime caches
+.obsidian/
+.hotreload
+chroma.log
+*.log
+.DS_Store
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Generated runtime data
+models/
+.chroma/
+chroma/

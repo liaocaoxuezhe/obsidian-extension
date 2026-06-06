@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	:root {
+		--background: 0 0% 100%;
+		--foreground: 0 0% 4%;
+		--muted: 0 0% 96%;
+		--muted-foreground: 0 0% 27%;
+		--popover: 0 0% 100%;
+		--popover-foreground: 0 0% 4%;
+		--border: 0 0% 90%;
+		--input: 0 0% 90%;
+		--card: 0 0% 100%;
+		--card-foreground: 0 0% 4%;
+		--primary: 0 0% 4%;
+		--primary-foreground: 0 0% 100%;
+		--secondary: 0 0% 96%;
+		--secondary-foreground: 0 0% 4%;
+		--accent: 0 0% 96%;
+		--accent-foreground: 0 0% 4%;
+		--destructive: 0 72% 51%;
+		--destructive-foreground: 0 0% 100%;
+		--ring: 0 0% 4%;
+		--radius: 0.5rem;
+	}
+
+	.dark {
+		--background: 0 0% 4%;
+		--foreground: 0 0% 100%;
+		--muted: 0 0% 15%;
+		--muted-foreground: 0 0% 65%;
+		--accent: 0 0% 15%;
+		--accent-foreground: 0 0% 100%;
+		--popover: 0 0% 4%;
+		--popover-foreground: 0 0% 100%;
+		--border: 0 0% 15%;
+		--input: 0 0% 15%;
+		--card: 0 0% 4%;
+		--card-foreground: 0 0% 100%;
+		--primary: 0 0% 100%;
+		--primary-foreground: 0 0% 4%;
+		--secondary: 0 0% 15%;
+		--secondary-foreground: 0 0% 100%;
+		--destructive: 0 72% 51%;
+		--destructive-foreground: 0 0% 100%;
+		--ring: 0 0% 100%;
+	}
+}
+
+@layer components {
+	.scroll-reveal {
+		opacity: 0;
+		transform: translateY(20px);
+		transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+	}
+	.scroll-reveal.revealed {
+		opacity: 1;
+		transform: translateY(0);
+	}
+	.stagger-1 {
+		transition-delay: 0.1s;
+	}
+	.stagger-2 {
+		transition-delay: 0.2s;
+	}
+	.hover-scale {
+		transition: background-color 0.15s ease-out;
+	}
+	.pill-btn {
+		@apply inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#0a0a0a] disabled:pointer-events-none disabled:opacity-50;
+	}
+	.analogy-card {
+		@apply rounded-md bg-card p-4 text-card-foreground border border-[#e5e5e5];
+	}
+	.card-content-clamp {
+		overflow: hidden;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 12;
+	}
+	.card-content-clamp p,
+	.card-content-clamp h1,
+	.card-content-clamp h2,
+	.card-content-clamp h3,
+	.card-content-clamp h4,
+	.card-content-clamp h5,
+	.card-content-clamp h6,
+	.card-content-clamp ul,
+	.card-content-clamp ol,
+	.card-content-clamp blockquote {
+		display: inline;
+	}
+	.card-content-clamp h1,
+	.card-content-clamp h2,
+	.card-content-clamp h3,
+	.card-content-clamp h4,
+	.card-content-clamp h5,
+	.card-content-clamp h6 {
+		font-size: inherit;
+		font-weight: inherit;
+		line-height: inherit;
+		margin: 0;
+	}
+	.card-content-clamp br {
+		display: none;
+	}
+}
