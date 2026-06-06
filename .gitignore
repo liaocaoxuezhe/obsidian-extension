@@ -1,5 +1,16 @@
 .DS_Store
 node_modules/
+mcp-server/node_modules/
+mcp-server/dist/
+.obsidian/
+dist/
 *.log
+chroma.log
 .env
 .env.*
+models/
+transformers-cache/
+index_state*.json
+test/index_state.json
+test/test-vault/
+test/tmp-transformers-cache/
