@@ -1,12 +1,19 @@
 # Analogy - RAG in your vault
 
-Release assets for the Obsidian plugin **Analogy - RAG in your vault**.
+Release repository for the Obsidian plugin **Analogy - RAG in your vault**.
 
-This repository keeps the Obsidian Community Plugins release package small and focused.
+## Obsidian submission files
+
+Obsidian validates `manifest.json` from the root of the repository's default branch, so this repository keeps these files at the root:
+
+- `manifest.json`
+- `README.md`
+- `LICENSE`
+- `versions.json`
 
 ## Release assets
 
-Version `1.0.0` is available in:
+Version `1.0.0` assets are available in:
 
 ```text
 release/1.0.0/main.js
@@ -14,7 +21,11 @@ release/1.0.0/manifest.json
 release/1.0.0/styles.css
 ```
 
-When creating the GitHub Release for tag `1.0.0`, upload those three files as release assets.
+When creating the GitHub Release for tag `1.0.0`, upload those three files as release assets named exactly:
+
+- `main.js`
+- `manifest.json`
+- `styles.css`
 
 ## Plugin metadata
 
