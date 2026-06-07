@@ -118,7 +118,7 @@ export const SmartConnection = ({ activeFile }) => {
 			)}
 			<div className="relative mt-2 rounded-md">
 				<Textarea
-					className="analogy-textarea-autoresize resize-none h-10 pl-3 pr-14 block tracking-wide placeholder:text-[#444444] rounded-md border-[#e5e5e5] focus-visible:ring-[#0a0a0a] disabled:opacity-50 text-sm"
+					className="analogy-textarea-autoresize resize-none pl-3 pr-14 block tracking-wide placeholder:text-[#444444] rounded-md border-[#e5e5e5] focus-visible:ring-[#0a0a0a] disabled:opacity-50 text-sm"
 					placeholder={serviceReady ? "输入内容后按 Enter 搜索" : "本地搜索不可用"}
 					value={searchInputValue}
 					disabled={!serviceReady}
@@ -126,8 +126,8 @@ export const SmartConnection = ({ activeFile }) => {
 					onKeyDown={handleSearch}
 					onInput={(e) => {
 						const target = e.target as HTMLTextAreaElement;
-						target.style.height = "auto";
-						target.style.height = `${target.scrollHeight + 2}px`;
+						target.setCssProps({ "--analogy-textarea-height": "auto" });
+						target.setCssProps({ "--analogy-textarea-height": `${target.scrollHeight + 2}px` });
 					}}
 					rows={1}
 				/>

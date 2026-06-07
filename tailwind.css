@@ -76,6 +76,12 @@
 	.analogy-card {
 		@apply rounded-md bg-card p-4 text-card-foreground border border-[#e5e5e5];
 	}
+	.analogy-textarea-autoresize {
+		height: var(--analogy-textarea-height, 2.5rem);
+		min-height: 2.5rem;
+		max-height: 148px;
+		overflow-y: auto;
+	}
 	.card-content-clamp {
 		overflow: hidden;
 		display: -webkit-box;
