@@ -8,7 +8,7 @@ import {Button} from "./components/button";
 import {Badge} from "./components/badge";
 import {Card, CardContent, CardHeader, CardTitle} from "./components/card";
 import { searchInstance, updateServiceState } from "./local-vector/search-instance";
-import type { FileIndexStatus, RebuildProgress } from "./local-vector/document-indexer";
+import type { FileIndexStatus, IndexState, RebuildProgress } from "./local-vector/document-indexer";
 import {normalizeExcludedIndexPaths} from "./local-vector/excluded-paths";
 import {EMBEDDING_MODELS, DEFAULT_MODEL_KEY} from "./local-vector/embedding";
 import {getLocale, setLocale, onLocaleChange, t, type Locale, SUPPORTED_LOCALES} from "./util/i18n";
@@ -40,6 +40,7 @@ export interface AnalogySettings {
   licenseServerUrl: string;
   buyLicenseUrl: string;
   manageLicenseUrl: string;
+  indexStates?: Record<string, IndexState>;
   /** UI language; only affects the React views. */
   uiLanguage: Locale;
 }
@@ -52,6 +53,7 @@ export const DEFAULT_SETTINGS: AnalogySettings = {
   licenseServerUrl: DEFAULT_LICENSE_SERVER_URL,
   buyLicenseUrl: DEFAULT_BUY_LICENSE_URL,
   manageLicenseUrl: DEFAULT_MANAGE_LICENSE_URL,
+  indexStates: {},
   uiLanguage: "en",
 }
 
@@ -122,6 +124,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
   const modelDescription = language === "zh"
     ? activeModelConfig.descriptionZh
     : activeModelConfig.description;
+  const manualChromaCommand = `chroma run --path "${dbPath || "<plugin-data-dir>/chroma_data/<vault-id>"}" --host 127.0.0.1 --port ${portInput || "8000"}`;
 
   const [fileStatuses, setFileStatuses] = useState<FileIndexStatus[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -663,6 +666,12 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
             <span className="text-sm text-[#444444]">{t("settings.chroma.storagePath")}</span>
             <span className="text-sm font-medium truncate max-w-[200px]" title={dbPath}>{dbPath}</span>
           </div>
+          {!chromaHealthy && (
+            <div className="mt-3 text-xs text-[#666666] bg-[#fafafa] border border-[#f0f0f0] rounded-md px-3 py-2">
+              <div className="mb-1">{t("settings.chroma.manualStart")}</div>
+              <code className="block whitespace-pre-wrap break-all font-mono text-[#333333]">{manualChromaCommand}</code>
+            </div>
+          )}
           <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: "1px solid #f5f5f5" }}>
             <span className="text-sm text-[#444444]">{t("settings.chroma.port")}</span>
             <div className="flex items-center gap-2">

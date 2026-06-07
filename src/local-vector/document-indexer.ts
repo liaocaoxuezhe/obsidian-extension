@@ -3,8 +3,6 @@ import { LocalEmbeddingService } from "./embedding";
 import { LocalVectorStore } from "./vector-store";
 import { isPathExcludedFromIndex, normalizeExcludedIndexPaths } from "./excluded-paths";
 import { cleanMarkdown, splitByHeaders } from "./strip-markdown";
-import * as fs from "fs";
-import * as path from "path";
 
 const MAX_CHUNK_CHARS = 900;
 const MAX_SECTION_CHARS = 2000;
@@ -36,6 +34,11 @@ export interface IndexState {
   [docId: string]: IndexStateEntry;
 }
 
+export interface IndexStateStore {
+  load: () => Promise<IndexState | undefined>;
+  save: (state: IndexState) => Promise<void>;
+}
+
 export interface FileIndexStatus {
   path: string;
   name: string;
@@ -62,9 +65,8 @@ export class DocumentIndexer {
   private vectorStore: LocalVectorStore;
   private vault: Vault;
   private workspace: Workspace | null;
+  private stateStore: IndexStateStore;
   private indexState: IndexState = {};
-  private statePath: string;
-  private pluginDir: string;
   private excludedIndexPaths: string[] = [];
   private isIndexing = false;
   private modifyRef: EventRef | null = null;
@@ -89,35 +91,22 @@ export class DocumentIndexer {
     embedding: LocalEmbeddingService,
     vectorStore: LocalVectorStore,
     vault: Vault,
-    pluginDir: string,
+    stateStore: IndexStateStore,
     excludedIndexPaths: string[] = [],
-    modelShortName: string = "",
     workspace?: Workspace
   ) {
     this.embedding = embedding;
     this.vectorStore = vectorStore;
     this.vault = vault;
     this.workspace = workspace ?? null;
-    this.pluginDir = pluginDir;
-    const stateFileName = modelShortName
-      ? `index_state_${modelShortName}.json`
-      : "index_state.json";
-    this.statePath = path.join(pluginDir, stateFileName);
+    this.stateStore = stateStore;
     this.excludedIndexPaths = normalizeExcludedIndexPaths(excludedIndexPaths);
-  }
-
-  private async ensurePluginDir(): Promise<void> {
-    if (!fs.existsSync(this.pluginDir)) {
-      fs.mkdirSync(this.pluginDir, { recursive: true });
-    }
   }
 
   async loadState(): Promise<void> {
     try {
-      await this.ensurePluginDir();
-      if (fs.existsSync(this.statePath)) {
-        const data = await fs.promises.readFile(this.statePath, "utf-8");
-        const raw: IndexState = JSON.parse(data);
+      const raw = await this.stateStore.load();
+      if (raw) {
         let migrated = false;
         const newState: IndexState = {};
         for (const [key, entry] of Object.entries(raw)) {
@@ -144,9 +133,7 @@ export class DocumentIndexer {
 
   async saveState(): Promise<void> {
     try {
-      await this.ensurePluginDir();
-      const stateJson = JSON.stringify(this.indexState, null, 2);
-      await fs.promises.writeFile(this.statePath, stateJson, "utf-8");
+      await this.stateStore.save(this.indexState);
     } catch {}
   }
 
@@ -188,11 +175,8 @@ export class DocumentIndexer {
       this.saveTimer = null;
     }
     if (this.saveDirty) {
-      try {
-        const stateJson = JSON.stringify(this.indexState, null, 2);
-        fs.writeFileSync(this.statePath, stateJson, "utf-8");
-        this.saveDirty = false;
-      } catch {}
+      this.saveState().catch(() => {});
+      this.saveDirty = false;
     }
   }
 
@@ -592,10 +576,7 @@ export class DocumentIndexer {
 
   async clearState(): Promise<void> {
     this.indexState = {};
-    try {
-      await this.ensurePluginDir();
-      await fs.promises.writeFile(this.statePath, JSON.stringify({}, null, 2), "utf-8");
-    } catch {}
+    await this.saveState();
   }
 
   async getIndexedStatus(file: TFile): Promise<"indexed" | "pending" | "unindexed"> {

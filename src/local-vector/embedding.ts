@@ -132,8 +132,6 @@ export class LocalEmbeddingService {
   }
 
   private async loadPipeline(): Promise<any> {
-    const path = require("path");
-    const fs = require("fs");
     const { env, pipeline } = await loadTransformers(this.options.pluginDir);
     env.cacheDir = this.options.cacheDir;
     env.remoteHost = normalizeRemoteHost(this.options.remoteHost || DEFAULT_MODEL_HOST);
@@ -141,17 +139,8 @@ export class LocalEmbeddingService {
     env.allowRemoteModels = true;
 
     const modelConfig = this.options.modelConfig;
-    let modelPath = modelConfig.id;
 
-    if (modelConfig.localModelDir) {
-      const localDir = path.resolve(this.options.pluginDir, modelConfig.localModelDir);
-      if (fs.existsSync(path.join(localDir, "config.json"))) {
-        modelPath = localDir;
-        env.allowRemoteModels = false;
-      }
-    }
-
-    return await pipeline("feature-extraction", modelPath, {
+    return await pipeline("feature-extraction", modelConfig.id, {
       dtype: modelConfig.dtype,
     });
   }
@@ -159,8 +148,6 @@ export class LocalEmbeddingService {
   async initialize(onProgress?: (progress: number) => void): Promise<void> {
     if (this.ready) return;
     try {
-      const path = require("path");
-      const fs = require("fs");
       const { env, pipeline } = await loadTransformers(this.options.pluginDir);
       env.cacheDir = this.options.cacheDir;
       env.remoteHost = normalizeRemoteHost(this.options.remoteHost || DEFAULT_MODEL_HOST);
@@ -169,17 +156,8 @@ export class LocalEmbeddingService {
       env.allowRemoteModels = true;
 
       const modelConfig = this.options.modelConfig;
-      let modelPath = modelConfig.id;
 
-      if (modelConfig.localModelDir) {
-        const localDir = path.resolve(this.options.pluginDir, modelConfig.localModelDir);
-        if (fs.existsSync(path.join(localDir, "config.json"))) {
-          modelPath = localDir;
-          env.allowRemoteModels = false;
-        }
-      }
-
-      this.embedder = await pipeline("feature-extraction", modelPath, {
+      this.embedder = await pipeline("feature-extraction", modelConfig.id, {
         dtype: modelConfig.dtype,
         progress_callback: (progressInfo: any) => {
           if (typeof progressInfo === "object" && progressInfo.status === "progress") {

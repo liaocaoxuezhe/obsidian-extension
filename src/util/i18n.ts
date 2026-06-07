@@ -41,6 +41,7 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
   "settings.chroma.indexedChunks": { en: "Indexed Chunks", zh: "已索引块数" },
   "settings.chroma.indexedFiles": { en: "Indexed Files", zh: "已索引文件" },
   "settings.chroma.storagePath": { en: "Storage Path", zh: "存储路径" },
+  "settings.chroma.manualStart": { en: "Start ChromaDB manually before local search:", zh: "使用本地搜索前，请手动启动 ChromaDB：" },
   "settings.chroma.port": { en: "Port", zh: "端口" },
   "common.save": { en: "Save", zh: "保存" },
   "common.apply": { en: "Apply", zh: "应用" },

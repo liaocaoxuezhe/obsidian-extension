@@ -1,11 +1,11 @@
 import {WorkspaceLeaf, Plugin, addIcon, TFile} from 'obsidian';
 import { IndexView, VIEW_TYPE_INDEX } from './src/IndexView';
 import {AnalogySettings, DEFAULT_SETTINGS, AnalogySettingTab} from "./src/SettingView";
-import {icon} from "./src/model/Consts";
+import {AnalogyIconId, icon} from "./src/model/Consts";
 import {ChromaProcessManager} from "./src/local-vector/chroma-process";
 import {getEmbeddingErrorMessage, LocalEmbeddingService, EMBEDDING_MODELS, DEFAULT_MODEL_KEY} from "./src/local-vector/embedding";
 import {LocalVectorStore} from "./src/local-vector/vector-store";
-import {DocumentIndexer} from "./src/local-vector/document-indexer";
+import {DocumentIndexer, type IndexState} from "./src/local-vector/document-indexer";
 import {initLocalVectorServices, updateServiceState} from "./src/local-vector/search-instance";
 import {setLocale} from "./src/util/i18n";
 import {refreshCachedLicense} from "./src/license/license-api";
@@ -32,9 +32,9 @@ export default class Analogy extends Plugin {
 			(leaf) => new IndexView(leaf)
 		)
 
-		addIcon('analogy-icon', icon);
+		addIcon(AnalogyIconId, icon);
 
-		this.addRibbonIcon('analogy-icon', 'Analogy', () => {
+		this.addRibbonIcon(AnalogyIconId, 'Analogy', () => {
 			this.activateView();
 		});
 
@@ -94,7 +94,7 @@ export default class Analogy extends Plugin {
 		const started = await this.chromaManager.start(dbPath, port);
 
 		if (!started) {
-			const lastError = this.chromaManager.getLastError() || "ChromaDB failed to start. Run: pip install chromadb";
+			const lastError = this.chromaManager.getLastError() || "ChromaDB is not running. Start it manually before using local search.";
 			console.error(`${INIT_LOG_PREFIX} failed`, { stage: "chroma", lastError });
 			updateServiceState({
 				status: "error",
@@ -133,12 +133,8 @@ export default class Analogy extends Plugin {
 			modelConfig,
 		});
 		let embeddingReady = false;
-		const fs = require("fs");
-		const path = require("path");
-		const hasLocalModel = modelConfig.localModelDir
-			&& fs.existsSync(path.join(pluginDir, modelConfig.localModelDir, "config.json"));
 		try {
-			updateServiceState({ embeddingStatus: hasLocalModel ? "loading" : "downloading" });
+			updateServiceState({ embeddingStatus: "downloading" });
 			await this.embeddingService.initialize((progress) => {
 				updateServiceState({ modelDownloadProgress: progress });
 			});
@@ -161,9 +157,8 @@ export default class Analogy extends Plugin {
 			this.embeddingService,
 			this.vectorStore,
 			this.app.vault,
-			pluginDir,
+			this.createIndexStateStore(modelConfig.shortName),
 			this.settings.excludedIndexPaths,
-			modelConfig.shortName,
 			this.app.workspace
 		);
 		await this.documentIndexer.loadState();
@@ -192,9 +187,9 @@ export default class Analogy extends Plugin {
 		});
 	}
 
-	onunload() {
+	async onunload() {
 		if (this.documentIndexer) {
-			this.documentIndexer.flushStateSync();
+			await this.documentIndexer.flushState();
 			this.documentIndexer.unwatchVault();
 		}
 		if (this.embeddingService) {
@@ -228,10 +223,26 @@ export default class Analogy extends Plugin {
 		this.settings.excludedIndexPaths = Array.isArray(this.settings.excludedIndexPaths)
 			? this.settings.excludedIndexPaths
 			: [];
+		this.settings.indexStates = this.settings.indexStates || {};
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
+	}
+
+	private createIndexStateStore(modelShortName: string) {
+		return {
+			load: async (): Promise<IndexState | undefined> => {
+				return this.settings.indexStates?.[modelShortName];
+			},
+			save: async (state: IndexState): Promise<void> => {
+				this.settings.indexStates = {
+					...(this.settings.indexStates || {}),
+					[modelShortName]: state,
+				};
+				await this.saveData(this.settings);
+			},
+		};
 	}
 
 	async activateView() {
