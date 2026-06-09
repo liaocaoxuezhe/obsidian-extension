@@ -14,6 +14,11 @@ import {EMBEDDING_MODELS, DEFAULT_MODEL_KEY} from "./local-vector/embedding";
 import {OllamaClient} from "./local-vector/ollama-client";
 import {DEFAULT_SUMMARY_PROMPT, DocumentSummarizer} from "./local-vector/document-summarizer";
 import {DEFAULT_SUMMARY_MODEL_KEY, formatModelBytes, SUMMARY_MODELS} from "./local-vector/summary-models";
+import {
+  getLocalRuntimeStatus,
+  installLocalRuntimeDependencies,
+  type LocalRuntimeStatus,
+} from "./local-vector/runtime-dependencies";
 import {getLocale, setLocale, onLocaleChange, t, type Locale, SUPPORTED_LOCALES} from "./util/i18n";
 import {
   deactivateLicense,
@@ -108,7 +113,19 @@ function formatPageLimit(limit: number): string {
   return limit >= Number.MAX_SAFE_INTEGER ? "Unlimited" : String(limit);
 }
 
+function getPluginDir(plugin: Analogy): string {
+  const path = require("path");
+  const basePath = (plugin.app.vault.adapter as any).basePath;
+  const manifestDir = (plugin.manifest as any).dir;
+  if (manifestDir) {
+    return path.resolve(basePath, manifestDir);
+  }
+  const configDir = (plugin.app.vault as any).configDir || ".obsidian";
+  return path.join(basePath, configDir, "plugins", plugin.manifest.id);
+}
+
 function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySettingTab}) {
+  const pluginDir = useMemo(() => getPluginDir(plugin), [plugin]);
   const [chromaHealthy, setChromaHealthy] = useState(false);
   const [docCount, setDocCount] = useState(0);
   const [modelReady, setModelReady] = useState(false);
@@ -144,6 +161,10 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
   const [excludedPaths, setExcludedPaths] = useState<string[]>(plugin.settings.excludedIndexPaths || []);
   const [newPathInput, setNewPathInput] = useState("");
   const [language, setLanguage] = useState<Locale>(plugin.settings.uiLanguage || "en");
+  const [runtimeStatus, setRuntimeStatus] = useState<LocalRuntimeStatus>(() => getLocalRuntimeStatus(pluginDir));
+  const [isInstallingRuntime, setIsInstallingRuntime] = useState(false);
+  const [isRefreshingRuntime, setIsRefreshingRuntime] = useState(false);
+  const [runtimeInstallLog, setRuntimeInstallLog] = useState("");
 
   useEffect(() => {
     setLocale(plugin.settings.uiLanguage || "en");
@@ -194,6 +215,30 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
   }, [plugin]);
 
   const [displayLimit, setDisplayLimit] = useState(100);
+
+  function refreshRuntimeStatus() {
+    const nextStatus = getLocalRuntimeStatus(pluginDir);
+    setRuntimeStatus(nextStatus);
+    return nextStatus;
+  }
+
+  async function refreshRuntimeAndServices() {
+    setIsRefreshingRuntime(true);
+    try {
+      const nextStatus = refreshRuntimeStatus();
+      if (nextStatus.ready) {
+        await plugin.initLocalServices();
+      }
+      await refreshServiceStatus();
+      refreshFileStatuses();
+    } catch (err) {
+      const message = (err as Error).message;
+      setLastError(message);
+      new Notice(message);
+    } finally {
+      setIsRefreshingRuntime(false);
+    }
+  }
 
   function showUpgradePrompt(selectedCount: number, limit: number) {
     setUpgradePrompt(getPageLimitUpgradePrompt(selectedCount, limit, plugin.settings.buyLicenseUrl));
@@ -649,9 +694,75 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     }
   }
 
+  async function installRuntime() {
+    if (!confirm(t("settings.runtime.confirm"))) {
+      return;
+    }
+    setIsInstallingRuntime(true);
+    setRuntimeInstallLog("");
+    try {
+      await installLocalRuntimeDependencies(pluginDir, (line) => {
+        if (!line.trim()) return;
+        setRuntimeInstallLog((prev) => `${prev}${prev ? "\n" : ""}${line}`);
+      });
+      const nextStatus = refreshRuntimeStatus();
+      if (!nextStatus.ready) {
+        throw new Error(nextStatus.message);
+      }
+      new Notice(t("settings.runtime.installDone"));
+      await plugin.initLocalServices();
+      await refreshServiceStatus();
+      refreshFileStatuses();
+    } catch (err) {
+      const message = (err as Error).message;
+      setRuntimeInstallLog((prev) => `${prev}${prev ? "\n" : ""}${message}`);
+      new Notice(`${t("settings.runtime.installFailed")}: ${message}`);
+    } finally {
+      setIsInstallingRuntime(false);
+    }
+  }
+
   return (
     <div className="space-y-4 py-4">
       <h2 className="font-serif text-xl font-bold text-[#0a0a0a] mb-4">{t("settings.localVectorStatus")}</h2>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t("settings.runtime.title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-sm text-[#444444]">{t("settings.runtime.desc")}</div>
+              <div className="text-xs text-[#888888] mt-1 break-all">{pluginDir}</div>
+            </div>
+            <Badge className={runtimeStatus.ready ? "bg-[#0a0a0a] text-white" : "bg-[#e74c3c] text-white"}>
+              {runtimeStatus.ready ? t("settings.runtime.ready") : t("settings.runtime.missing")}
+            </Badge>
+          </div>
+
+          {!runtimeStatus.ready && (
+            <div className="mt-3 bg-[#fff8f2] border border-[#f2d6c1] rounded-md px-3 py-2">
+              <div className="text-sm text-[#7a3e16]">{t("settings.runtime.missingPackages")}: {runtimeStatus.missing.join(", ")}</div>
+              <div className="text-xs text-[#7a3e16] mt-1 leading-relaxed">{t("settings.runtime.installHint")}</div>
+              <div className="flex items-center gap-2 mt-3">
+                <Button size="sm" onClick={installRuntime} disabled={isInstallingRuntime}>
+                  {isInstallingRuntime ? t("settings.runtime.installing") : t("settings.runtime.install")}
+                </Button>
+                <Button size="sm" variant="secondary" onClick={refreshRuntimeAndServices} disabled={isInstallingRuntime || isRefreshingRuntime}>
+                  {isRefreshingRuntime ? t("settings.runtime.refreshing") : t("common.refresh")}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {runtimeInstallLog && (
+            <pre className="mt-3 max-h-[180px] overflow-auto whitespace-pre-wrap text-xs bg-[#0f172a] text-[#e5e7eb] rounded-md px-3 py-2 font-mono">
+{runtimeInstallLog}
+            </pre>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

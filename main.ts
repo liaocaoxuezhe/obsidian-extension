@@ -10,6 +10,7 @@ import {DEFAULT_SUMMARY_PROMPT, DocumentSummarizer} from "./src/local-vector/doc
 import {OllamaClient} from "./src/local-vector/ollama-client";
 import {DEFAULT_SUMMARY_MODEL_KEY, SUMMARY_MODELS} from "./src/local-vector/summary-models";
 import {initLocalVectorServices, updateServiceState} from "./src/local-vector/search-instance";
+import {getLocalRuntimeStatus} from "./src/local-vector/runtime-dependencies";
 import {setLocale} from "./src/util/i18n";
 import {refreshCachedLicense} from "./src/license/license-api";
 import {loadLicenseState, saveLicenseState} from "./src/license/license-store";
@@ -79,12 +80,13 @@ export default class Analogy extends Plugin {
 		const manifestDir = (this.manifest as any).dir;
 		const pluginDir = manifestDir
 			? require("path").resolve(basePath, manifestDir)
-			: `${basePath}/.obsidian/plugins/${this.manifest.id}`;
+			: require("path").join(basePath, (this.app.vault as any).configDir || ".obsidian", "plugins", this.manifest.id);
 		const vaultId = this.getVaultId();
 		const modelKey = this.settings.embeddingModel || DEFAULT_MODEL_KEY;
 		const modelConfig = EMBEDDING_MODELS[modelKey] || EMBEDDING_MODELS[DEFAULT_MODEL_KEY];
 		const dbPath = `${pluginDir}/chroma_data/${vaultId}`;
 		const port = this.settings.chromaPort || 8000;
+		const runtimeStatus = getLocalRuntimeStatus(pluginDir);
 
 		console.log(`${INIT_LOG_PREFIX} start`, {
 			pluginDir,
@@ -92,6 +94,43 @@ export default class Analogy extends Plugin {
 			port,
 			model: modelConfig.shortName,
 		});
+
+		updateServiceState({
+			status: "initializing",
+			dbPath,
+			port,
+			embeddingStatus: "idle",
+			vectorStoreStatus: "idle",
+			modelDownloadProgress: 0,
+			lastError: "",
+			activeModel: modelConfig.shortName,
+		});
+
+		if (!runtimeStatus.ready) {
+			const lastError = runtimeStatus.message;
+			console.error(`${INIT_LOG_PREFIX} failed`, {
+				stage: "runtime",
+				missing: runtimeStatus.missing,
+				lastError,
+			});
+			updateServiceState({
+				status: "error",
+				dbPath,
+				port,
+				embeddingStatus: "error",
+				vectorStoreStatus: "idle",
+				lastError,
+			});
+			initLocalVectorServices(null, null, null, null, {
+				status: "error",
+				dbPath,
+				port,
+				embeddingStatus: "error",
+				vectorStoreStatus: "idle",
+				lastError,
+			});
+			return;
+		}
 
 		this.chromaManager = new ChromaProcessManager();
 		const started = await this.chromaManager.start(dbPath, port);
@@ -115,7 +154,7 @@ export default class Analogy extends Plugin {
 		try {
 			await this.vectorStore.initialize(port, vaultId, modelConfig.shortName);
 			vectorStoreReady = true;
-			updateServiceState({ vectorStoreStatus: "ready" });
+			updateServiceState({ vectorStoreStatus: "ready", lastError: "" });
 		} catch (err) {
 			const lastError = `Vector store initialization failed: ${(err as Error).message}`;
 			console.error(`${INIT_LOG_PREFIX} failed`, { stage: "vector-store", lastError });
@@ -137,12 +176,12 @@ export default class Analogy extends Plugin {
 		});
 		let embeddingReady = false;
 		try {
-			updateServiceState({ embeddingStatus: "downloading" });
+			updateServiceState({ embeddingStatus: "downloading", lastError: "" });
 			await this.embeddingService.initialize((progress) => {
 				updateServiceState({ modelDownloadProgress: progress });
 			});
 			embeddingReady = true;
-			updateServiceState({ embeddingStatus: "ready", modelDownloadProgress: 100 });
+			updateServiceState({ embeddingStatus: "ready", modelDownloadProgress: 100, lastError: "" });
 		} catch (err) {
 			const lastError = getEmbeddingErrorMessage(err);
 			console.error(`${INIT_LOG_PREFIX} failed`, { stage: "embedding", lastError });
@@ -207,6 +246,8 @@ export default class Analogy extends Plugin {
 				vectorStoreStatus: "ready",
 				embeddingStatus: "ready",
 				activeModel: modelConfig.shortName,
+				modelDownloadProgress: 100,
+				lastError: "",
 			},
 			modelConfig.maxInputChars,
 			summarizer
