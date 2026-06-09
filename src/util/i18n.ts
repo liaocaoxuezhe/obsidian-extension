@@ -47,6 +47,8 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
   "common.apply": { en: "Apply", zh: "应用" },
   "common.add": { en: "Add", zh: "添加" },
   "common.refresh": { en: "Refresh", zh: "刷新" },
+  "common.copy": { en: "Copy", zh: "复制" },
+  "common.copiedToClipboard": { en: "Copied to clipboard", zh: "已复制到剪贴板" },
 
   // --- License ---
   "settings.license.title": { en: "License", zh: "许可证" },
@@ -92,6 +94,41 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
     zh: "当前模型还没有索引数据。点击下方「重建索引」按钮为该模型构建向量索引。",
   },
 
+  // --- Summary preprocessing ---
+  "settings.summary.title": { en: "Summarize Before Embedding", zh: "先总结再嵌入" },
+  "settings.summary.enable": { en: "Enable summary preprocessing", zh: "启用摘要预处理" },
+  "settings.summary.model": { en: "Summary model", zh: "摘要模型" },
+  "settings.summary.modelHint": {
+    en: "Used only when matching from the current article; it does not rewrite the Chroma index.",
+    zh: "仅在基于当前文章匹配时使用，不会改写 Chroma 索引。",
+  },
+  "settings.summary.size": { en: "Size", zh: "大小" },
+  "settings.summary.ollamaHost": { en: "Ollama host", zh: "Ollama 地址" },
+  "settings.summary.timeout": { en: "Timeout (ms)", zh: "超时（毫秒）" },
+  "settings.summary.maxInput": { en: "Max input characters", zh: "最大输入字符数" },
+  "settings.summary.prompt": { en: "Summary prompt", zh: "摘要 Prompt" },
+  "settings.summary.promptHint": {
+    en: "Use {page_content} where the text to summarize should be inserted.",
+    zh: "使用 {page_content} 指代会被放进去、用于摘要的文本内容。",
+  },
+  "settings.summary.check": { en: "Check Ollama", zh: "检测 Ollama" },
+  "settings.summary.checking": { en: "Checking...", zh: "检测中..." },
+  "settings.summary.pull": { en: "Download model", zh: "下载模型" },
+  "settings.summary.pulling": { en: "Downloading...", zh: "下载中..." },
+  "settings.summary.pullDone": { en: "Summary model downloaded", zh: "摘要模型已下载" },
+  "settings.summary.autoPull": { en: "Download missing model automatically", zh: "自动下载缺失模型" },
+  "settings.summary.fallback": { en: "Use original text if summary fails", zh: "摘要失败时使用原文索引" },
+  "settings.summary.reloadHint": { en: "Summary changes apply to article-based matching only; existing indexes are unchanged.", zh: "摘要设置只影响基于文章的匹配；已有索引不会改变。" },
+  "settings.summary.applyHint": { en: "Summary matching settings applied.", zh: "摘要匹配设置已应用。" },
+  "settings.summary.modelInstalled": { en: "Selected model is installed.", zh: "所选模型已安装。" },
+  "settings.summary.modelMissing": { en: "Selected model is not installed.", zh: "所选模型尚未安装。" },
+
+  // --- Search view ---
+  "search.articleSummaryQueryTitle": {
+    en: "Query based on the following text",
+    zh: "基于以下文章摘要匹配",
+  },
+
   // --- Exclude / index management ---
   "settings.exclude.title": { en: "No-index Paths", zh: "不索引的路径" },
   "settings.exclude.hint": {
@@ -110,6 +147,9 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
 
   "settings.actions.continueIndex": { en: "Continue Index", zh: "继续索引" },
   "settings.actions.indexing": { en: "Indexing...", zh: "索引中..." },
+  "settings.actions.stopIndex": { en: "Stop", zh: "停止" },
+  "settings.actions.stoppingIndex": { en: "Stopping...", zh: "停止中..." },
+  "settings.actions.indexStopped": { en: "Indexing stopped", zh: "索引已停止" },
   "settings.actions.rebuildIndex": { en: "Rebuild Index", zh: "重建索引" },
   "settings.actions.clearIndex": { en: "Clear Index", zh: "清空索引" },
 

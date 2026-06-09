@@ -1101,7 +1101,7 @@ var require_react_development = __commonJS({
           var dispatcher = resolveDispatcher();
           return dispatcher.useReducer(reducer, initialArg, init);
         }
-        function useRef(initialValue) {
+        function useRef2(initialValue) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useRef(initialValue);
         }
@@ -1895,7 +1895,7 @@ var require_react_development = __commonJS({
         exports.useLayoutEffect = useLayoutEffect;
         exports.useMemo = useMemo2;
         exports.useReducer = useReducer;
-        exports.useRef = useRef;
+        exports.useRef = useRef2;
         exports.useState = useState4;
         exports.useSyncExternalStore = useSyncExternalStore;
         exports.useTransition = useTransition;
@@ -7796,7 +7796,7 @@ var require_react_dom_development = __commonJS({
         });
         var SyntheticCompositionEvent = createSyntheticEvent(CompositionEventInterface);
         var SyntheticInputEvent = SyntheticCompositionEvent;
-        var normalizeKey = {
+        var normalizeKey2 = {
           Esc: "Escape",
           Spacebar: " ",
           Left: "ArrowLeft",
@@ -7850,7 +7850,7 @@ var require_react_dom_development = __commonJS({
         };
         function getEventKey(nativeEvent) {
           if (nativeEvent.key) {
-            var key = normalizeKey[nativeEvent.key] || nativeEvent.key;
+            var key = normalizeKey2[nativeEvent.key] || nativeEvent.key;
             if (key !== "Unidentified") {
               return key;
             }
@@ -24560,6 +24560,12 @@ var createLucideIcon = (iconName, iconNode) => {
   return Component;
 };
 
+// node_modules/lucide-react/dist/esm/icons/copy.js
+var Copy = createLucideIcon("Copy", [
+  ["rect", { width: "14", height: "14", x: "8", y: "8", rx: "2", ry: "2", key: "17jyea" }],
+  ["path", { d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2", key: "zix9uf" }]
+]);
+
 // node_modules/lucide-react/dist/esm/icons/file-text.js
 var FileText = createLucideIcon("FileText", [
   ["path", { d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z", key: "1rqfz7" }],
@@ -27779,20 +27785,24 @@ function splitByHeaders(cleaned) {
 }
 
 // src/local-vector/search.ts
-var MAX_DOCUMENT_SEARCH_CHARS = 1800;
+var MAX_DOCUMENT_SEARCH_CHARS = 5e3;
 function createDocumentSearchInput(content, maxInputChars) {
   const limit = Math.max(1, Math.min(maxInputChars, MAX_DOCUMENT_SEARCH_CHARS));
   return cleanMarkdown(content).replace(/^#{1,6}\s+/gm, "").trim().slice(0, limit);
 }
 var LocalSemanticSearch = class {
-  constructor(embedding, vectorStore, maxInputChars = 512) {
+  constructor(embedding, vectorStore, maxInputChars = 512, summarizer) {
     this.documentIndexer = null;
     this.embedding = embedding;
     this.vectorStore = vectorStore;
     this.maxInputChars = maxInputChars;
+    this.summarizer = summarizer;
   }
   setDocumentIndexer(indexer) {
     this.documentIndexer = indexer;
+  }
+  setDocumentSummarizer(summarizer) {
+    this.summarizer = summarizer;
   }
   async searchByQuery(query, topK = 5) {
     const queryEmbedding = await this.embedding.embedQuery(query);
@@ -27801,15 +27811,24 @@ var LocalSemanticSearch = class {
     return this.filterAndFormat(results, topK);
   }
   async searchByDocument(file, topK = 5) {
+    const response = await this.searchByDocumentWithQueryText(file, topK);
+    return response.results;
+  }
+  async searchByDocumentWithQueryText(file, topK = 5) {
     const vault = file.vault;
     const content = await vault.adapter.read(file.path);
     const firstChunk = createDocumentSearchInput(content, this.maxInputChars);
     if (!firstChunk)
-      return [];
-    const docEmbedding = await this.embedding.embedDocument(firstChunk);
+      return { results: [] };
+    const summaryResult = this.summarizer ? await this.summarizer.summarize(firstChunk, file.path) : null;
+    const textForMatching = summaryResult?.text || firstChunk;
+    const docEmbedding = await this.embedding.embedDocument(textForMatching);
     const extra = this.documentIndexer ? this.documentIndexer.getMutedPaths().size : 0;
     const results = await this.vectorStore.search(docEmbedding, topK + extra);
-    return this.filterAndFormat(results, topK);
+    return {
+      results: this.filterAndFormat(results, topK),
+      queryText: summaryResult?.usedSummary ? summaryResult.text : void 0
+    };
   }
   filterAndFormat(results, topK) {
     const mutedPaths = this.documentIndexer?.getMutedPaths() ?? /* @__PURE__ */ new Set();
@@ -27824,6 +27843,49 @@ var LocalSemanticSearch = class {
   }
 };
 
+// src/local-vector/search-result-cache.ts
+function normalizeKey(key) {
+  return JSON.stringify({
+    mode: key.mode,
+    topK: key.topK,
+    model: key.model || "",
+    path: key.path || "",
+    mtime: key.mtime || 0,
+    query: key.query || "",
+    activePath: key.activePath || ""
+  });
+}
+var SearchResultCache = class {
+  constructor(maxEntries = 50) {
+    this.maxEntries = maxEntries;
+    this.entries = /* @__PURE__ */ new Map();
+  }
+  get(key) {
+    const cacheKey = normalizeKey(key);
+    const value = this.entries.get(cacheKey);
+    if (!value)
+      return null;
+    this.entries.delete(cacheKey);
+    this.entries.set(cacheKey, value);
+    return value;
+  }
+  set(key, value) {
+    const cacheKey = normalizeKey(key);
+    this.entries.delete(cacheKey);
+    this.entries.set(cacheKey, value);
+    while (this.entries.size > this.maxEntries) {
+      const oldest = this.entries.keys().next().value;
+      if (!oldest)
+        break;
+      this.entries.delete(oldest);
+    }
+  }
+  clear() {
+    this.entries.clear();
+  }
+};
+var searchResultCache = new SearchResultCache();
+
 // src/local-vector/search-instance.ts
 var listeners = /* @__PURE__ */ new Set();
 var searchInstance = {
@@ -27832,6 +27894,7 @@ var searchInstance = {
   localSearch: null,
   documentIndexer: null,
   chromaManager: null,
+  documentSummarizer: null,
   state: {
     status: "initializing",
     chromaManager: null,
@@ -27858,13 +27921,15 @@ function subscribeServiceState(listener) {
     listeners.delete(listener);
   };
 }
-function initLocalVectorServices(embedding, store, indexer, chromaManager, state, maxInputChars) {
+function initLocalVectorServices(embedding, store, indexer, chromaManager, state, maxInputChars, summarizer) {
+  searchResultCache.clear();
   searchInstance.embeddingService = embedding;
   searchInstance.vectorStore = store;
   searchInstance.documentIndexer = indexer;
   searchInstance.chromaManager = chromaManager;
+  searchInstance.documentSummarizer = summarizer ?? null;
   if (embedding && store && embedding.isReady() && store) {
-    const search = new LocalSemanticSearch(embedding, store, maxInputChars);
+    const search = new LocalSemanticSearch(embedding, store, maxInputChars, summarizer ?? void 0);
     if (indexer)
       search.setDocumentIndexer(indexer);
     searchInstance.localSearch = search;
@@ -27877,6 +27942,182 @@ function initLocalVectorServices(embedding, store, indexer, chromaManager, state
 function updateServiceState(updates) {
   Object.assign(searchInstance.state, updates);
   notifyServiceState();
+}
+
+// src/util/i18n.ts
+var SUPPORTED_LOCALES = ["en", "zh"];
+var currentLocale = "en";
+var listeners2 = /* @__PURE__ */ new Set();
+var TRANSLATIONS = {
+  // --- Settings page: section titles ---
+  "settings.localVectorStatus": {
+    en: "Local Vector Status",
+    zh: "\u672C\u5730\u5411\u91CF\u72B6\u6001"
+  },
+  "settings.language.title": {
+    en: "Language",
+    zh: "\u8BED\u8A00"
+  },
+  "settings.language.hint": {
+    en: "Only affects the plugin's UI language.",
+    zh: "\u53EA\u5F71\u54CD\u63D2\u4EF6\u754C\u9762\u7684\u8BED\u8A00\u3002"
+  },
+  "settings.language.english": { en: "English", zh: "\u82F1\u6587" },
+  "settings.language.chinese": { en: "Chinese", zh: "\u4E2D\u6587" },
+  "settings.chroma.title": { en: "ChromaDB", zh: "ChromaDB" },
+  "settings.chroma.status": { en: "Status", zh: "\u72B6\u6001" },
+  "settings.chroma.running": { en: "Running", zh: "\u8FD0\u884C\u4E2D" },
+  "settings.chroma.stopped": { en: "Stopped", zh: "\u5DF2\u505C\u6B62" },
+  "settings.chroma.serviceStatus": { en: "Service Status", zh: "\u670D\u52A1\u72B6\u6001" },
+  "settings.chroma.indexedChunks": { en: "Indexed Chunks", zh: "\u5DF2\u7D22\u5F15\u5757\u6570" },
+  "settings.chroma.indexedFiles": { en: "Indexed Files", zh: "\u5DF2\u7D22\u5F15\u6587\u4EF6" },
+  "settings.chroma.storagePath": { en: "Storage Path", zh: "\u5B58\u50A8\u8DEF\u5F84" },
+  "settings.chroma.manualStart": { en: "Start ChromaDB manually before local search:", zh: "\u4F7F\u7528\u672C\u5730\u641C\u7D22\u524D\uFF0C\u8BF7\u624B\u52A8\u542F\u52A8 ChromaDB\uFF1A" },
+  "settings.chroma.port": { en: "Port", zh: "\u7AEF\u53E3" },
+  "common.save": { en: "Save", zh: "\u4FDD\u5B58" },
+  "common.apply": { en: "Apply", zh: "\u5E94\u7528" },
+  "common.add": { en: "Add", zh: "\u6DFB\u52A0" },
+  "common.refresh": { en: "Refresh", zh: "\u5237\u65B0" },
+  "common.copy": { en: "Copy", zh: "\u590D\u5236" },
+  "common.copiedToClipboard": { en: "Copied to clipboard", zh: "\u5DF2\u590D\u5236\u5230\u526A\u8D34\u677F" },
+  // --- License ---
+  "settings.license.title": { en: "License", zh: "\u8BB8\u53EF\u8BC1" },
+  "settings.license.plan": { en: "Current Plan", zh: "\u5F53\u524D\u8BA1\u5212" },
+  "settings.license.pageLimit": { en: "Page Limit", zh: "\u9875\u9762\u4E0A\u9650" },
+  "settings.license.freeLimit": { en: "Free Limit", zh: "\u514D\u8D39\u4E0A\u9650" },
+  "settings.license.key": { en: "License Key", zh: "\u8BB8\u53EF\u8BC1\u5BC6\u94A5" },
+  "settings.license.keyPlaceholder": { en: "Enter license key", zh: "\u8F93\u5165\u8BB8\u53EF\u8BC1\u5BC6\u94A5" },
+  "settings.license.activate": { en: "Activate", zh: "\u6FC0\u6D3B" },
+  "settings.license.activating": { en: "Activating...", zh: "\u6FC0\u6D3B\u4E2D..." },
+  "settings.license.deactivate": { en: "Deactivate", zh: "\u505C\u7528" },
+  "settings.license.deactivating": { en: "Deactivating...", zh: "\u505C\u7528\u4E2D..." },
+  "settings.license.links": { en: "License server and payment links", zh: "\u8BB8\u53EF\u8BC1\u670D\u52A1\u548C\u652F\u4ED8\u94FE\u63A5" },
+  "settings.license.serverUrl": { en: "License server URL", zh: "\u8BB8\u53EF\u8BC1\u670D\u52A1 URL" },
+  "settings.license.buyUrl": { en: "Buy license URL", zh: "\u8D2D\u4E70\u94FE\u63A5 URL" },
+  "settings.license.manageUrl": { en: "Manage license URL", zh: "\u7BA1\u7406\u94FE\u63A5 URL" },
+  "settings.license.buy": { en: "Buy License", zh: "\u8D2D\u4E70\u8BB8\u53EF\u8BC1" },
+  "settings.license.manage": { en: "Manage License", zh: "\u7BA1\u7406\u8BB8\u53EF\u8BC1" },
+  // --- Embedding model card ---
+  "settings.embedding.title": { en: "Embedding Model", zh: "\u5D4C\u5165\u6A21\u578B" },
+  "settings.embedding.model": { en: "Model", zh: "\u6A21\u578B" },
+  "settings.embedding.runHint": {
+    en: "Embedding model runs on your computer.",
+    zh: "\u5D4C\u5165\u6A21\u578B\u5728\u4F60\u672C\u673A\u8FD0\u884C\u3002"
+  },
+  "settings.embedding.switchWarning": {
+    en: "After switching, the plugin will reload and use this model's separate index. If this model has not been indexed yet, run Build/Rebuild Index.",
+    zh: "\u5207\u6362\u6A21\u578B\u540E\u4F1A\u91CD\u65B0\u52A0\u8F7D\u63D2\u4EF6\uFF0C\u5E76\u4F7F\u7528\u8BE5\u6A21\u578B\u72EC\u7ACB\u7684\u7D22\u5F15\u3002\u5982\u679C\u8FD9\u4E2A\u6A21\u578B\u8FD8\u6CA1\u6709\u7D22\u5F15\uFF0C\u8BF7\u6267\u884C Build/Rebuild Index\u3002"
+  },
+  "settings.embedding.pickerHelp": {
+    en: "Can your machine run 200M+ parameters?\n\u251C\u2500\u2500 Yes \u2192 Jina v5 Nano (239M, best STS)\n\u2502    More focused on analogical reasoning \u2192 EmbeddingGemma-300M\n\u2514\u2500\u2500 No (only <100M) \u2192 Need Chinese?\n     \u251C\u2500\u2500 Yes \u2192 bge-small-en-v1.5 (33M, mild Chinese support) or bge-small-zh\n     \u2514\u2500\u2500 No \u2192 Speed first? all-MiniLM-L6-v2 (22M)   Precision first? bge-small-en-v1.5 (33M)",
+    zh: "\u4F60\u7684\u673A\u5668\u80FD\u8DD1 200M+ \u53C2\u6570\uFF1F\n\u251C\u2500\u2500 \u662F \u2192 Jina v5 Nano\uFF08239M\uFF0CSTS \u6700\u5F3A\uFF09\n\u2502    \u66F4\u5173\u6CE8\u7C7B\u6BD4\u5173\u7CFB\u5224\u65AD \u2192 EmbeddingGemma-300M\n\u2514\u2500\u2500 \u5426\uFF08\u53EA\u80FD\u8DD1 <100M\uFF09\u2192 \u9700\u8981\u4E2D\u6587\uFF1F\n     \u251C\u2500\u2500 \u662F \u2192 bge-small-en-v1.5\uFF0833M\uFF0C\u4E2D\u6587\u53CB\u597D\uFF09\u6216 bge-small-zh\n     \u2514\u2500\u2500 \u5426 \u2192 \u8FFD\u6C42\u901F\u5EA6\uFF1Fall-MiniLM-L6-v2\uFF0822M\uFF09  \u8FFD\u6C42\u7CBE\u5EA6\uFF1Fbge-small-en-v1.5\uFF0833M\uFF09"
+  },
+  "settings.embedding.statusLabel": { en: "Status", zh: "\u72B6\u6001" },
+  "settings.embedding.ready": { en: "Ready", zh: "\u5C31\u7EEA" },
+  "settings.embedding.downloading": { en: "Downloading", zh: "\u4E0B\u8F7D\u4E2D" },
+  "settings.embedding.loading": { en: "Loading", zh: "\u52A0\u8F7D\u4E2D" },
+  "settings.embedding.error": { en: "Error", zh: "\u9519\u8BEF" },
+  "settings.embedding.initializing": { en: "Initializing...", zh: "\u521D\u59CB\u5316\u4E2D..." },
+  "settings.embedding.emptyIndexWarning": {
+    en: 'This model has no indexed documents yet. Click "Rebuild Index" below to build the vector index for this model.',
+    zh: "\u5F53\u524D\u6A21\u578B\u8FD8\u6CA1\u6709\u7D22\u5F15\u6570\u636E\u3002\u70B9\u51FB\u4E0B\u65B9\u300C\u91CD\u5EFA\u7D22\u5F15\u300D\u6309\u94AE\u4E3A\u8BE5\u6A21\u578B\u6784\u5EFA\u5411\u91CF\u7D22\u5F15\u3002"
+  },
+  // --- Summary preprocessing ---
+  "settings.summary.title": { en: "Summarize Before Embedding", zh: "\u5148\u603B\u7ED3\u518D\u5D4C\u5165" },
+  "settings.summary.enable": { en: "Enable summary preprocessing", zh: "\u542F\u7528\u6458\u8981\u9884\u5904\u7406" },
+  "settings.summary.model": { en: "Summary model", zh: "\u6458\u8981\u6A21\u578B" },
+  "settings.summary.modelHint": {
+    en: "Used only when matching from the current article; it does not rewrite the Chroma index.",
+    zh: "\u4EC5\u5728\u57FA\u4E8E\u5F53\u524D\u6587\u7AE0\u5339\u914D\u65F6\u4F7F\u7528\uFF0C\u4E0D\u4F1A\u6539\u5199 Chroma \u7D22\u5F15\u3002"
+  },
+  "settings.summary.size": { en: "Size", zh: "\u5927\u5C0F" },
+  "settings.summary.ollamaHost": { en: "Ollama host", zh: "Ollama \u5730\u5740" },
+  "settings.summary.timeout": { en: "Timeout (ms)", zh: "\u8D85\u65F6\uFF08\u6BEB\u79D2\uFF09" },
+  "settings.summary.maxInput": { en: "Max input characters", zh: "\u6700\u5927\u8F93\u5165\u5B57\u7B26\u6570" },
+  "settings.summary.prompt": { en: "Summary prompt", zh: "\u6458\u8981 Prompt" },
+  "settings.summary.promptHint": {
+    en: "Use {page_content} where the text to summarize should be inserted.",
+    zh: "\u4F7F\u7528 {page_content} \u6307\u4EE3\u4F1A\u88AB\u653E\u8FDB\u53BB\u3001\u7528\u4E8E\u6458\u8981\u7684\u6587\u672C\u5185\u5BB9\u3002"
+  },
+  "settings.summary.check": { en: "Check Ollama", zh: "\u68C0\u6D4B Ollama" },
+  "settings.summary.checking": { en: "Checking...", zh: "\u68C0\u6D4B\u4E2D..." },
+  "settings.summary.pull": { en: "Download model", zh: "\u4E0B\u8F7D\u6A21\u578B" },
+  "settings.summary.pulling": { en: "Downloading...", zh: "\u4E0B\u8F7D\u4E2D..." },
+  "settings.summary.pullDone": { en: "Summary model downloaded", zh: "\u6458\u8981\u6A21\u578B\u5DF2\u4E0B\u8F7D" },
+  "settings.summary.autoPull": { en: "Download missing model automatically", zh: "\u81EA\u52A8\u4E0B\u8F7D\u7F3A\u5931\u6A21\u578B" },
+  "settings.summary.fallback": { en: "Use original text if summary fails", zh: "\u6458\u8981\u5931\u8D25\u65F6\u4F7F\u7528\u539F\u6587\u7D22\u5F15" },
+  "settings.summary.reloadHint": { en: "Summary changes apply to article-based matching only; existing indexes are unchanged.", zh: "\u6458\u8981\u8BBE\u7F6E\u53EA\u5F71\u54CD\u57FA\u4E8E\u6587\u7AE0\u7684\u5339\u914D\uFF1B\u5DF2\u6709\u7D22\u5F15\u4E0D\u4F1A\u6539\u53D8\u3002" },
+  "settings.summary.applyHint": { en: "Summary matching settings applied.", zh: "\u6458\u8981\u5339\u914D\u8BBE\u7F6E\u5DF2\u5E94\u7528\u3002" },
+  "settings.summary.modelInstalled": { en: "Selected model is installed.", zh: "\u6240\u9009\u6A21\u578B\u5DF2\u5B89\u88C5\u3002" },
+  "settings.summary.modelMissing": { en: "Selected model is not installed.", zh: "\u6240\u9009\u6A21\u578B\u5C1A\u672A\u5B89\u88C5\u3002" },
+  // --- Search view ---
+  "search.articleSummaryQueryTitle": {
+    en: "Query based on the following text",
+    zh: "\u57FA\u4E8E\u4EE5\u4E0B\u6587\u7AE0\u6458\u8981\u5339\u914D"
+  },
+  // --- Exclude / index management ---
+  "settings.exclude.title": { en: "No-index Paths", zh: "\u4E0D\u7D22\u5F15\u7684\u8DEF\u5F84" },
+  "settings.exclude.hint": {
+    en: "Use vault-relative paths. A folder path excludes that folder and everything inside.",
+    zh: "\u4F7F\u7528 vault \u5185\u7684\u76F8\u5BF9\u8DEF\u5F84\u3002\u6587\u4EF6\u5939\u8DEF\u5F84\u4F1A\u6392\u9664\u8BE5\u76EE\u5F55\u53CA\u5B50\u76EE\u5F55\u4E0B\u6240\u6709\u6587\u4EF6\u3002"
+  },
+  "settings.exclude.empty": { en: "No excluded paths yet", zh: "\u8FD8\u6CA1\u6709\u6392\u9664\u4EFB\u4F55\u8DEF\u5F84" },
+  "settings.exclude.placeholder": {
+    en: "e.g. Daily or Archive/old-note.md",
+    zh: "\u4F8B\u5982 \u6BCF\u65E5\u521B\u4F5C \u6216 Archive/old-note.md"
+  },
+  "settings.exclude.pathsCount": {
+    en: "paths excluded",
+    zh: "\u6761\u8DEF\u5F84\u5DF2\u6392\u9664"
+  },
+  "settings.actions.continueIndex": { en: "Continue Index", zh: "\u7EE7\u7EED\u7D22\u5F15" },
+  "settings.actions.indexing": { en: "Indexing...", zh: "\u7D22\u5F15\u4E2D..." },
+  "settings.actions.stopIndex": { en: "Stop", zh: "\u505C\u6B62" },
+  "settings.actions.stoppingIndex": { en: "Stopping...", zh: "\u505C\u6B62\u4E2D..." },
+  "settings.actions.indexStopped": { en: "Indexing stopped", zh: "\u7D22\u5F15\u5DF2\u505C\u6B62" },
+  "settings.actions.rebuildIndex": { en: "Rebuild Index", zh: "\u91CD\u5EFA\u7D22\u5F15" },
+  "settings.actions.clearIndex": { en: "Clear Index", zh: "\u6E05\u7A7A\u7D22\u5F15" },
+  "settings.docs.title": { en: "Document Index Management", zh: "\u6587\u6863\u7D22\u5F15\u7BA1\u7406" },
+  "settings.docs.searchPlaceholder": { en: "Search files...", zh: "\u641C\u7D22\u6587\u4EF6..." },
+  "settings.docs.filter.all": { en: "All", zh: "\u5168\u90E8" },
+  "settings.docs.filter.indexed": { en: "Indexed", zh: "\u5DF2\u7D22\u5F15" },
+  "settings.docs.filter.outdated": { en: "Outdated", zh: "\u8FC7\u671F" },
+  "settings.docs.filter.unindexed": { en: "Unindexed", zh: "\u672A\u7D22\u5F15" },
+  "settings.docs.noFiles": { en: "No files found", zh: "\u6CA1\u6709\u627E\u5230\u6587\u4EF6" },
+  "settings.docs.chunks": { en: "chunks", zh: "\u5757" },
+  "settings.docs.muted": { en: "Muted", zh: "\u5DF2\u9759\u97F3" },
+  "settings.docs.mute": { en: "Mute", zh: "\u9759\u97F3" },
+  "settings.docs.unmute": { en: "Unmute", zh: "\u53D6\u6D88\u9759\u97F3" },
+  "settings.docs.reindex": { en: "Re-index", zh: "\u91CD\u65B0\u7D22\u5F15" },
+  "settings.docs.index": { en: "Index", zh: "\u7D22\u5F15" },
+  "settings.docs.showMore": { en: "Show more", zh: "\u663E\u793A\u66F4\u591A" },
+  "settings.docs.showing": { en: "Showing", zh: "\u663E\u793A" },
+  "settings.docs.of": { en: "of", zh: "/" },
+  "settings.docs.files": { en: "files", zh: "\u4E2A\u6587\u4EF6" },
+  "settings.rebuild.progress": { en: "Rebuild Progress", zh: "\u91CD\u5EFA\u8FDB\u5EA6" }
+};
+function setLocale(locale) {
+  if (!SUPPORTED_LOCALES.includes(locale))
+    return;
+  if (locale === currentLocale)
+    return;
+  currentLocale = locale;
+  listeners2.forEach((cb) => {
+    try {
+      cb(locale);
+    } catch {
+    }
+  });
+}
+function onLocaleChange(cb) {
+  listeners2.add(cb);
+  return () => listeners2.delete(cb);
+}
+function t2(key) {
+  const entry = TRANSLATIONS[key];
+  if (!entry)
+    return key;
+  return entry[currentLocale] ?? entry.en ?? key;
 }
 
 // src/SmartConnection.tsx
@@ -27901,14 +28142,51 @@ function getServiceStatusMessage(state) {
 var SmartConnection = ({ activeFile }) => {
   const [searchInputValue, setSearchInputValue] = (0, import_react4.useState)("");
   const [searchResults, setSearchResults] = (0, import_react4.useState)([]);
+  const [documentQueryText, setDocumentQueryText] = (0, import_react4.useState)("");
+  const [isSummaryHovered, setIsSummaryHovered] = (0, import_react4.useState)(false);
   const [isLoading, setIsLoading] = (0, import_react4.useState)(false);
   const [serviceState, setServiceState] = (0, import_react4.useState)({ ...searchInstance.state });
+  const [, setLocaleVersion] = (0, import_react4.useState)(0);
   const { workspace } = useApp();
   const serviceReady = serviceState.status === "ready";
+  const getSearchCacheKey = (query, topK) => {
+    const trimmedQuery = query.trim();
+    if (trimmedQuery === "" && activeFile) {
+      return {
+        mode: "document",
+        path: activeFile.path,
+        mtime: activeFile.stat?.mtime,
+        topK,
+        model: serviceState.activeModel
+      };
+    }
+    if (trimmedQuery !== "") {
+      return {
+        mode: "query",
+        query: trimmedQuery,
+        activePath: activeFile?.path,
+        mtime: activeFile?.stat?.mtime,
+        topK,
+        model: serviceState.activeModel
+      };
+    }
+    return null;
+  };
   const handleSearch = (event) => {
     if (event.keyCode === 13 || event.key === "Enter") {
       event.preventDefault();
       performSearch(searchInputValue);
+    }
+  };
+  const copyDocumentQueryText = async () => {
+    if (!documentQueryText)
+      return;
+    try {
+      await navigator.clipboard.writeText(documentQueryText);
+      new import_obsidian.Notice(t2("common.copiedToClipboard"));
+    } catch (err) {
+      console.error(`${SEARCH_LOG_PREFIX} copy-query-text-failed`, err);
+      new import_obsidian.Notice("\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u624B\u52A8\u9009\u62E9\u6587\u672C\u590D\u5236\u3002");
     }
   };
   const performSearch = async (query) => {
@@ -27924,10 +28202,23 @@ var SmartConnection = ({ activeFile }) => {
     const mode = trimmedQuery === "" && activeFile ? "document" : "query";
     if (trimmedQuery === "" && !activeFile) {
       setSearchResults([]);
+      setDocumentQueryText("");
       console.log(`${SEARCH_LOG_PREFIX} skipped`, {
         mode: "empty-query",
         reason: "No active file and no query text"
       });
+      return;
+    }
+    const topK = 10;
+    const cacheKey = getSearchCacheKey(query, topK);
+    const cachedEntry = cacheKey ? searchResultCache.get(cacheKey) : null;
+    if (cachedEntry) {
+      setSearchResults(cachedEntry.results);
+      setDocumentQueryText(mode === "document" ? cachedEntry.queryText || "" : "");
+      console.log(
+        `${SEARCH_LOG_PREFIX} cache-hit`,
+        mode === "document" ? { mode, path: activeFile.path, resultCount: cachedEntry.results.length } : { mode, query: compactSearchText(trimmedQuery), resultCount: cachedEntry.results.length }
+      );
       return;
     }
     console.log(
@@ -27937,14 +28228,21 @@ var SmartConnection = ({ activeFile }) => {
     setIsLoading(true);
     try {
       let results;
+      let queryText = "";
       if (mode === "document" && activeFile) {
-        results = await searchInstance.localSearch.searchByDocument(activeFile, 10);
+        const response = await searchInstance.localSearch.searchByDocumentWithQueryText(activeFile, topK);
+        results = response.results;
+        queryText = response.queryText || "";
       } else {
-        results = await searchInstance.localSearch.searchByQuery(trimmedQuery, 10);
+        results = await searchInstance.localSearch.searchByQuery(trimmedQuery, topK);
       }
       if (activeFile) {
         results = results.filter((r3) => r3.path !== activeFile.path);
       }
+      if (cacheKey) {
+        searchResultCache.set(cacheKey, { results, queryText });
+      }
+      setDocumentQueryText(mode === "document" ? queryText : "");
       setSearchResults(results);
       console.log(`${SEARCH_LOG_PREFIX} success`, {
         mode,
@@ -27962,11 +28260,20 @@ var SmartConnection = ({ activeFile }) => {
     }
   };
   (0, import_react4.useEffect)(() => {
-    setSearchResults([]);
-  }, [activeFile]);
+    const cacheKey = getSearchCacheKey(searchInputValue, 10);
+    const cachedEntry = cacheKey ? searchResultCache.get(cacheKey) : null;
+    setSearchResults(cachedEntry?.results || []);
+    setDocumentQueryText(cacheKey?.mode === "document" ? cachedEntry?.queryText || "" : "");
+    setIsSummaryHovered(false);
+  }, [activeFile, serviceState.activeModel]);
   (0, import_react4.useEffect)(() => {
     return subscribeServiceState((state) => {
       setServiceState(state);
+    });
+  }, []);
+  (0, import_react4.useEffect)(() => {
+    return onLocaleChange(() => {
+      setLocaleVersion((version) => version + 1);
     });
   }, []);
   const statusMsg = getServiceStatusMessage(serviceState);
@@ -27992,17 +28299,68 @@ var SmartConnection = ({ activeFile }) => {
       ),
       /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "absolute inset-y-0 right-1.5 flex items-center", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "text-[#444444] text-xs", children: "Enter \u21B5" }) })
     ] }),
-    activeFile && serviceReady && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "mt-2", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
-      Button,
-      {
-        variant: "secondary",
-        size: "sm",
-        className: "w-full text-xs",
-        disabled: isLoading,
-        onClick: () => performSearch(""),
-        children: "\u57FA\u4E8E\u6587\u7AE0\u5185\u5BB9\u641C\u7D22"
-      }
-    ) }),
+    activeFile && serviceReady && /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "mt-2", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+        Button,
+        {
+          variant: "secondary",
+          size: "sm",
+          className: "w-full text-xs",
+          disabled: isLoading,
+          onClick: () => performSearch(""),
+          children: "\u57FA\u4E8E\u6587\u7AE0\u5185\u5BB9\u641C\u7D22"
+        }
+      ),
+      documentQueryText && /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+        Card,
+        {
+          className: "relative mt-2 overflow-hidden",
+          style: {
+            backgroundColor: "#f6f6f6",
+            borderColor: "#e2e2e2",
+            borderRadius: "14px"
+          },
+          onMouseEnter: () => setIsSummaryHovered(true),
+          onMouseMove: () => setIsSummaryHovered(true),
+          onMouseLeave: () => setIsSummaryHovered(false),
+          onPointerEnter: () => setIsSummaryHovered(true),
+          onPointerLeave: () => setIsSummaryHovered(false),
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CardHeader, { className: "px-3 py-2.5", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CardTitle, { className: "m-0 text-sm leading-5", children: t2("search.articleSummaryQueryTitle") }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CardContent, { className: "px-3 pt-0", style: { paddingBottom: "42px" }, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "max-h-[400px] overflow-y-auto whitespace-pre-wrap break-all pr-1 text-sm leading-5 text-[#444444]", children: documentQueryText }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+              Button,
+              {
+                type: "button",
+                variant: "ghost",
+                size: "icon",
+                title: t2("common.copy"),
+                "aria-label": t2("common.copy"),
+                className: "absolute border border-[#e5e5e5] bg-white text-[#444444] shadow-md hover:bg-[#f5f5f5]",
+                style: {
+                  position: "absolute",
+                  right: "12px",
+                  bottom: "12px",
+                  width: "34px",
+                  height: "34px",
+                  borderRadius: "9999px",
+                  backgroundColor: "rgba(255, 255, 255, 0.96)",
+                  opacity: isSummaryHovered ? 1 : 0,
+                  visibility: isSummaryHovered ? "visible" : "hidden",
+                  pointerEvents: isSummaryHovered ? "auto" : "none",
+                  zIndex: 2,
+                  transition: "opacity 120ms ease, transform 120ms ease"
+                },
+                onMouseEnter: () => setIsSummaryHovered(true),
+                onFocus: () => setIsSummaryHovered(true),
+                onClick: copyDocumentQueryText,
+                children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Copy, { className: "h-4 w-4" })
+              }
+            )
+          ]
+        }
+      )
+    ] }),
     /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { children: isLoading ? Loading("\u6B63\u5728\u641C\u7D22...") : searchResults?.length ? searchResults.map((item, index) => /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "pt-2", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
       Card,
       {
@@ -28047,16 +28405,16 @@ function Badge({ className, variant, ...props }) {
 }
 
 // src/model/Consts.ts
-var appVersion = "1.0.0";
+var appVersion = "1.0.3";
 var AnalogyIconId = "analogy-icon";
 var icon = `<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-<path d="M24.2863 16.6665C9.75459 20.7972 8.37048 25.8201 8.37048 25.8201L8.59448 18.2744C11.7214 18.977 15.6838 18.4443 24.2863 15.5554C32.8889 12.6665 36.2222 7.55549 36.2222 7.55549L41.1111 13.9999C41.1111 13.9999 35.0889 13.5959 24.2863 16.6665Z" fill="currentColor" opacity="0.25"/>
-<path d="M31.3332 26.4446C40.1379 15.0715 36.6665 7.55566 36.6665 7.55566L42.8887 12.6668C38.7152 16.3404 38.5629 19.1486 32.6665 26.4446C26.7701 33.7405 25.2945 43.1894 25.2945 43.1894L19.7839 40.6315C19.7839 40.6315 24.4583 35.3248 31.3332 26.4446Z" fill="currentColor" opacity="0.25"/>
-<path d="M14.6969 32.7221C10.4173 27.5911 5.27418 25.7405 5.27418 25.7405L10.2889 19.7292C13.0125 24.1946 10.1551 25.3844 15.9611 32.4376C21.767 39.4908 24.7406 40.0327 24.7406 40.0327L19.7928 43.2164C19.7928 43.2164 17.4768 36.055 14.6969 32.7221Z" fill="currentColor" opacity="0.25"/>
-<circle cx="39.6011" cy="10.268" r="4.12263" transform="rotate(-42.1904 39.6011 10.268)" fill="currentColor"/>
-<circle cx="22.5407" cy="41.8668" r="3.06552" transform="rotate(-42.1904 22.5407 41.8668)" fill="currentColor" opacity="0.5"/>
-<circle cx="6.90143" cy="22.0068" r="4.09621" transform="rotate(-42.1904 6.90143 22.0068)" fill="currentColor" opacity="0.85"/>
-<path d="M27.5128 26.1987C27.0861 25.0325 26.6594 23.8236 26.2328 22.5721C25.8345 21.2921 25.4079 19.9267 24.9528 18.4761C24.4976 17.0254 24.1848 16.0298 24.0141 15.4894C22.6488 19.7845 21.3972 23.3401 20.2594 26.1561C22.0799 26.213 23.4736 26.2414 24.4408 26.2414C25.9199 26.2414 26.9439 26.2272 27.5128 26.1987ZM23.5448 29.3987C22.8052 29.3987 21.2692 29.3703 18.9368 29.3134C17.0879 34.0636 15.9501 37.221 15.5234 38.7854C12.9919 38.501 11.7261 37.9178 11.7261 37.0361C11.7261 36.6378 12.3234 35.0307 13.5181 32.2147C14.7412 29.3703 16.2203 25.7578 17.9554 21.3774C19.6905 16.997 21.0559 13.1143 22.0514 9.7294C22.6203 9.64407 23.3599 9.6014 24.2701 9.6014C25.0096 9.6014 25.5785 9.75785 25.9768 10.0707C26.4034 10.3552 26.7732 10.9525 27.0861 11.8627C29.2763 18.6894 30.8692 23.3827 31.8648 25.9427C33.9981 31.4894 35.6052 35.3294 36.6861 37.4627C35.6052 38.0316 34.695 38.3161 33.9554 38.3161C32.7608 38.3161 31.9359 37.9321 31.4808 37.1641C31.1394 36.2823 30.6559 34.9881 30.0301 33.2814C29.4328 31.5463 28.9634 30.2236 28.6221 29.3134C25.8345 29.3703 24.1421 29.3987 23.5448 29.3987Z" fill="currentColor"/>
+  <path d="M24.2863 16.6665C9.75459 20.7972 8.37048 25.8201 8.37048 25.8201L8.59448 18.2744C11.7214 18.977 15.6838 18.4443 24.2863 15.5554C32.8889 12.6665 36.2222 7.55549 36.2222 7.55549L41.1111 13.9999C41.1111 13.9999 35.0889 13.5959 24.2863 16.6665Z" fill="currentColor" opacity="0.25"/>
+  <path d="M31.3332 26.4446C40.1379 15.0715 36.6665 7.55566 36.6665 7.55566L42.8887 12.6668C38.7152 16.3404 38.5629 19.1486 32.6665 26.4446C26.7701 33.7405 25.2945 43.1894 25.2945 43.1894L19.7839 40.6315C19.7839 40.6315 24.4583 35.3248 31.3332 26.4446Z" fill="currentColor" opacity="0.25"/>
+  <path d="M14.6969 32.7221C10.4173 27.5911 5.27418 25.7405 5.27418 25.7405L10.2889 19.7292C13.0125 24.1946 10.1551 25.3844 15.9611 32.4376C21.767 39.4908 24.7406 40.0327 24.7406 40.0327L19.7928 43.2164C19.7928 43.2164 17.4768 36.055 14.6969 32.7221Z" fill="currentColor" opacity="0.25"/>
+  <circle cx="39.6011" cy="10.268" r="4.12263" transform="rotate(-42.1904 39.6011 10.268)" fill="currentColor"/>
+  <circle cx="22.5407" cy="41.8668" r="3.06552" transform="rotate(-42.1904 22.5407 41.8668)" fill="currentColor" opacity="0.5"/>
+  <circle cx="6.90143" cy="22.0068" r="4.09621" transform="rotate(-42.1904 6.90143 22.0068)" fill="currentColor" opacity="0.85"/>
+  <path d="M27.5128 26.1987C27.0861 25.0325 26.6594 23.8236 26.2328 22.5721C25.8345 21.2921 25.4079 19.9267 24.9528 18.4761C24.4976 17.0254 24.1848 16.0298 24.0141 15.4894C22.6488 19.7845 21.3972 23.3401 20.2594 26.1561C22.0799 26.213 23.4736 26.2414 24.4408 26.2414C25.9199 26.2414 26.9439 26.2272 27.5128 26.1987ZM23.5448 29.3987C22.8052 29.3987 21.2692 29.3703 18.9368 29.3134C17.0879 34.0636 15.9501 37.221 15.5234 38.7854C12.9919 38.501 11.7261 37.9178 11.7261 37.0361C11.7261 36.6378 12.3234 35.0307 13.5181 32.2147C14.7412 29.3703 16.2203 25.7578 17.9554 21.3774C19.6905 16.997 21.0559 13.1143 22.0514 9.7294C22.6203 9.64407 23.3599 9.6014 24.2701 9.6014C25.0096 9.6014 25.5785 9.75785 25.9768 10.0707C26.4034 10.3552 26.7732 10.9525 27.0861 11.8627C29.2763 18.6894 30.8692 23.3827 31.8648 25.9427C33.9981 31.4894 35.6052 35.3294 36.6861 37.4627C35.6052 38.0316 34.695 38.3161 33.9554 38.3161C32.7608 38.3161 31.9359 37.9321 31.4808 37.1641C31.1394 36.2823 30.6559 34.9881 30.0301 33.2814C29.4328 31.5463 28.9634 30.2236 28.6221 29.3134C25.8345 29.3703 24.1421 29.3987 23.5448 29.3987Z" fill="currentColor"/>
 </svg>`;
 
 // src/HomeView.tsx
@@ -28220,11 +28578,17 @@ function withTimeout(promise, timeoutMs, label) {
 function isEmbeddingTimeout(err) {
   return /timed out after/i.test(err?.message || String(err));
 }
+function isDisposedSessionError(err) {
+  return /Session already disposed/i.test(err?.message || String(err));
+}
 var LocalEmbeddingService = class {
   constructor(options) {
     this.embedder = null;
     this.ready = false;
     this.inferenceCount = 0;
+    this.activeOperations = 0;
+    this.idleResolvers = [];
+    this.resetPromise = null;
     this.options = options;
   }
   async loadPipeline() {
@@ -28267,15 +28631,21 @@ var LocalEmbeddingService = class {
   async resetSession() {
     if (!this.ready)
       return;
-    try {
-      if (this.embedder?.dispose) {
-        await this.embedder.dispose();
-      }
-    } catch {
+    if (this.resetPromise) {
+      await this.resetPromise;
+      return;
     }
-    this.embedder = null;
-    this.embedder = await this.loadPipeline();
-    this.inferenceCount = 0;
+    this.resetPromise = (async () => {
+      await this.waitForIdle();
+      this.inferenceCount = 0;
+    })();
+    try {
+      await this.resetPromise;
+    } finally {
+      if (this.resetPromise) {
+        this.resetPromise = null;
+      }
+    }
   }
   getInferenceCount() {
     return this.inferenceCount;
@@ -28292,17 +28662,34 @@ var LocalEmbeddingService = class {
       return text;
     return text.slice(0, limit);
   }
-  async embed(text) {
-    if (!this.embedder) {
-      throw new Error("Embedding model not initialized");
+  async runWithSession(operation) {
+    while (this.resetPromise) {
+      await this.resetPromise;
     }
-    const result = await withTimeout(
-      this.embedder(this.truncate(text), { pooling: "mean", normalize: true }),
-      EMBEDDING_TIMEOUT_MS,
-      "Embedding inference"
-    );
-    this.inferenceCount++;
-    return Array.from(result.data);
+    this.activeOperations++;
+    try {
+      return await operation();
+    } finally {
+      this.activeOperations--;
+      if (this.activeOperations === 0) {
+        for (const resolve of this.idleResolvers.splice(0)) {
+          resolve();
+        }
+      }
+    }
+  }
+  waitForIdle() {
+    if (this.activeOperations === 0) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+      this.idleResolvers.push(resolve);
+    });
+  }
+  async embed(text) {
+    return this.runWithSession(async () => {
+      return this.embedWithCurrentSession(this.truncate(text), "Embedding inference");
+    });
   }
   async embedQuery(text) {
     const prefix = this.options.modelConfig.queryPrefix;
@@ -28313,58 +28700,83 @@ var LocalEmbeddingService = class {
     return this.embed(prefix ? prefix + text : text);
   }
   async embedBatch(texts) {
-    if (!this.embedder)
+    return this.runWithSession(async () => {
+      if (!this.embedder)
+        throw new Error("Embedding model not initialized");
+      if (texts.length === 0)
+        return [];
+      if (texts.length === 1) {
+        return [
+          await this.embedWithCurrentSession(
+            this.truncate(this.formatDocumentInput(texts[0])),
+            "Embedding inference"
+          )
+        ];
+      }
+      const results = [];
+      try {
+        for (let i2 = 0; i2 < texts.length; ) {
+          const batch = [];
+          let batchChars = 0;
+          while (i2 < texts.length && batch.length < MAX_EMBED_BATCH_SIZE) {
+            const text = this.truncate(this.formatDocumentInput(texts[i2]));
+            const wouldExceedBudget = batch.length > 0 && batchChars + text.length > MAX_EMBED_BATCH_CHARS;
+            if (wouldExceedBudget)
+              break;
+            batch.push(text);
+            batchChars += text.length;
+            i2++;
+          }
+          if (batch.length === 0) {
+            batch.push(this.truncate(this.formatDocumentInput(texts[i2])));
+            i2++;
+          }
+          const output = await withTimeout(
+            this.embedder(batch, { pooling: "mean", normalize: true }),
+            EMBEDDING_TIMEOUT_MS,
+            `Embedding batch inference (${batch.length} texts)`
+          );
+          this.inferenceCount++;
+          if (output.dims.length !== 2 || output.dims[0] !== batch.length) {
+            throw new Error(`Unexpected embedding output shape: [${output.dims}], expected [${batch.length}, dim]`);
+          }
+          const dim = output.dims[1];
+          for (let j2 = 0; j2 < batch.length; j2++) {
+            const start = j2 * dim;
+            results.push(Array.from(output.data.slice(start, start + dim)));
+          }
+          if (i2 < texts.length)
+            await new Promise((r3) => setTimeout(r3, 100));
+        }
+      } catch (err) {
+        if (isEmbeddingTimeout(err) || isDisposedSessionError(err)) {
+          throw err;
+        }
+        results.length = 0;
+        for (const text of texts) {
+          results.push(
+            await this.embedWithCurrentSession(
+              this.truncate(this.formatDocumentInput(text)),
+              "Embedding inference"
+            )
+          );
+          await new Promise((r3) => setTimeout(r3, 10));
+        }
+      }
+      return results;
+    });
+  }
+  async embedWithCurrentSession(input, label) {
+    if (!this.embedder) {
       throw new Error("Embedding model not initialized");
-    if (texts.length === 0)
-      return [];
-    if (texts.length === 1)
-      return [await this.embedDocument(texts[0])];
-    const results = [];
-    try {
-      for (let i2 = 0; i2 < texts.length; ) {
-        const batch = [];
-        let batchChars = 0;
-        while (i2 < texts.length && batch.length < MAX_EMBED_BATCH_SIZE) {
-          const text = this.truncate(this.formatDocumentInput(texts[i2]));
-          const wouldExceedBudget = batch.length > 0 && batchChars + text.length > MAX_EMBED_BATCH_CHARS;
-          if (wouldExceedBudget)
-            break;
-          batch.push(text);
-          batchChars += text.length;
-          i2++;
-        }
-        if (batch.length === 0) {
-          batch.push(this.truncate(this.formatDocumentInput(texts[i2])));
-          i2++;
-        }
-        const output = await withTimeout(
-          this.embedder(batch, { pooling: "mean", normalize: true }),
-          EMBEDDING_TIMEOUT_MS,
-          `Embedding batch inference (${batch.length} texts)`
-        );
-        this.inferenceCount++;
-        if (output.dims.length !== 2 || output.dims[0] !== batch.length) {
-          throw new Error(`Unexpected embedding output shape: [${output.dims}], expected [${batch.length}, dim]`);
-        }
-        const dim = output.dims[1];
-        for (let j2 = 0; j2 < batch.length; j2++) {
-          const start = j2 * dim;
-          results.push(Array.from(output.data.slice(start, start + dim)));
-        }
-        if (i2 < texts.length)
-          await new Promise((r3) => setTimeout(r3, 100));
-      }
-    } catch (err) {
-      if (isEmbeddingTimeout(err)) {
-        throw err;
-      }
-      results.length = 0;
-      for (const text of texts) {
-        results.push(await this.embedDocument(text));
-        await new Promise((r3) => setTimeout(r3, 10));
-      }
     }
-    return results;
+    const result = await withTimeout(
+      this.embedder(input, { pooling: "mean", normalize: true }),
+      EMBEDDING_TIMEOUT_MS,
+      label
+    );
+    this.inferenceCount++;
+    return Array.from(result.data);
   }
   formatDocumentInput(text) {
     const prefix = this.options.modelConfig.documentPrefix;
@@ -28514,142 +28926,197 @@ function headersToRecord(headers) {
   return headers;
 }
 
-// src/util/i18n.ts
-var SUPPORTED_LOCALES = ["en", "zh"];
-var currentLocale = "en";
-var listeners2 = /* @__PURE__ */ new Set();
-var TRANSLATIONS = {
-  // --- Settings page: section titles ---
-  "settings.localVectorStatus": {
-    en: "Local Vector Status",
-    zh: "\u672C\u5730\u5411\u91CF\u72B6\u6001"
-  },
-  "settings.language.title": {
-    en: "Language",
-    zh: "\u8BED\u8A00"
-  },
-  "settings.language.hint": {
-    en: "Only affects the plugin's UI language.",
-    zh: "\u53EA\u5F71\u54CD\u63D2\u4EF6\u754C\u9762\u7684\u8BED\u8A00\u3002"
-  },
-  "settings.language.english": { en: "English", zh: "\u82F1\u6587" },
-  "settings.language.chinese": { en: "Chinese", zh: "\u4E2D\u6587" },
-  "settings.chroma.title": { en: "ChromaDB", zh: "ChromaDB" },
-  "settings.chroma.status": { en: "Status", zh: "\u72B6\u6001" },
-  "settings.chroma.running": { en: "Running", zh: "\u8FD0\u884C\u4E2D" },
-  "settings.chroma.stopped": { en: "Stopped", zh: "\u5DF2\u505C\u6B62" },
-  "settings.chroma.serviceStatus": { en: "Service Status", zh: "\u670D\u52A1\u72B6\u6001" },
-  "settings.chroma.indexedChunks": { en: "Indexed Chunks", zh: "\u5DF2\u7D22\u5F15\u5757\u6570" },
-  "settings.chroma.indexedFiles": { en: "Indexed Files", zh: "\u5DF2\u7D22\u5F15\u6587\u4EF6" },
-  "settings.chroma.storagePath": { en: "Storage Path", zh: "\u5B58\u50A8\u8DEF\u5F84" },
-  "settings.chroma.manualStart": { en: "Start ChromaDB manually before local search:", zh: "\u4F7F\u7528\u672C\u5730\u641C\u7D22\u524D\uFF0C\u8BF7\u624B\u52A8\u542F\u52A8 ChromaDB\uFF1A" },
-  "settings.chroma.port": { en: "Port", zh: "\u7AEF\u53E3" },
-  "common.save": { en: "Save", zh: "\u4FDD\u5B58" },
-  "common.apply": { en: "Apply", zh: "\u5E94\u7528" },
-  "common.add": { en: "Add", zh: "\u6DFB\u52A0" },
-  "common.refresh": { en: "Refresh", zh: "\u5237\u65B0" },
-  // --- License ---
-  "settings.license.title": { en: "License", zh: "\u8BB8\u53EF\u8BC1" },
-  "settings.license.plan": { en: "Current Plan", zh: "\u5F53\u524D\u8BA1\u5212" },
-  "settings.license.pageLimit": { en: "Page Limit", zh: "\u9875\u9762\u4E0A\u9650" },
-  "settings.license.freeLimit": { en: "Free Limit", zh: "\u514D\u8D39\u4E0A\u9650" },
-  "settings.license.key": { en: "License Key", zh: "\u8BB8\u53EF\u8BC1\u5BC6\u94A5" },
-  "settings.license.keyPlaceholder": { en: "Enter license key", zh: "\u8F93\u5165\u8BB8\u53EF\u8BC1\u5BC6\u94A5" },
-  "settings.license.activate": { en: "Activate", zh: "\u6FC0\u6D3B" },
-  "settings.license.activating": { en: "Activating...", zh: "\u6FC0\u6D3B\u4E2D..." },
-  "settings.license.deactivate": { en: "Deactivate", zh: "\u505C\u7528" },
-  "settings.license.deactivating": { en: "Deactivating...", zh: "\u505C\u7528\u4E2D..." },
-  "settings.license.links": { en: "License server and payment links", zh: "\u8BB8\u53EF\u8BC1\u670D\u52A1\u548C\u652F\u4ED8\u94FE\u63A5" },
-  "settings.license.serverUrl": { en: "License server URL", zh: "\u8BB8\u53EF\u8BC1\u670D\u52A1 URL" },
-  "settings.license.buyUrl": { en: "Buy license URL", zh: "\u8D2D\u4E70\u94FE\u63A5 URL" },
-  "settings.license.manageUrl": { en: "Manage license URL", zh: "\u7BA1\u7406\u94FE\u63A5 URL" },
-  "settings.license.buy": { en: "Buy License", zh: "\u8D2D\u4E70\u8BB8\u53EF\u8BC1" },
-  "settings.license.manage": { en: "Manage License", zh: "\u7BA1\u7406\u8BB8\u53EF\u8BC1" },
-  // --- Embedding model card ---
-  "settings.embedding.title": { en: "Embedding Model", zh: "\u5D4C\u5165\u6A21\u578B" },
-  "settings.embedding.model": { en: "Model", zh: "\u6A21\u578B" },
-  "settings.embedding.runHint": {
-    en: "Embedding model runs on your computer.",
-    zh: "\u5D4C\u5165\u6A21\u578B\u5728\u4F60\u672C\u673A\u8FD0\u884C\u3002"
-  },
-  "settings.embedding.switchWarning": {
-    en: "After switching, the plugin will reload and use this model's separate index. If this model has not been indexed yet, run Build/Rebuild Index.",
-    zh: "\u5207\u6362\u6A21\u578B\u540E\u4F1A\u91CD\u65B0\u52A0\u8F7D\u63D2\u4EF6\uFF0C\u5E76\u4F7F\u7528\u8BE5\u6A21\u578B\u72EC\u7ACB\u7684\u7D22\u5F15\u3002\u5982\u679C\u8FD9\u4E2A\u6A21\u578B\u8FD8\u6CA1\u6709\u7D22\u5F15\uFF0C\u8BF7\u6267\u884C Build/Rebuild Index\u3002"
-  },
-  "settings.embedding.pickerHelp": {
-    en: "Can your machine run 200M+ parameters?\n\u251C\u2500\u2500 Yes \u2192 Jina v5 Nano (239M, best STS)\n\u2502    More focused on analogical reasoning \u2192 EmbeddingGemma-300M\n\u2514\u2500\u2500 No (only <100M) \u2192 Need Chinese?\n     \u251C\u2500\u2500 Yes \u2192 bge-small-en-v1.5 (33M, mild Chinese support) or bge-small-zh\n     \u2514\u2500\u2500 No \u2192 Speed first? all-MiniLM-L6-v2 (22M)   Precision first? bge-small-en-v1.5 (33M)",
-    zh: "\u4F60\u7684\u673A\u5668\u80FD\u8DD1 200M+ \u53C2\u6570\uFF1F\n\u251C\u2500\u2500 \u662F \u2192 Jina v5 Nano\uFF08239M\uFF0CSTS \u6700\u5F3A\uFF09\n\u2502    \u66F4\u5173\u6CE8\u7C7B\u6BD4\u5173\u7CFB\u5224\u65AD \u2192 EmbeddingGemma-300M\n\u2514\u2500\u2500 \u5426\uFF08\u53EA\u80FD\u8DD1 <100M\uFF09\u2192 \u9700\u8981\u4E2D\u6587\uFF1F\n     \u251C\u2500\u2500 \u662F \u2192 bge-small-en-v1.5\uFF0833M\uFF0C\u4E2D\u6587\u53CB\u597D\uFF09\u6216 bge-small-zh\n     \u2514\u2500\u2500 \u5426 \u2192 \u8FFD\u6C42\u901F\u5EA6\uFF1Fall-MiniLM-L6-v2\uFF0822M\uFF09  \u8FFD\u6C42\u7CBE\u5EA6\uFF1Fbge-small-en-v1.5\uFF0833M\uFF09"
-  },
-  "settings.embedding.statusLabel": { en: "Status", zh: "\u72B6\u6001" },
-  "settings.embedding.ready": { en: "Ready", zh: "\u5C31\u7EEA" },
-  "settings.embedding.downloading": { en: "Downloading", zh: "\u4E0B\u8F7D\u4E2D" },
-  "settings.embedding.loading": { en: "Loading", zh: "\u52A0\u8F7D\u4E2D" },
-  "settings.embedding.error": { en: "Error", zh: "\u9519\u8BEF" },
-  "settings.embedding.initializing": { en: "Initializing...", zh: "\u521D\u59CB\u5316\u4E2D..." },
-  "settings.embedding.emptyIndexWarning": {
-    en: 'This model has no indexed documents yet. Click "Rebuild Index" below to build the vector index for this model.',
-    zh: "\u5F53\u524D\u6A21\u578B\u8FD8\u6CA1\u6709\u7D22\u5F15\u6570\u636E\u3002\u70B9\u51FB\u4E0B\u65B9\u300C\u91CD\u5EFA\u7D22\u5F15\u300D\u6309\u94AE\u4E3A\u8BE5\u6A21\u578B\u6784\u5EFA\u5411\u91CF\u7D22\u5F15\u3002"
-  },
-  // --- Exclude / index management ---
-  "settings.exclude.title": { en: "No-index Paths", zh: "\u4E0D\u7D22\u5F15\u7684\u8DEF\u5F84" },
-  "settings.exclude.hint": {
-    en: "Use vault-relative paths. A folder path excludes that folder and everything inside.",
-    zh: "\u4F7F\u7528 vault \u5185\u7684\u76F8\u5BF9\u8DEF\u5F84\u3002\u6587\u4EF6\u5939\u8DEF\u5F84\u4F1A\u6392\u9664\u8BE5\u76EE\u5F55\u53CA\u5B50\u76EE\u5F55\u4E0B\u6240\u6709\u6587\u4EF6\u3002"
-  },
-  "settings.exclude.empty": { en: "No excluded paths yet", zh: "\u8FD8\u6CA1\u6709\u6392\u9664\u4EFB\u4F55\u8DEF\u5F84" },
-  "settings.exclude.placeholder": {
-    en: "e.g. Daily or Archive/old-note.md",
-    zh: "\u4F8B\u5982 \u6BCF\u65E5\u521B\u4F5C \u6216 Archive/old-note.md"
-  },
-  "settings.exclude.pathsCount": {
-    en: "paths excluded",
-    zh: "\u6761\u8DEF\u5F84\u5DF2\u6392\u9664"
-  },
-  "settings.actions.continueIndex": { en: "Continue Index", zh: "\u7EE7\u7EED\u7D22\u5F15" },
-  "settings.actions.indexing": { en: "Indexing...", zh: "\u7D22\u5F15\u4E2D..." },
-  "settings.actions.rebuildIndex": { en: "Rebuild Index", zh: "\u91CD\u5EFA\u7D22\u5F15" },
-  "settings.actions.clearIndex": { en: "Clear Index", zh: "\u6E05\u7A7A\u7D22\u5F15" },
-  "settings.docs.title": { en: "Document Index Management", zh: "\u6587\u6863\u7D22\u5F15\u7BA1\u7406" },
-  "settings.docs.searchPlaceholder": { en: "Search files...", zh: "\u641C\u7D22\u6587\u4EF6..." },
-  "settings.docs.filter.all": { en: "All", zh: "\u5168\u90E8" },
-  "settings.docs.filter.indexed": { en: "Indexed", zh: "\u5DF2\u7D22\u5F15" },
-  "settings.docs.filter.outdated": { en: "Outdated", zh: "\u8FC7\u671F" },
-  "settings.docs.filter.unindexed": { en: "Unindexed", zh: "\u672A\u7D22\u5F15" },
-  "settings.docs.noFiles": { en: "No files found", zh: "\u6CA1\u6709\u627E\u5230\u6587\u4EF6" },
-  "settings.docs.chunks": { en: "chunks", zh: "\u5757" },
-  "settings.docs.muted": { en: "Muted", zh: "\u5DF2\u9759\u97F3" },
-  "settings.docs.mute": { en: "Mute", zh: "\u9759\u97F3" },
-  "settings.docs.unmute": { en: "Unmute", zh: "\u53D6\u6D88\u9759\u97F3" },
-  "settings.docs.reindex": { en: "Re-index", zh: "\u91CD\u65B0\u7D22\u5F15" },
-  "settings.docs.index": { en: "Index", zh: "\u7D22\u5F15" },
-  "settings.docs.showMore": { en: "Show more", zh: "\u663E\u793A\u66F4\u591A" },
-  "settings.docs.showing": { en: "Showing", zh: "\u663E\u793A" },
-  "settings.docs.of": { en: "of", zh: "/" },
-  "settings.docs.files": { en: "files", zh: "\u4E2A\u6587\u4EF6" },
-  "settings.rebuild.progress": { en: "Rebuild Progress", zh: "\u91CD\u5EFA\u8FDB\u5EA6" }
-};
-function setLocale(locale) {
-  if (!SUPPORTED_LOCALES.includes(locale))
-    return;
-  if (locale === currentLocale)
-    return;
-  currentLocale = locale;
-  listeners2.forEach((cb) => {
+// src/local-vector/ollama-client.ts
+var OllamaClient = class {
+  constructor(options) {
+    this.host = (options.host || "http://127.0.0.1:11434").replace(/\/+$/, "");
+    this.timeoutMs = options.timeoutMs;
+  }
+  async isAvailable() {
     try {
-      cb(locale);
+      await this.listModels();
+      return true;
     } catch {
+      return false;
     }
-  });
-}
-function onLocaleChange(cb) {
-  listeners2.add(cb);
-  return () => listeners2.delete(cb);
-}
-function t2(key) {
-  const entry = TRANSLATIONS[key];
-  if (!entry)
-    return key;
-  return entry[currentLocale] ?? entry.en ?? key;
+  }
+  async listModels() {
+    const json = await this.requestJson("GET", "/api/tags");
+    return Array.isArray(json.models) ? json.models : [];
+  }
+  async showModel(model) {
+    return this.requestJson("POST", "/api/show", { model });
+  }
+  async pullModel(model, onProgress) {
+    const response = await this.request("POST", "/api/pull", { model, stream: true });
+    const text = await response.text();
+    for (const line of text.split(/\n+/).filter(Boolean)) {
+      const event = JSON.parse(line);
+      onProgress?.(event);
+    }
+  }
+  async generate(input) {
+    const json = await this.requestJson("POST", "/api/generate", {
+      model: input.model,
+      prompt: input.prompt,
+      stream: false,
+      options: input.options ?? { temperature: 0.2 }
+    });
+    return String(json.response || "").trim();
+  }
+  async requestJson(method, path, body) {
+    const response = await this.request(method, path, body);
+    return response.json();
+  }
+  async request(method, path, body) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      const response = await fetch(`${this.host}${path}`, {
+        method,
+        signal: controller.signal,
+        headers: body ? { "content-type": "application/json" } : void 0,
+        body: body ? JSON.stringify(body) : void 0
+      });
+      if (!response.ok) {
+        throw new Error(`Ollama ${method} ${path} failed: HTTP ${response.status}`);
+      }
+      return response;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+};
+
+// src/local-vector/document-summarizer.ts
+var SUMMARY_PROMPT_CONTENT_PLACEHOLDER = "{page_content}";
+var DEFAULT_SUMMARY_PROMPT = [
+  "Summarize the following article into a 200-word abstract.",
+  "Requirements:",
+  "1. Retain the core arguments and key conclusions",
+  "2. Do not add any content not present in the original text",
+  "3. Directly output the summary, without any prefatory explanations",
+  "4. Do not output reasoning, thinking process, analysis, or hidden chain-of-thought",
+  "Output language: Keep the same as the content's language.",
+  "content:",
+  "[\u539F\u6587]",
+  "```",
+  SUMMARY_PROMPT_CONTENT_PLACEHOLDER,
+  "```"
+].join("\n");
+var DocumentSummarizer = class {
+  constructor(options) {
+    this.options = options;
+  }
+  async summarize(text, _path) {
+    const original = text.trim();
+    if (!this.options.enabled || original.length === 0) {
+      return { text: original, usedSummary: false };
+    }
+    try {
+      const input = original.slice(0, this.options.maxInputChars);
+      const summary = this.stripOuterFence(await this.options.client.generate({
+        model: this.options.model,
+        prompt: this.buildPrompt(input),
+        options: { temperature: 0.2 }
+      }));
+      if (!summary) {
+        return { text: original, usedSummary: false, error: "empty summary" };
+      }
+      return { text: summary, usedSummary: true };
+    } catch (err) {
+      if (!this.options.fallbackToOriginal)
+        throw err;
+      return {
+        text: original,
+        usedSummary: false,
+        error: err?.message || String(err)
+      };
+    }
+  }
+  buildPrompt(content) {
+    const template = (this.options.promptTemplate || DEFAULT_SUMMARY_PROMPT).trim() || DEFAULT_SUMMARY_PROMPT;
+    if (template.includes(SUMMARY_PROMPT_CONTENT_PLACEHOLDER)) {
+      return template.split(SUMMARY_PROMPT_CONTENT_PLACEHOLDER).join(content);
+    }
+    return [template, "", "content:", "```", content, "```"].join("\n");
+  }
+  stripOuterFence(value) {
+    const trimmed = value.trim();
+    if (!trimmed.startsWith("```") || !trimmed.endsWith("```")) {
+      return trimmed;
+    }
+    let inner = trimmed.slice(3, -3).trim();
+    const firstLineBreak = inner.search(/\r?\n/);
+    if (firstLineBreak >= 0) {
+      const firstLine = inner.slice(0, firstLineBreak).trim();
+      if (/^[A-Za-z0-9_-]+$/.test(firstLine)) {
+        inner = inner.slice(firstLineBreak).trim();
+      }
+    }
+    return inner.trim();
+  }
+};
+
+// src/local-vector/summary-models.ts
+var DEFAULT_SUMMARY_MODEL_KEY = "qwen3.5:0.8b";
+var SUMMARY_MODELS = {
+  "qwen3:1.7b": {
+    label: "Qwen3-1.7B",
+    ollamaName: "qwen3:1.7b",
+    estimatedSize: "about 1.4 GB",
+    noteEn: "More stable summaries, heavier than 0.6B / 0.8B.",
+    noteZh: "\u6458\u8981\u8D28\u91CF\u66F4\u7A33\uFF0C\u901F\u5EA6\u548C\u5185\u5B58\u5360\u7528\u9AD8\u4E8E 0.6B / 0.8B\u3002"
+  },
+  "qwen3:0.6b": {
+    label: "Qwen3-0.6B",
+    ollamaName: "qwen3:0.6b",
+    estimatedSize: "about 500-600 MB",
+    noteEn: "Fast and light; summary quality is weaker.",
+    noteZh: "\u66F4\u5FEB\u66F4\u8F7B\uFF0C\u6458\u8981\u8D28\u91CF\u5F31\u4E00\u4E9B\u3002"
+  },
+  "qwen3.5:0.8b": {
+    label: "qwen3.5:0.8b",
+    ollamaName: "qwen3.5:0.8b",
+    estimatedSize: "checked by Ollama after install",
+    noteEn: "Default requested candidate. Availability is verified by local Ollama.",
+    noteZh: "\u7528\u6237\u6307\u5B9A\u7684\u9ED8\u8BA4\u5019\u9009\uFF1B\u662F\u5426\u53EF\u7528\u7531\u672C\u673A Ollama \u6821\u9A8C\u3002"
+  },
+  "qwen3.5:2b": {
+    label: "qwen3.5:2b",
+    ollamaName: "qwen3.5:2b",
+    estimatedSize: "checked by Ollama after install",
+    noteEn: "Higher quality but slower; availability is verified by local Ollama.",
+    noteZh: "\u8D28\u91CF\u66F4\u9AD8\u4F46\u66F4\u6162\uFF1B\u662F\u5426\u53EF\u7528\u7531\u672C\u673A Ollama \u6821\u9A8C\u3002"
+  },
+  "gemma3:1b": {
+    label: "gemma3:1b",
+    ollamaName: "gemma3:1b",
+    estimatedSize: "about 800 MB-1 GB",
+    noteEn: "Good lightweight multilingual summarization option.",
+    noteZh: "\u8F7B\u91CF\u591A\u8BED\u6458\u8981\u5019\u9009\uFF0C\u4F53\u79EF\u9002\u4E2D\u3002"
+  },
+  "gemma3:270m": {
+    label: "gemma3:270m",
+    ollamaName: "gemma3:270m",
+    estimatedSize: "about 291 MB",
+    noteEn: "Smallest option; fastest, but weakest quality.",
+    noteZh: "\u6700\u8F7B\u91CF\uFF0C\u9002\u5408\u4F4E\u914D\u7F6E\u673A\u5668\uFF0C\u6458\u8981\u8D28\u91CF\u6709\u9650\u3002"
+  },
+  "gemma4:e2b": {
+    label: "gemma4:e2b",
+    ollamaName: "gemma4:e2b",
+    estimatedSize: "checked by Ollama after install",
+    noteEn: "Requested candidate. Treat as a configurable Ollama tag.",
+    noteZh: "\u7528\u6237\u6307\u5B9A\u5019\u9009\uFF1B\u6309\u53EF\u914D\u7F6E Ollama tag \u5904\u7406\u3002"
+  }
+};
+function formatModelBytes(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0)
+    return "";
+  if (bytes >= 1e9)
+    return `${(bytes / 1e9).toFixed(1)} GB`;
+  return `${Math.round(bytes / 1e6)} MB`;
 }
 
 // src/license/license-api.ts
@@ -28925,7 +29392,15 @@ var DEFAULT_SETTINGS = {
   buyLicenseUrl: DEFAULT_BUY_LICENSE_URL,
   manageLicenseUrl: DEFAULT_MANAGE_LICENSE_URL,
   indexStates: {},
-  uiLanguage: "en"
+  uiLanguage: "en",
+  summarizeBeforeEmbedding: false,
+  summaryModel: DEFAULT_SUMMARY_MODEL_KEY,
+  summaryOllamaHost: "http://127.0.0.1:11434",
+  summaryAutoPullModel: false,
+  summaryTimeoutMs: 12e4,
+  summaryMaxInputChars: 12e3,
+  summaryFallbackToOriginal: true,
+  summaryPrompt: DEFAULT_SUMMARY_PROMPT
 };
 var AnalogySettingTab = class extends import_obsidian3.PluginSettingTab {
   constructor(app, plugin) {
@@ -28953,6 +29428,7 @@ function SettingDetail({ plugin, setting }) {
   const [modelReady, setModelReady] = (0, import_react7.useState)(false);
   const [modelProgress, setModelProgress] = (0, import_react7.useState)(0);
   const [isRebuilding, setIsRebuilding] = (0, import_react7.useState)(false);
+  const [isStoppingIndex, setIsStoppingIndex] = (0, import_react7.useState)(false);
   const [rebuildProgress, setRebuildProgress] = (0, import_react7.useState)(null);
   const [dbPath, setDbPath] = (0, import_react7.useState)("");
   const [lastError, setLastError] = (0, import_react7.useState)("");
@@ -28960,6 +29436,17 @@ function SettingDetail({ plugin, setting }) {
   const [portInput, setPortInput] = (0, import_react7.useState)(String(plugin.settings.chromaPort || 8e3));
   const [modelHostInput, setModelHostInput] = (0, import_react7.useState)(plugin.settings.embeddingModelHost || DEFAULT_SETTINGS.embeddingModelHost);
   const [selectedModel, setSelectedModel] = (0, import_react7.useState)(plugin.settings.embeddingModel || DEFAULT_MODEL_KEY);
+  const [selectedSummaryModel, setSelectedSummaryModel] = (0, import_react7.useState)(plugin.settings.summaryModel || DEFAULT_SUMMARY_MODEL_KEY);
+  const [summaryHostInput, setSummaryHostInput] = (0, import_react7.useState)(plugin.settings.summaryOllamaHost || DEFAULT_SETTINGS.summaryOllamaHost);
+  const [summaryTimeoutInput, setSummaryTimeoutInput] = (0, import_react7.useState)(String(plugin.settings.summaryTimeoutMs || DEFAULT_SETTINGS.summaryTimeoutMs));
+  const [summaryMaxInputChars, setSummaryMaxInputChars] = (0, import_react7.useState)(String(plugin.settings.summaryMaxInputChars || DEFAULT_SETTINGS.summaryMaxInputChars));
+  const [summaryPromptInput, setSummaryPromptInput] = (0, import_react7.useState)(plugin.settings.summaryPrompt || DEFAULT_SETTINGS.summaryPrompt);
+  const [ollamaStatus, setOllamaStatus] = (0, import_react7.useState)("idle");
+  const [ollamaMessage, setOllamaMessage] = (0, import_react7.useState)("");
+  const [installedSummarySizes, setInstalledSummarySizes] = (0, import_react7.useState)({});
+  const [isCheckingOllama, setIsCheckingOllama] = (0, import_react7.useState)(false);
+  const [isPullingSummaryModel, setIsPullingSummaryModel] = (0, import_react7.useState)(false);
+  const [summaryPullProgress, setSummaryPullProgress] = (0, import_react7.useState)("");
   const [licenseServerInput, setLicenseServerInput] = (0, import_react7.useState)(plugin.settings.licenseServerUrl || DEFAULT_LICENSE_SERVER_URL);
   const [buyLicenseInput, setBuyLicenseInput] = (0, import_react7.useState)(plugin.settings.buyLicenseUrl || DEFAULT_BUY_LICENSE_URL);
   const [manageLicenseInput, setManageLicenseInput] = (0, import_react7.useState)(plugin.settings.manageLicenseUrl || DEFAULT_MANAGE_LICENSE_URL);
@@ -28979,12 +29466,16 @@ function SettingDetail({ plugin, setting }) {
     };
   }, []);
   const activeModelConfig = EMBEDDING_MODELS[selectedModel] || EMBEDDING_MODELS[DEFAULT_MODEL_KEY];
+  const activeSummaryConfig = SUMMARY_MODELS[selectedSummaryModel] || SUMMARY_MODELS[DEFAULT_SUMMARY_MODEL_KEY];
   const modelDescription = language === "zh" ? activeModelConfig.descriptionZh : activeModelConfig.description;
+  const summaryModelNote = language === "zh" ? activeSummaryConfig.noteZh : activeSummaryConfig.noteEn;
+  const activeSummarySize = installedSummarySizes[activeSummaryConfig.ollamaName] || activeSummaryConfig.estimatedSize;
   const manualChromaCommand = `chroma run --path "${dbPath || "<plugin-data-dir>/chroma_data/<vault-id>"}" --host 127.0.0.1 --port ${portInput || "8000"}`;
   const [fileStatuses, setFileStatuses] = (0, import_react7.useState)([]);
   const [searchQuery, setSearchQuery] = (0, import_react7.useState)("");
   const [statusFilter, setStatusFilter] = (0, import_react7.useState)("all");
   const [indexingFile, setIndexingFile] = (0, import_react7.useState)(null);
+  const stopRequestedRef = (0, import_react7.useRef)(false);
   const refreshServiceStatus = async () => {
     setServiceStatus(searchInstance.state.status);
     setModelReady(searchInstance.embeddingService?.isReady() ?? false);
@@ -29073,6 +29564,7 @@ function SettingDetail({ plugin, setting }) {
       return;
     }
     setUpgradePrompt(null);
+    stopRequestedRef.current = false;
     setIsRebuilding(true);
     setRebuildProgress(null);
     try {
@@ -29083,7 +29575,9 @@ function SettingDetail({ plugin, setting }) {
           updateServiceState({ rebuildProgress: p2 });
         }
       });
-      new import_obsidian3.Notice("Index rebuilt");
+      if (!stopRequestedRef.current) {
+        new import_obsidian3.Notice("Index rebuilt");
+      }
       await refreshServiceStatus();
       refreshFileStatuses();
     } catch (err) {
@@ -29091,6 +29585,7 @@ function SettingDetail({ plugin, setting }) {
       new import_obsidian3.Notice("Rebuild failed: " + err.message);
     } finally {
       setIsRebuilding(false);
+      setIsStoppingIndex(false);
       setRebuildProgress(null);
       updateServiceState({ rebuildProgress: null });
     }
@@ -29127,6 +29622,7 @@ function SettingDetail({ plugin, setting }) {
       new import_obsidian3.Notice("No pending Markdown pages to index.");
       return;
     }
+    stopRequestedRef.current = false;
     setIsRebuilding(true);
     setRebuildProgress(null);
     try {
@@ -29136,7 +29632,9 @@ function SettingDetail({ plugin, setting }) {
           updateServiceState({ rebuildProgress: p2 });
         }
       });
-      new import_obsidian3.Notice(capacityPlan.isLimited ? "Indexed up to the free page limit. Upgrade to index the remaining pages." : "Continue index done");
+      if (!stopRequestedRef.current) {
+        new import_obsidian3.Notice(capacityPlan.isLimited ? "Indexed up to the free page limit. Upgrade to index the remaining pages." : "Continue index done");
+      }
       await refreshServiceStatus();
       refreshFileStatuses();
     } catch (err) {
@@ -29144,8 +29642,32 @@ function SettingDetail({ plugin, setting }) {
       new import_obsidian3.Notice("Continue index failed: " + err.message);
     } finally {
       setIsRebuilding(false);
+      setIsStoppingIndex(false);
       setRebuildProgress(null);
       updateServiceState({ rebuildProgress: null });
+    }
+  }
+  async function stopIndexing() {
+    const indexers = [searchInstance.documentIndexer, plugin.documentIndexer].filter(
+      (indexer, index, all) => indexer && all.indexOf(indexer) === index
+    );
+    if (indexers.length === 0)
+      return;
+    stopRequestedRef.current = true;
+    setIsStoppingIndex(true);
+    setRebuildProgress(null);
+    updateServiceState({ rebuildProgress: null });
+    try {
+      await Promise.all(indexers.map((indexer) => indexer.stop()));
+      await refreshServiceStatus();
+      refreshFileStatuses();
+      new import_obsidian3.Notice(t2("settings.actions.indexStopped"));
+    } catch (err) {
+      console.error("[Analogy] Stop index error:", err);
+      new import_obsidian3.Notice("Stop index failed: " + err.message);
+    } finally {
+      setIsStoppingIndex(false);
+      setIsRebuilding(false);
     }
   }
   async function indexSingleFile(filePath) {
@@ -29217,6 +29739,77 @@ function SettingDetail({ plugin, setting }) {
     setModelHostInput(plugin.settings.embeddingModelHost);
     await plugin.saveSettings();
     new import_obsidian3.Notice("Embedding model host saved. Reload plugin to apply.");
+  }
+  async function checkOllama() {
+    setIsCheckingOllama(true);
+    setOllamaMessage("");
+    try {
+      const client = new OllamaClient({
+        host: summaryHostInput.trim() || DEFAULT_SETTINGS.summaryOllamaHost,
+        timeoutMs: Number(summaryTimeoutInput) || DEFAULT_SETTINGS.summaryTimeoutMs
+      });
+      const models = await client.listModels();
+      const sizes = {};
+      for (const model of models) {
+        if (model.size)
+          sizes[model.name] = formatModelBytes(model.size);
+      }
+      setInstalledSummarySizes(sizes);
+      const installed = models.some((m2) => m2.name === activeSummaryConfig.ollamaName);
+      setOllamaStatus(installed ? "ready" : "error");
+      setOllamaMessage(installed ? t2("settings.summary.modelInstalled") : t2("settings.summary.modelMissing"));
+    } catch (err) {
+      setOllamaStatus("error");
+      setOllamaMessage(err.message);
+    } finally {
+      setIsCheckingOllama(false);
+    }
+  }
+  async function applySummarySettings() {
+    const summaryConfig = SUMMARY_MODELS[plugin.settings.summaryModel] || SUMMARY_MODELS[DEFAULT_SUMMARY_MODEL_KEY];
+    const client = new OllamaClient({
+      host: plugin.settings.summaryOllamaHost || DEFAULT_SETTINGS.summaryOllamaHost,
+      timeoutMs: plugin.settings.summaryTimeoutMs || DEFAULT_SETTINGS.summaryTimeoutMs
+    });
+    const summarizer = new DocumentSummarizer({
+      enabled: Boolean(plugin.settings.summarizeBeforeEmbedding),
+      model: summaryConfig.ollamaName,
+      maxInputChars: plugin.settings.summaryMaxInputChars || DEFAULT_SETTINGS.summaryMaxInputChars,
+      fallbackToOriginal: plugin.settings.summaryFallbackToOriginal !== false,
+      promptTemplate: plugin.settings.summaryPrompt || DEFAULT_SETTINGS.summaryPrompt,
+      client
+    });
+    searchInstance.documentSummarizer = summarizer;
+    if (searchInstance.localSearch) {
+      searchInstance.localSearch.setDocumentSummarizer(summarizer);
+    }
+    refreshFileStatuses();
+    new import_obsidian3.Notice(t2("settings.summary.applyHint"));
+  }
+  async function pullSummaryModel() {
+    setIsPullingSummaryModel(true);
+    setSummaryPullProgress("");
+    try {
+      const client = new OllamaClient({
+        host: summaryHostInput.trim() || DEFAULT_SETTINGS.summaryOllamaHost,
+        timeoutMs: Number(summaryTimeoutInput) || DEFAULT_SETTINGS.summaryTimeoutMs
+      });
+      await client.pullModel(activeSummaryConfig.ollamaName, (progress) => {
+        if (progress.total && progress.completed) {
+          setSummaryPullProgress(`${progress.status} ${Math.round(progress.completed / progress.total * 100)}%`);
+        } else {
+          setSummaryPullProgress(progress.status);
+        }
+      });
+      new import_obsidian3.Notice(t2("settings.summary.pullDone"));
+      await checkOllama();
+    } catch (err) {
+      new import_obsidian3.Notice(err.message);
+      setOllamaStatus("error");
+      setOllamaMessage(err.message);
+    } finally {
+      setIsPullingSummaryModel(false);
+    }
   }
   async function saveLicenseSettings() {
     const licenseServerUrl = licenseServerInput.trim().replace(/\/+$/, "");
@@ -29519,6 +30112,9 @@ function SettingDetail({ plugin, setting }) {
               }
             ),
             selectedModel !== (plugin.settings.embeddingModel || DEFAULT_MODEL_KEY) && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: async () => {
+              await searchInstance.documentIndexer?.stop();
+              await plugin.documentIndexer?.stop();
+              updateServiceState({ rebuildProgress: null });
               plugin.settings.embeddingModel = selectedModel;
               await plugin.saveSettings();
               new import_obsidian3.Notice("Embedding model changed. Reloading plugin...");
@@ -29554,6 +30150,175 @@ function SettingDetail({ plugin, setting }) {
           }
         ) }),
         modelReady && serviceStatus === "ready" && statusCounts.indexed === 0 && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-sm text-[#f59e0b] mt-2 bg-[#fffbeb] border border-[#fcd34d] rounded-md px-3 py-2", children: t2("settings.embedding.emptyIndexWarning") })
+      ] })
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(Card, { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardTitle, { className: "text-base", children: t2("settings.summary.title") }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(CardContent, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("label", { className: "flex items-center justify-between gap-3", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.summary.enable") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+            "input",
+            {
+              type: "checkbox",
+              checked: plugin.settings.summarizeBeforeEmbedding,
+              onChange: async (e2) => {
+                plugin.settings.summarizeBeforeEmbedding = e2.target.checked;
+                await plugin.saveSettings();
+                await applySummarySettings();
+              }
+            }
+          )
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-start justify-between gap-3 mt-3", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex-1 min-w-0", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.summary.model") }),
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-xs text-[#888888] mt-0.5", children: t2("settings.summary.modelHint") })
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+            "select",
+            {
+              className: "text-sm border border-[#e5e5e5] rounded-md px-2 py-1 max-w-[260px]",
+              value: selectedSummaryModel,
+              onChange: async (e2) => {
+                const next = e2.target.value;
+                setSelectedSummaryModel(next);
+                plugin.settings.summaryModel = next;
+                await plugin.saveSettings();
+                await applySummarySettings();
+              },
+              children: Object.entries(SUMMARY_MODELS).map(([key, config]) => /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("option", { value: key, children: [
+                config.label,
+                " \xB7 ",
+                installedSummarySizes[config.ollamaName] || config.estimatedSize
+              ] }, key))
+            }
+          )
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "text-sm text-[#444444] mt-2 leading-relaxed bg-[#fafafa] border border-[#f0f0f0] rounded-md px-3 py-2", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { children: summaryModelNote }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "text-xs text-[#888888] mt-1", children: [
+            t2("settings.summary.size"),
+            ": ",
+            activeSummarySize
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between gap-3 mt-3", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.summary.ollamaHost") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+            "input",
+            {
+              type: "text",
+              className: "text-sm border border-[#e5e5e5] rounded-md px-2 py-1 w-[260px] max-w-full",
+              value: summaryHostInput,
+              onChange: (e2) => setSummaryHostInput(e2.target.value),
+              onBlur: async () => {
+                const next = summaryHostInput.trim() || DEFAULT_SETTINGS.summaryOllamaHost;
+                plugin.settings.summaryOllamaHost = next.replace(/\/+$/, "");
+                setSummaryHostInput(plugin.settings.summaryOllamaHost);
+                await plugin.saveSettings();
+                await applySummarySettings();
+              }
+            }
+          )
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "grid grid-cols-2 gap-2 mt-3", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("label", { className: "text-sm text-[#444444]", children: [
+            t2("settings.summary.timeout"),
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+              "input",
+              {
+                type: "number",
+                className: "mt-1 w-full text-sm border border-[#e5e5e5] rounded-md px-2 py-1",
+                min: 1e3,
+                value: summaryTimeoutInput,
+                onChange: (e2) => setSummaryTimeoutInput(e2.target.value),
+                onBlur: async () => {
+                  plugin.settings.summaryTimeoutMs = Number(summaryTimeoutInput) || DEFAULT_SETTINGS.summaryTimeoutMs;
+                  setSummaryTimeoutInput(String(plugin.settings.summaryTimeoutMs));
+                  await plugin.saveSettings();
+                  await applySummarySettings();
+                }
+              }
+            )
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("label", { className: "text-sm text-[#444444]", children: [
+            t2("settings.summary.maxInput"),
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+              "input",
+              {
+                type: "number",
+                className: "mt-1 w-full text-sm border border-[#e5e5e5] rounded-md px-2 py-1",
+                min: 1e3,
+                value: summaryMaxInputChars,
+                onChange: (e2) => setSummaryMaxInputChars(e2.target.value),
+                onBlur: async () => {
+                  plugin.settings.summaryMaxInputChars = Number(summaryMaxInputChars) || DEFAULT_SETTINGS.summaryMaxInputChars;
+                  setSummaryMaxInputChars(String(plugin.settings.summaryMaxInputChars));
+                  await plugin.saveSettings();
+                  await applySummarySettings();
+                }
+              }
+            )
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("label", { className: "block mt-3 text-sm text-[#444444]", children: [
+          t2("settings.summary.prompt"),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+            "textarea",
+            {
+              className: "mt-1 w-full min-h-[160px] text-sm border border-[#e5e5e5] rounded-md px-2 py-2 font-mono leading-relaxed",
+              value: summaryPromptInput,
+              onChange: (e2) => setSummaryPromptInput(e2.target.value),
+              onBlur: async () => {
+                const next = summaryPromptInput.trim() || DEFAULT_SETTINGS.summaryPrompt;
+                plugin.settings.summaryPrompt = next;
+                setSummaryPromptInput(next);
+                await plugin.saveSettings();
+                await applySummarySettings();
+              }
+            }
+          ),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-xs text-[#888888] mt-1 leading-relaxed", children: t2("settings.summary.promptHint") })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between gap-3 mt-3", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("label", { className: "flex items-center gap-2 text-sm text-[#444444]", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+              "input",
+              {
+                type: "checkbox",
+                checked: plugin.settings.summaryAutoPullModel,
+                onChange: async (e2) => {
+                  plugin.settings.summaryAutoPullModel = e2.target.checked;
+                  await plugin.saveSettings();
+                  await applySummarySettings();
+                }
+              }
+            ),
+            t2("settings.summary.autoPull")
+          ] }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("label", { className: "flex items-center gap-2 text-sm text-[#444444]", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
+              "input",
+              {
+                type: "checkbox",
+                checked: plugin.settings.summaryFallbackToOriginal !== false,
+                onChange: async (e2) => {
+                  plugin.settings.summaryFallbackToOriginal = e2.target.checked;
+                  await plugin.saveSettings();
+                  await applySummarySettings();
+                }
+              }
+            ),
+            t2("settings.summary.fallback")
+          ] })
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex flex-wrap items-center gap-2 mt-3 pt-3", style: { borderTop: "1px solid #f5f5f5" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: checkOllama, disabled: isCheckingOllama, children: isCheckingOllama ? t2("settings.summary.checking") : t2("settings.summary.check") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", variant: "secondary", onClick: pullSummaryModel, disabled: isPullingSummaryModel, children: isPullingSummaryModel ? t2("settings.summary.pulling") : t2("settings.summary.pull") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: ollamaStatus === "ready" ? "bg-[#0a0a0a] text-white" : ollamaStatus === "error" ? "bg-[#e74c3c] text-white" : "bg-[#f5f5f5] text-[#444444]", children: ollamaStatus }),
+          (ollamaMessage || summaryPullProgress) && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-xs text-[#666666] truncate max-w-[260px]", title: ollamaMessage || summaryPullProgress, children: summaryPullProgress || ollamaMessage })
+        ] })
       ] })
     ] }),
     lastError && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-sm text-[#e74c3c] bg-[#fff5f5] p-3 rounded-md", children: lastError }),
@@ -29626,8 +30391,8 @@ function SettingDetail({ plugin, setting }) {
       /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-xs text-[#888888] mt-1 truncate", title: rebuildProgress.currentFile, children: rebuildProgress.currentFile })
     ] }) }),
     /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex gap-2 pt-2", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { onClick: continueIndex, disabled: isRebuilding, className: "flex-1", children: isRebuilding ? rebuildProgress ? `${t2("settings.actions.indexing").replace("...", "")} ${Math.round(rebuildProgress.current / rebuildProgress.total * 100)}%` : t2("settings.actions.indexing") : t2("settings.actions.continueIndex") }),
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { onClick: rebuildIndex, disabled: isRebuilding, className: "flex-1", children: t2("settings.actions.rebuildIndex") }),
+      isRebuilding ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { onClick: stopIndexing, disabled: isStoppingIndex, variant: "destructive", className: "flex-1", children: isStoppingIndex ? t2("settings.actions.stoppingIndex") : t2("settings.actions.stopIndex") }) : /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { onClick: continueIndex, className: "flex-1", children: t2("settings.actions.continueIndex") }),
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { onClick: rebuildIndex, disabled: isRebuilding, className: "flex-1", children: isRebuilding ? rebuildProgress ? `${t2("settings.actions.indexing").replace("...", "")} ${Math.round(rebuildProgress.current / rebuildProgress.total * 100)}%` : t2("settings.actions.indexing") : t2("settings.actions.rebuildIndex") }),
       /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { onClick: clearIndex, variant: "destructive", className: "flex-1", children: t2("settings.actions.clearIndex") })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(Card, { className: "mt-4", children: [
@@ -29929,6 +30694,34 @@ var LocalVectorStore = class {
     }
     return Array.from(docIds);
   }
+  async listIndexedDocumentEntries() {
+    await this.ensureCollectionReady();
+    const all = await this.requestJson("POST", this.collectionPath("/get"), {});
+    const entries = /* @__PURE__ */ new Map();
+    for (const meta of this.normalizeMetadatas(all.metadatas)) {
+      const docId = typeof meta?.doc_id === "string" ? meta.doc_id : "";
+      if (!docId)
+        continue;
+      const existing = entries.get(docId);
+      const path = typeof meta?.path === "string" && meta.path ? meta.path : docId;
+      const mtime = this.normalizeMtime(meta?.mtime);
+      if (existing) {
+        existing.chunkCount++;
+        if (mtime > existing.mtime)
+          existing.mtime = mtime;
+        if (!existing.path && path)
+          existing.path = path;
+      } else {
+        entries.set(docId, {
+          docId,
+          path,
+          mtime,
+          chunkCount: 1
+        });
+      }
+    }
+    return Array.from(entries.values());
+  }
   async ensureCollectionReady() {
     if (!this.collectionId) {
       await this.ensureCollection(this.collectionName);
@@ -29950,6 +30743,15 @@ var LocalVectorStore = class {
       return metadatas[0];
     }
     return metadatas;
+  }
+  normalizeMtime(value) {
+    if (typeof value === "number" && Number.isFinite(value))
+      return value;
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
   }
   async requestJson(method, path, body) {
     return new Promise((resolve, reject) => {
@@ -30020,6 +30822,7 @@ var LocalVectorStore = class {
 // src/local-vector/document-indexer.ts
 var import_obsidian4 = require("obsidian");
 var MAX_CHUNK_CHARS = 900;
+var MIN_SHORT_CHUNK_CHARS = 50;
 var MAX_SECTION_CHARS = 2e3;
 var MAX_SENTENCES_PER_CHUNK_PASS = 24;
 var BREAKPOINT_PERCENTILE = 90;
@@ -30056,6 +30859,7 @@ var DocumentIndexer = class {
     this.saveDirty = false;
     this.savePromise = null;
     this.lastSaveTime = 0;
+    this.stopped = false;
     this.embedding = embedding;
     this.vectorStore = vectorStore;
     this.vault = vault;
@@ -30064,10 +30868,10 @@ var DocumentIndexer = class {
     this.excludedIndexPaths = normalizeExcludedIndexPaths(excludedIndexPaths);
   }
   async loadState() {
+    let needsSave = false;
     try {
       const raw = await this.stateStore.load();
       if (raw) {
-        let migrated = false;
         const newState = {};
         for (const [key, entry] of Object.entries(raw)) {
           if (key.includes("::")) {
@@ -30076,18 +30880,21 @@ var DocumentIndexer = class {
             if (!newState[filePath] || newState[filePath].mtime < migratedEntry.mtime) {
               newState[filePath] = migratedEntry;
             }
-            migrated = true;
+            needsSave = true;
           } else {
             newState[key] = { ...entry, path: entry.path ?? key };
           }
         }
         this.indexState = newState;
-        if (migrated) {
-          await this.saveState();
-        }
       }
     } catch {
       this.indexState = {};
+    }
+    if (await this.recoverStateFromVectorStore()) {
+      needsSave = true;
+    }
+    if (needsSave) {
+      await this.saveState();
     }
   }
   async saveState() {
@@ -30139,6 +30946,31 @@ var DocumentIndexer = class {
       this.saveDirty = false;
     }
   }
+  async stop() {
+    this.stopped = true;
+    this.isIndexing = false;
+    for (const timer of this.autoIndexTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.autoIndexTimers.clear();
+    this.pendingActiveFiles.clear();
+    for (const item of this.queue.splice(0)) {
+      item.resolve();
+    }
+    while (this.activeWorkers > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  }
+  shutdown() {
+    this.unwatchVault();
+  }
+  beginIndexing() {
+    this.stopped = false;
+    this.isIndexing = true;
+    this.queue = [];
+    this.queueProcessed = 0;
+    this.queueTotal = 0;
+  }
   buildDocId(file) {
     return file.path;
   }
@@ -30181,6 +31013,28 @@ var DocumentIndexer = class {
       skipReason
     };
     this.throttledSaveState();
+  }
+  async recoverStateFromVectorStore() {
+    let recovered = false;
+    try {
+      const entries = await this.vectorStore.listIndexedDocumentEntries();
+      for (const entry of entries) {
+        const existing = this.indexState[entry.docId];
+        if (existing && existing.chunkCount > 0 && existing.mtime >= entry.mtime) {
+          continue;
+        }
+        this.indexState[entry.docId] = {
+          path: entry.path,
+          mtime: entry.mtime,
+          chunkCount: entry.chunkCount,
+          muted: existing?.muted,
+          skipped: false
+        };
+        recovered = true;
+      }
+    } catch {
+    }
+    return recovered;
   }
   splitIntoSentences(text) {
     const raw = text.split(
@@ -30235,6 +31089,40 @@ var DocumentIndexer = class {
     }
     return parts;
   }
+  mergeShortChunks(chunks) {
+    const merged = [];
+    let pending = "";
+    for (const chunk of chunks) {
+      const text = chunk.trim();
+      if (!text)
+        continue;
+      if (pending) {
+        const combined = `${pending}
+${text}`.trim();
+        if (combined.length <= MIN_SHORT_CHUNK_CHARS) {
+          pending = combined;
+        } else {
+          merged.push(combined);
+          pending = "";
+        }
+        continue;
+      }
+      if (text.length <= MIN_SHORT_CHUNK_CHARS) {
+        pending = text;
+      } else {
+        merged.push(text);
+      }
+    }
+    if (pending) {
+      if (merged.length > 0) {
+        merged[merged.length - 1] = `${merged[merged.length - 1]}
+${pending}`.trim();
+      } else {
+        merged.push(pending);
+      }
+    }
+    return merged;
+  }
   async splitIntoChunks(text) {
     if (text.length > SEMANTIC_CHUNK_CHAR_LIMIT) {
       return this.splitOversizedText(text, MAX_CHUNK_CHARS);
@@ -30269,6 +31157,8 @@ var DocumentIndexer = class {
     return chunks;
   }
   async indexDocument(file) {
+    if (this.stopped)
+      return;
     const docId = this.buildDocId(file);
     const existing = this.indexState[docId];
     if (this.isExcluded(file)) {
@@ -30289,6 +31179,8 @@ var DocumentIndexer = class {
       return;
     }
     const content = await this.vault.adapter.read(file.path);
+    if (this.stopped)
+      return;
     if (content.length > MAX_FILE_SIZE) {
       const reason = `oversized content: ${content.length} > ${MAX_FILE_SIZE}`;
       if (existing) {
@@ -30310,12 +31202,18 @@ var DocumentIndexer = class {
       }
       const allChunks = [];
       for (const section of sections) {
+        if (this.stopped)
+          return;
         const text = section.header ? `${section.header}
 ${section.content}` : section.content;
         const subTexts = this.splitOversizedText(text, MAX_SECTION_CHARS);
         for (const sub of subTexts) {
+          if (this.stopped)
+            return;
           const sectionChunks = await this.splitIntoChunks(sub);
-          allChunks.push(...sectionChunks);
+          if (this.stopped)
+            return;
+          allChunks.push(...this.mergeShortChunks(sectionChunks));
         }
       }
       if (allChunks.length === 0) {
@@ -30350,8 +31248,12 @@ ${section.content}` : section.content;
         mtime: file.stat.mtime
       };
       for (let i2 = 0; i2 < chunks.length; i2 += UPSERT_BATCH) {
+        if (this.stopped)
+          return;
         const batch = chunks.slice(i2, i2 + UPSERT_BATCH);
         const embeddings = await this.embedding.embedBatch(batch);
+        if (this.stopped)
+          return;
         const chunkData = batch.map((c2, j2) => ({
           chunkId: `${docId}::chunk-${i2 + j2}`,
           content: c2,
@@ -30384,6 +31286,7 @@ ${section.content}` : section.content;
     }
   }
   async reindexDocument(file) {
+    this.stopped = false;
     await this.removeDocument(file);
     await this.indexDocument(file);
   }
@@ -30419,6 +31322,8 @@ ${section.content}` : section.content;
     }
   }
   enqueue(file) {
+    if (this.stopped)
+      return Promise.resolve();
     return new Promise((resolve, reject) => {
       this.queue.push({ file, resolve, reject });
       this.queueTotal++;
@@ -30430,7 +31335,7 @@ ${section.content}` : section.content;
       return;
     this.activeWorkers++;
     try {
-      while (this.queue.length > 0) {
+      while (!this.stopped && this.queue.length > 0) {
         const item = this.queue.shift();
         try {
           await this.indexDocument(item.file);
@@ -30459,13 +31364,13 @@ ${section.content}` : section.content;
     }
   }
   async rebuildIndex(files, options) {
-    this.isIndexing = true;
+    this.beginIndexing();
     const mdFiles = files.filter((f2) => f2.extension === "md" && !this.isExcluded(f2));
-    this.queueProcessed = 0;
-    this.queueTotal = 0;
     try {
       const promises = [];
       for (let i2 = 0; i2 < mdFiles.length; i2++) {
+        if (this.stopped)
+          break;
         const file = mdFiles[i2];
         if (options?.force) {
           const docId = this.buildDocId(file);
@@ -30476,6 +31381,8 @@ ${section.content}` : section.content;
         }
         const p2 = (async () => {
           await this.enqueue(file);
+          if (this.stopped)
+            return;
           options?.onProgress?.({
             current: this.queueProcessed,
             total: mdFiles.length,
@@ -30485,7 +31392,9 @@ ${section.content}` : section.content;
         promises.push(p2);
       }
       await Promise.all(promises);
-      await this.saveState();
+      if (!this.stopped) {
+        await this.saveState();
+      }
     } finally {
       this.isIndexing = false;
       this.queueProcessed = 0;
@@ -30626,7 +31535,7 @@ ${section.content}` : section.content;
     this.pendingActiveFiles.clear();
   }
   async continueIndex(files, options) {
-    this.isIndexing = true;
+    this.beginIndexing();
     const pending = files.filter((f2) => {
       if (f2.extension !== "md" || this.isExcluded(f2))
         return false;
@@ -30634,13 +31543,15 @@ ${section.content}` : section.content;
       const entry = this.indexState[docId];
       return !entry || this.isEntryOutdated(entry, f2);
     });
-    this.queueProcessed = 0;
-    this.queueTotal = 0;
     try {
       const promises = [];
       for (const file of pending) {
+        if (this.stopped)
+          break;
         const p2 = (async () => {
           await this.enqueue(file);
+          if (this.stopped)
+            return;
           options?.onProgress?.({
             current: this.queueProcessed,
             total: pending.length,
@@ -30650,7 +31561,9 @@ ${section.content}` : section.content;
         promises.push(p2);
       }
       await Promise.all(promises);
-      await this.saveState();
+      if (!this.stopped) {
+        await this.saveState();
+      }
     } finally {
       this.isIndexing = false;
       this.queueProcessed = 0;
@@ -30832,6 +31745,32 @@ var Analogy = class extends import_obsidian5.Plugin {
       });
       return;
     }
+    const ollamaClient = new OllamaClient({
+      host: this.settings.summaryOllamaHost || DEFAULT_SETTINGS.summaryOllamaHost,
+      timeoutMs: this.settings.summaryTimeoutMs || DEFAULT_SETTINGS.summaryTimeoutMs
+    });
+    const summaryConfig = SUMMARY_MODELS[this.settings.summaryModel] || SUMMARY_MODELS[DEFAULT_SUMMARY_MODEL_KEY];
+    const summarizer = new DocumentSummarizer({
+      enabled: Boolean(this.settings.summarizeBeforeEmbedding),
+      model: summaryConfig.ollamaName,
+      maxInputChars: this.settings.summaryMaxInputChars || DEFAULT_SETTINGS.summaryMaxInputChars,
+      fallbackToOriginal: this.settings.summaryFallbackToOriginal !== false,
+      promptTemplate: this.settings.summaryPrompt || DEFAULT_SUMMARY_PROMPT,
+      client: ollamaClient
+    });
+    if (this.settings.summarizeBeforeEmbedding) {
+      try {
+        const models = await ollamaClient.listModels();
+        const installed = models.some((m2) => m2.name === summaryConfig.ollamaName);
+        if (!installed && this.settings.summaryAutoPullModel) {
+          await ollamaClient.pullModel(summaryConfig.ollamaName);
+        }
+      } catch (err) {
+        if (this.settings.summaryFallbackToOriginal === false) {
+          console.error(`${INIT_LOG_PREFIX} failed`, { stage: "summary", error: err.message });
+        }
+      }
+    }
     this.documentIndexer = new DocumentIndexer(
       this.embeddingService,
       this.vectorStore,
@@ -30856,7 +31795,8 @@ var Analogy = class extends import_obsidian5.Plugin {
         embeddingStatus: "ready",
         activeModel: modelConfig.shortName
       },
-      modelConfig.maxInputChars
+      modelConfig.maxInputChars,
+      summarizer
     );
     console.log(`${INIT_LOG_PREFIX} success`, {
       dbPath,
@@ -30866,8 +31806,10 @@ var Analogy = class extends import_obsidian5.Plugin {
   }
   async onunload() {
     if (this.documentIndexer) {
+      await this.documentIndexer.stop();
+      this.documentIndexer.shutdown();
       await this.documentIndexer.flushState();
-      this.documentIndexer.unwatchVault();
+      this.documentIndexer = null;
     }
     if (this.embeddingService) {
       try {
@@ -30898,6 +31840,7 @@ var Analogy = class extends import_obsidian5.Plugin {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
     this.settings.excludedIndexPaths = Array.isArray(this.settings.excludedIndexPaths) ? this.settings.excludedIndexPaths : [];
     this.settings.indexStates = this.settings.indexStates || {};
+    this.settings.summaryPrompt = this.settings.summaryPrompt || DEFAULT_SUMMARY_PROMPT;
   }
   async saveSettings() {
     await this.saveData(this.settings);
@@ -31024,6 +31967,14 @@ lucide-react/dist/esm/Icon.js:
    *)
 
 lucide-react/dist/esm/createLucideIcon.js:
+  (**
+   * @license lucide-react v0.468.0 - ISC
+   *
+   * This source code is licensed under the ISC license.
+   * See the LICENSE file in the root directory of this source tree.
+   *)
+
+lucide-react/dist/esm/icons/copy.js:
   (**
    * @license lucide-react v0.468.0 - ISC
    *

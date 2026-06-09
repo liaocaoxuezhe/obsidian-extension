@@ -114,6 +114,10 @@ function isEmbeddingTimeout(err: unknown): boolean {
   return /timed out after/i.test((err as Error)?.message || String(err));
 }
 
+function isDisposedSessionError(err: unknown): boolean {
+  return /Session already disposed/i.test((err as Error)?.message || String(err));
+}
+
 export interface EmbeddingServiceOptions {
   cacheDir: string;
   pluginDir: string;
@@ -126,6 +130,9 @@ export class LocalEmbeddingService {
   private ready = false;
   private options: EmbeddingServiceOptions;
   private inferenceCount = 0;
+  private activeOperations = 0;
+  private idleResolvers: Array<() => void> = [];
+  private resetPromise: Promise<void> | null = null;
 
   constructor(options: EmbeddingServiceOptions) {
     this.options = options;
@@ -176,14 +183,21 @@ export class LocalEmbeddingService {
 
   async resetSession(): Promise<void> {
     if (!this.ready) return;
+    if (this.resetPromise) {
+      await this.resetPromise;
+      return;
+    }
+    this.resetPromise = (async () => {
+      await this.waitForIdle();
+      this.inferenceCount = 0;
+    })();
     try {
-      if (this.embedder?.dispose) {
-        await this.embedder.dispose();
+      await this.resetPromise;
+    } finally {
+      if (this.resetPromise) {
+        this.resetPromise = null;
       }
-    } catch {}
-    this.embedder = null;
-    this.embedder = await this.loadPipeline();
-    this.inferenceCount = 0;
+    }
   }
 
   getInferenceCount(): number {
@@ -204,17 +218,36 @@ export class LocalEmbeddingService {
     return text.slice(0, limit);
   }
 
-  async embed(text: string): Promise<number[]> {
-    if (!this.embedder) {
-      throw new Error("Embedding model not initialized");
+  private async runWithSession<T>(operation: () => Promise<T>): Promise<T> {
+    while (this.resetPromise) {
+      await this.resetPromise;
     }
-    const result = await withTimeout(
-      this.embedder(this.truncate(text), { pooling: "mean", normalize: true }),
-      EMBEDDING_TIMEOUT_MS,
-      "Embedding inference"
-    );
-    this.inferenceCount++;
-    return Array.from(result.data as Float32Array);
+    this.activeOperations++;
+    try {
+      return await operation();
+    } finally {
+      this.activeOperations--;
+      if (this.activeOperations === 0) {
+        for (const resolve of this.idleResolvers.splice(0)) {
+          resolve();
+        }
+      }
+    }
+  }
+
+  private waitForIdle(): Promise<void> {
+    if (this.activeOperations === 0) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+      this.idleResolvers.push(resolve);
+    });
+  }
+
+  async embed(text: string): Promise<number[]> {
+    return this.runWithSession(async () => {
+      return this.embedWithCurrentSession(this.truncate(text), "Embedding inference");
+    });
   }
 
   async embedQuery(text: string): Promise<number[]> {
@@ -228,58 +261,85 @@ export class LocalEmbeddingService {
   }
 
   async embedBatch(texts: string[]): Promise<number[][]> {
-    if (!this.embedder) throw new Error("Embedding model not initialized");
-    if (texts.length === 0) return [];
-    if (texts.length === 1) return [await this.embedDocument(texts[0])];
-
-    const results: number[][] = [];
-    try {
-      for (let i = 0; i < texts.length;) {
-        const batch: string[] = [];
-        let batchChars = 0;
-
-        while (i < texts.length && batch.length < MAX_EMBED_BATCH_SIZE) {
-          const text = this.truncate(this.formatDocumentInput(texts[i]));
-          const wouldExceedBudget =
-            batch.length > 0 && batchChars + text.length > MAX_EMBED_BATCH_CHARS;
-          if (wouldExceedBudget) break;
-          batch.push(text);
-          batchChars += text.length;
-          i++;
-        }
-
-        if (batch.length === 0) {
-          batch.push(this.truncate(this.formatDocumentInput(texts[i])));
-          i++;
-        }
-
-        const output = await withTimeout(
-          this.embedder(batch, { pooling: "mean", normalize: true }),
-          EMBEDDING_TIMEOUT_MS,
-          `Embedding batch inference (${batch.length} texts)`
-        );
-        this.inferenceCount++;
-        if (output.dims.length !== 2 || output.dims[0] !== batch.length) {
-          throw new Error(`Unexpected embedding output shape: [${output.dims}], expected [${batch.length}, dim]`);
-        }
-        const dim = output.dims[1];
-        for (let j = 0; j < batch.length; j++) {
-          const start = j * dim;
-          results.push(Array.from((output.data as Float32Array).slice(start, start + dim)));
-        }
-        if (i < texts.length) await new Promise((r) => setTimeout(r, 100));
+    return this.runWithSession(async () => {
+      if (!this.embedder) throw new Error("Embedding model not initialized");
+      if (texts.length === 0) return [];
+      if (texts.length === 1) {
+        return [
+          await this.embedWithCurrentSession(
+            this.truncate(this.formatDocumentInput(texts[0])),
+            "Embedding inference"
+          ),
+        ];
       }
-    } catch (err) {
-      if (isEmbeddingTimeout(err)) {
-        throw err;
+
+      const results: number[][] = [];
+      try {
+        for (let i = 0; i < texts.length;) {
+          const batch: string[] = [];
+          let batchChars = 0;
+
+          while (i < texts.length && batch.length < MAX_EMBED_BATCH_SIZE) {
+            const text = this.truncate(this.formatDocumentInput(texts[i]));
+            const wouldExceedBudget =
+              batch.length > 0 && batchChars + text.length > MAX_EMBED_BATCH_CHARS;
+            if (wouldExceedBudget) break;
+            batch.push(text);
+            batchChars += text.length;
+            i++;
+          }
+
+          if (batch.length === 0) {
+            batch.push(this.truncate(this.formatDocumentInput(texts[i])));
+            i++;
+          }
+
+          const output = await withTimeout(
+            this.embedder(batch, { pooling: "mean", normalize: true }),
+            EMBEDDING_TIMEOUT_MS,
+            `Embedding batch inference (${batch.length} texts)`
+          );
+          this.inferenceCount++;
+          if (output.dims.length !== 2 || output.dims[0] !== batch.length) {
+            throw new Error(`Unexpected embedding output shape: [${output.dims}], expected [${batch.length}, dim]`);
+          }
+          const dim = output.dims[1];
+          for (let j = 0; j < batch.length; j++) {
+            const start = j * dim;
+            results.push(Array.from((output.data as Float32Array).slice(start, start + dim)));
+          }
+          if (i < texts.length) await new Promise((r) => setTimeout(r, 100));
+        }
+      } catch (err) {
+        if (isEmbeddingTimeout(err) || isDisposedSessionError(err)) {
+          throw err;
+        }
+        results.length = 0;
+        for (const text of texts) {
+          results.push(
+            await this.embedWithCurrentSession(
+              this.truncate(this.formatDocumentInput(text)),
+              "Embedding inference"
+            )
+          );
+          await new Promise((r) => setTimeout(r, 10));
+        }
       }
-      results.length = 0;
-      for (const text of texts) {
-        results.push(await this.embedDocument(text));
-        await new Promise((r) => setTimeout(r, 10));
-      }
+      return results;
+    });
+  }
+
+  private async embedWithCurrentSession(input: string, label: string): Promise<number[]> {
+    if (!this.embedder) {
+      throw new Error("Embedding model not initialized");
     }
-    return results;
+    const result = await withTimeout(
+      this.embedder(input, { pooling: "mean", normalize: true }),
+      EMBEDDING_TIMEOUT_MS,
+      label
+    );
+    this.inferenceCount++;
+    return Array.from(result.data as Float32Array);
   }
 
   private formatDocumentInput(text: string): string {

@@ -11,6 +11,13 @@ export interface SearchResult {
   metadata: any;
 }
 
+export interface IndexedDocumentEntry {
+  docId: string;
+  path: string;
+  mtime: number;
+  chunkCount: number;
+}
+
 export class LocalVectorStore {
   private collectionId: string | null = null;
   private collectionName: string = "";
@@ -119,6 +126,35 @@ export class LocalVectorStore {
     return Array.from(docIds);
   }
 
+  async listIndexedDocumentEntries(): Promise<IndexedDocumentEntry[]> {
+    await this.ensureCollectionReady();
+    const all = await this.requestJson<{ metadatas?: any[] | any[][] }>("POST", this.collectionPath("/get"), {});
+    const entries = new Map<string, IndexedDocumentEntry>();
+
+    for (const meta of this.normalizeMetadatas(all.metadatas)) {
+      const docId = typeof meta?.doc_id === "string" ? meta.doc_id : "";
+      if (!docId) continue;
+
+      const existing = entries.get(docId);
+      const path = typeof meta?.path === "string" && meta.path ? meta.path : docId;
+      const mtime = this.normalizeMtime(meta?.mtime);
+      if (existing) {
+        existing.chunkCount++;
+        if (mtime > existing.mtime) existing.mtime = mtime;
+        if (!existing.path && path) existing.path = path;
+      } else {
+        entries.set(docId, {
+          docId,
+          path,
+          mtime,
+          chunkCount: 1,
+        });
+      }
+    }
+
+    return Array.from(entries.values());
+  }
+
   private async ensureCollectionReady(): Promise<void> {
     if (!this.collectionId) {
       await this.ensureCollection(this.collectionName);
@@ -141,6 +177,15 @@ export class LocalVectorStore {
       return metadatas[0] as any[];
     }
     return metadatas as any[];
+  }
+
+  private normalizeMtime(value: unknown): number {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string") {
+      const parsed = Number(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+    return 0;
   }
 
   private async requestJson<T>(method: string, path: string, body?: unknown): Promise<T> {

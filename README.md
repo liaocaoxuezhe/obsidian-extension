@@ -22,7 +22,7 @@ Download the release assets from GitHub and copy them into:
 <Vault>/.obsidian/plugins/analogy-rag-in-your-vault/
 ```
 
-Required release assets:
+Required Obsidian plugin assets:
 
 - `main.js`
 - `manifest.json`
@@ -32,17 +32,15 @@ Enable the plugin in Obsidian Settings -> Community plugins.
 
 ### Local RAG runtime
 
-Obsidian installs the three plugin assets above. Local RAG also needs Python/ChromaDB and model files available on the desktop machine.
+Obsidian loads the three plugin assets above. Local RAG and MCP also need the runtime files included in the `release/1.0.3` package: `package.json`, `package-lock.json`, `scripts/`, and `mcp-server/`.
 
-Run the setup commands inside the installed plugin folder:
+Run the setup command inside the installed plugin folder:
 
 ```bash
-npm install --omit=dev
-python3 -m pip install chromadb
-python3 scripts/download-jina-model.py
+npm run setup:local
 ```
 
-If you installed the plugin from this GitHub repository, the source, setup scripts, docs, and MCP server source are included. If you installed only the three release assets, clone this repository or copy the `package.json`, `package-lock.json`, `scripts/`, `mcp-server/`, and model setup files before running the commands.
+The setup script checks for Python 3.9 or newer, installs the plugin runtime dependencies, installs ChromaDB, downloads the default local embedding model, and builds the companion MCP server.
 
 More details are in [docs/local-runtime.md](docs/local-runtime.md).
 

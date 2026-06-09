@@ -1,7 +1,7 @@
 import {App, Notice, PluginSettingTab, Setting, TFile} from "obsidian";
 import Analogy from "../main";
 import {createRoot, Root} from "react-dom/client";
-import {StrictMode, useCallback, useEffect, useMemo, useState} from "react";
+import {StrictMode, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {AppContext} from "./model/AppContext";
 import * as React from "react";
 import {Button} from "./components/button";
@@ -11,6 +11,9 @@ import { searchInstance, updateServiceState } from "./local-vector/search-instan
 import type { FileIndexStatus, IndexState, RebuildProgress } from "./local-vector/document-indexer";
 import {normalizeExcludedIndexPaths} from "./local-vector/excluded-paths";
 import {EMBEDDING_MODELS, DEFAULT_MODEL_KEY} from "./local-vector/embedding";
+import {OllamaClient} from "./local-vector/ollama-client";
+import {DEFAULT_SUMMARY_PROMPT, DocumentSummarizer} from "./local-vector/document-summarizer";
+import {DEFAULT_SUMMARY_MODEL_KEY, formatModelBytes, SUMMARY_MODELS} from "./local-vector/summary-models";
 import {getLocale, setLocale, onLocaleChange, t, type Locale, SUPPORTED_LOCALES} from "./util/i18n";
 import {
   deactivateLicense,
@@ -43,6 +46,14 @@ export interface AnalogySettings {
   indexStates?: Record<string, IndexState>;
   /** UI language; only affects the React views. */
   uiLanguage: Locale;
+  summarizeBeforeEmbedding: boolean;
+  summaryModel: string;
+  summaryOllamaHost: string;
+  summaryAutoPullModel: boolean;
+  summaryTimeoutMs: number;
+  summaryMaxInputChars: number;
+  summaryFallbackToOriginal: boolean;
+  summaryPrompt: string;
 }
 
 export const DEFAULT_SETTINGS: AnalogySettings = {
@@ -55,6 +66,14 @@ export const DEFAULT_SETTINGS: AnalogySettings = {
   manageLicenseUrl: DEFAULT_MANAGE_LICENSE_URL,
   indexStates: {},
   uiLanguage: "en",
+  summarizeBeforeEmbedding: false,
+  summaryModel: DEFAULT_SUMMARY_MODEL_KEY,
+  summaryOllamaHost: "http://127.0.0.1:11434",
+  summaryAutoPullModel: false,
+  summaryTimeoutMs: 120_000,
+  summaryMaxInputChars: 12_000,
+  summaryFallbackToOriginal: true,
+  summaryPrompt: DEFAULT_SUMMARY_PROMPT,
 }
 
 export class AnalogySettingTab extends PluginSettingTab {
@@ -95,6 +114,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
   const [modelReady, setModelReady] = useState(false);
   const [modelProgress, setModelProgress] = useState(0);
   const [isRebuilding, setIsRebuilding] = useState(false);
+  const [isStoppingIndex, setIsStoppingIndex] = useState(false);
   const [rebuildProgress, setRebuildProgress] = useState<RebuildProgress | null>(null);
   const [dbPath, setDbPath] = useState("");
   const [lastError, setLastError] = useState("");
@@ -102,6 +122,17 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
   const [portInput, setPortInput] = useState(String(plugin.settings.chromaPort || 8000));
   const [modelHostInput, setModelHostInput] = useState(plugin.settings.embeddingModelHost || DEFAULT_SETTINGS.embeddingModelHost);
   const [selectedModel, setSelectedModel] = useState(plugin.settings.embeddingModel || DEFAULT_MODEL_KEY);
+  const [selectedSummaryModel, setSelectedSummaryModel] = useState(plugin.settings.summaryModel || DEFAULT_SUMMARY_MODEL_KEY);
+  const [summaryHostInput, setSummaryHostInput] = useState(plugin.settings.summaryOllamaHost || DEFAULT_SETTINGS.summaryOllamaHost);
+  const [summaryTimeoutInput, setSummaryTimeoutInput] = useState(String(plugin.settings.summaryTimeoutMs || DEFAULT_SETTINGS.summaryTimeoutMs));
+  const [summaryMaxInputChars, setSummaryMaxInputChars] = useState(String(plugin.settings.summaryMaxInputChars || DEFAULT_SETTINGS.summaryMaxInputChars));
+  const [summaryPromptInput, setSummaryPromptInput] = useState(plugin.settings.summaryPrompt || DEFAULT_SETTINGS.summaryPrompt);
+  const [ollamaStatus, setOllamaStatus] = useState<"idle" | "ready" | "error">("idle");
+  const [ollamaMessage, setOllamaMessage] = useState("");
+  const [installedSummarySizes, setInstalledSummarySizes] = useState<Record<string, string>>({});
+  const [isCheckingOllama, setIsCheckingOllama] = useState(false);
+  const [isPullingSummaryModel, setIsPullingSummaryModel] = useState(false);
+  const [summaryPullProgress, setSummaryPullProgress] = useState("");
   const [licenseServerInput, setLicenseServerInput] = useState(plugin.settings.licenseServerUrl || DEFAULT_LICENSE_SERVER_URL);
   const [buyLicenseInput, setBuyLicenseInput] = useState(plugin.settings.buyLicenseUrl || DEFAULT_BUY_LICENSE_URL);
   const [manageLicenseInput, setManageLicenseInput] = useState(plugin.settings.manageLicenseUrl || DEFAULT_MANAGE_LICENSE_URL);
@@ -121,15 +152,19 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
   }, []);
 
   const activeModelConfig = EMBEDDING_MODELS[selectedModel] || EMBEDDING_MODELS[DEFAULT_MODEL_KEY];
+  const activeSummaryConfig = SUMMARY_MODELS[selectedSummaryModel] || SUMMARY_MODELS[DEFAULT_SUMMARY_MODEL_KEY];
   const modelDescription = language === "zh"
     ? activeModelConfig.descriptionZh
     : activeModelConfig.description;
+  const summaryModelNote = language === "zh" ? activeSummaryConfig.noteZh : activeSummaryConfig.noteEn;
+  const activeSummarySize = installedSummarySizes[activeSummaryConfig.ollamaName] || activeSummaryConfig.estimatedSize;
   const manualChromaCommand = `chroma run --path "${dbPath || "<plugin-data-dir>/chroma_data/<vault-id>"}" --host 127.0.0.1 --port ${portInput || "8000"}`;
 
   const [fileStatuses, setFileStatuses] = useState<FileIndexStatus[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [indexingFile, setIndexingFile] = useState<string | null>(null);
+  const stopRequestedRef = useRef(false);
 
   const refreshServiceStatus = async () => {
     setServiceStatus(searchInstance.state.status);
@@ -229,6 +264,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
       return;
     }
     setUpgradePrompt(null);
+    stopRequestedRef.current = false;
     setIsRebuilding(true);
     setRebuildProgress(null);
     try {
@@ -239,7 +275,9 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
           updateServiceState({ rebuildProgress: p });
         },
       });
-      new Notice("Index rebuilt");
+      if (!stopRequestedRef.current) {
+        new Notice("Index rebuilt");
+      }
       await refreshServiceStatus();
       refreshFileStatuses();
     } catch (err) {
@@ -247,6 +285,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
       new Notice("Rebuild failed: " + (err as Error).message);
     } finally {
       setIsRebuilding(false);
+      setIsStoppingIndex(false);
       setRebuildProgress(null);
       updateServiceState({ rebuildProgress: null });
     }
@@ -284,6 +323,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
       new Notice("No pending Markdown pages to index.");
       return;
     }
+    stopRequestedRef.current = false;
     setIsRebuilding(true);
     setRebuildProgress(null);
     try {
@@ -293,7 +333,9 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
           updateServiceState({ rebuildProgress: p });
         },
       });
-      new Notice(capacityPlan.isLimited ? "Indexed up to the free page limit. Upgrade to index the remaining pages." : "Continue index done");
+      if (!stopRequestedRef.current) {
+        new Notice(capacityPlan.isLimited ? "Indexed up to the free page limit. Upgrade to index the remaining pages." : "Continue index done");
+      }
       await refreshServiceStatus();
       refreshFileStatuses();
     } catch (err) {
@@ -301,8 +343,32 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
       new Notice("Continue index failed: " + (err as Error).message);
     } finally {
       setIsRebuilding(false);
+      setIsStoppingIndex(false);
       setRebuildProgress(null);
       updateServiceState({ rebuildProgress: null });
+    }
+  }
+
+  async function stopIndexing() {
+    const indexers = [searchInstance.documentIndexer, plugin.documentIndexer].filter(
+      (indexer, index, all) => indexer && all.indexOf(indexer) === index
+    );
+    if (indexers.length === 0) return;
+    stopRequestedRef.current = true;
+    setIsStoppingIndex(true);
+    setRebuildProgress(null);
+    updateServiceState({ rebuildProgress: null });
+    try {
+      await Promise.all(indexers.map((indexer) => indexer!.stop()));
+      await refreshServiceStatus();
+      refreshFileStatuses();
+      new Notice(t("settings.actions.indexStopped"));
+    } catch (err) {
+      console.error("[Analogy] Stop index error:", err);
+      new Notice("Stop index failed: " + (err as Error).message);
+    } finally {
+      setIsStoppingIndex(false);
+      setIsRebuilding(false);
     }
   }
 
@@ -377,6 +443,79 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     setModelHostInput(plugin.settings.embeddingModelHost);
     await plugin.saveSettings();
     new Notice("Embedding model host saved. Reload plugin to apply.");
+  }
+
+  async function checkOllama() {
+    setIsCheckingOllama(true);
+    setOllamaMessage("");
+    try {
+      const client = new OllamaClient({
+        host: summaryHostInput.trim() || DEFAULT_SETTINGS.summaryOllamaHost,
+        timeoutMs: Number(summaryTimeoutInput) || DEFAULT_SETTINGS.summaryTimeoutMs,
+      });
+      const models = await client.listModels();
+      const sizes: Record<string, string> = {};
+      for (const model of models) {
+        if (model.size) sizes[model.name] = formatModelBytes(model.size);
+      }
+      setInstalledSummarySizes(sizes);
+      const installed = models.some((m) => m.name === activeSummaryConfig.ollamaName);
+      setOllamaStatus(installed ? "ready" : "error");
+      setOllamaMessage(installed ? t("settings.summary.modelInstalled") : t("settings.summary.modelMissing"));
+    } catch (err) {
+      setOllamaStatus("error");
+      setOllamaMessage((err as Error).message);
+    } finally {
+      setIsCheckingOllama(false);
+    }
+  }
+
+  async function applySummarySettings() {
+    const summaryConfig = SUMMARY_MODELS[plugin.settings.summaryModel] || SUMMARY_MODELS[DEFAULT_SUMMARY_MODEL_KEY];
+    const client = new OllamaClient({
+      host: plugin.settings.summaryOllamaHost || DEFAULT_SETTINGS.summaryOllamaHost,
+      timeoutMs: plugin.settings.summaryTimeoutMs || DEFAULT_SETTINGS.summaryTimeoutMs,
+    });
+    const summarizer = new DocumentSummarizer({
+      enabled: Boolean(plugin.settings.summarizeBeforeEmbedding),
+      model: summaryConfig.ollamaName,
+      maxInputChars: plugin.settings.summaryMaxInputChars || DEFAULT_SETTINGS.summaryMaxInputChars,
+      fallbackToOriginal: plugin.settings.summaryFallbackToOriginal !== false,
+      promptTemplate: plugin.settings.summaryPrompt || DEFAULT_SETTINGS.summaryPrompt,
+      client,
+    });
+    searchInstance.documentSummarizer = summarizer;
+    if (searchInstance.localSearch) {
+      searchInstance.localSearch.setDocumentSummarizer(summarizer);
+    }
+    refreshFileStatuses();
+    new Notice(t("settings.summary.applyHint"));
+  }
+
+  async function pullSummaryModel() {
+    setIsPullingSummaryModel(true);
+    setSummaryPullProgress("");
+    try {
+      const client = new OllamaClient({
+        host: summaryHostInput.trim() || DEFAULT_SETTINGS.summaryOllamaHost,
+        timeoutMs: Number(summaryTimeoutInput) || DEFAULT_SETTINGS.summaryTimeoutMs,
+      });
+      await client.pullModel(activeSummaryConfig.ollamaName, (progress) => {
+        if (progress.total && progress.completed) {
+          setSummaryPullProgress(`${progress.status} ${Math.round((progress.completed / progress.total) * 100)}%`);
+        } else {
+          setSummaryPullProgress(progress.status);
+        }
+      });
+      new Notice(t("settings.summary.pullDone"));
+      await checkOllama();
+    } catch (err) {
+      new Notice((err as Error).message);
+      setOllamaStatus("error");
+      setOllamaMessage((err as Error).message);
+    } finally {
+      setIsPullingSummaryModel(false);
+    }
   }
 
   async function saveLicenseSettings() {
@@ -711,6 +850,9 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
               </select>
               {selectedModel !== (plugin.settings.embeddingModel || DEFAULT_MODEL_KEY) && (
                 <Button size="sm" onClick={async () => {
+                  await searchInstance.documentIndexer?.stop();
+                  await plugin.documentIndexer?.stop();
+                  updateServiceState({ rebuildProgress: null });
                   plugin.settings.embeddingModel = selectedModel;
                   await plugin.saveSettings();
                   new Notice("Embedding model changed. Reloading plugin...");
@@ -767,6 +909,174 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
               {t("settings.embedding.emptyIndexWarning")}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t("settings.summary.title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <label className="flex items-center justify-between gap-3">
+            <span className="text-sm text-[#444444]">{t("settings.summary.enable")}</span>
+            <input
+              type="checkbox"
+              checked={plugin.settings.summarizeBeforeEmbedding}
+              onChange={async (e) => {
+                plugin.settings.summarizeBeforeEmbedding = e.target.checked;
+                await plugin.saveSettings();
+                await applySummarySettings();
+              }}
+            />
+          </label>
+
+          <div className="flex items-start justify-between gap-3 mt-3">
+            <div className="flex-1 min-w-0">
+              <span className="text-sm text-[#444444]">{t("settings.summary.model")}</span>
+              <div className="text-xs text-[#888888] mt-0.5">{t("settings.summary.modelHint")}</div>
+            </div>
+            <select
+              className="text-sm border border-[#e5e5e5] rounded-md px-2 py-1 max-w-[260px]"
+              value={selectedSummaryModel}
+              onChange={async (e) => {
+                const next = e.target.value;
+                setSelectedSummaryModel(next);
+                plugin.settings.summaryModel = next;
+                await plugin.saveSettings();
+                await applySummarySettings();
+              }}
+            >
+              {Object.entries(SUMMARY_MODELS).map(([key, config]) => (
+                <option key={key} value={key}>{config.label} · {installedSummarySizes[config.ollamaName] || config.estimatedSize}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="text-sm text-[#444444] mt-2 leading-relaxed bg-[#fafafa] border border-[#f0f0f0] rounded-md px-3 py-2">
+            <div>{summaryModelNote}</div>
+            <div className="text-xs text-[#888888] mt-1">{t("settings.summary.size")}: {activeSummarySize}</div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 mt-3">
+            <span className="text-sm text-[#444444]">{t("settings.summary.ollamaHost")}</span>
+            <input
+              type="text"
+              className="text-sm border border-[#e5e5e5] rounded-md px-2 py-1 w-[260px] max-w-full"
+              value={summaryHostInput}
+              onChange={(e) => setSummaryHostInput(e.target.value)}
+              onBlur={async () => {
+                const next = summaryHostInput.trim() || DEFAULT_SETTINGS.summaryOllamaHost;
+                plugin.settings.summaryOllamaHost = next.replace(/\/+$/, "");
+                setSummaryHostInput(plugin.settings.summaryOllamaHost);
+                await plugin.saveSettings();
+                await applySummarySettings();
+              }}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 mt-3">
+            <label className="text-sm text-[#444444]">
+              {t("settings.summary.timeout")}
+              <input
+                type="number"
+                className="mt-1 w-full text-sm border border-[#e5e5e5] rounded-md px-2 py-1"
+                min={1000}
+                value={summaryTimeoutInput}
+                onChange={(e) => setSummaryTimeoutInput(e.target.value)}
+                onBlur={async () => {
+                  plugin.settings.summaryTimeoutMs = Number(summaryTimeoutInput) || DEFAULT_SETTINGS.summaryTimeoutMs;
+                  setSummaryTimeoutInput(String(plugin.settings.summaryTimeoutMs));
+                  await plugin.saveSettings();
+                  await applySummarySettings();
+                }}
+              />
+            </label>
+            <label className="text-sm text-[#444444]">
+              {t("settings.summary.maxInput")}
+              <input
+                type="number"
+                className="mt-1 w-full text-sm border border-[#e5e5e5] rounded-md px-2 py-1"
+                min={1000}
+                value={summaryMaxInputChars}
+                onChange={(e) => setSummaryMaxInputChars(e.target.value)}
+                onBlur={async () => {
+                  plugin.settings.summaryMaxInputChars = Number(summaryMaxInputChars) || DEFAULT_SETTINGS.summaryMaxInputChars;
+                  setSummaryMaxInputChars(String(plugin.settings.summaryMaxInputChars));
+                  await plugin.saveSettings();
+                  await applySummarySettings();
+                }}
+              />
+            </label>
+          </div>
+
+          <label className="block mt-3 text-sm text-[#444444]">
+            {t("settings.summary.prompt")}
+            <textarea
+              className="mt-1 w-full min-h-[160px] text-sm border border-[#e5e5e5] rounded-md px-2 py-2 font-mono leading-relaxed"
+              value={summaryPromptInput}
+              onChange={(e) => setSummaryPromptInput(e.target.value)}
+              onBlur={async () => {
+                const next = summaryPromptInput.trim() || DEFAULT_SETTINGS.summaryPrompt;
+                plugin.settings.summaryPrompt = next;
+                setSummaryPromptInput(next);
+                await plugin.saveSettings();
+                await applySummarySettings();
+              }}
+            />
+            <div className="text-xs text-[#888888] mt-1 leading-relaxed">
+              {t("settings.summary.promptHint")}
+            </div>
+          </label>
+
+          <div className="flex items-center justify-between gap-3 mt-3">
+            <label className="flex items-center gap-2 text-sm text-[#444444]">
+              <input
+                type="checkbox"
+                checked={plugin.settings.summaryAutoPullModel}
+                onChange={async (e) => {
+                  plugin.settings.summaryAutoPullModel = e.target.checked;
+                  await plugin.saveSettings();
+                  await applySummarySettings();
+                }}
+              />
+              {t("settings.summary.autoPull")}
+            </label>
+            <label className="flex items-center gap-2 text-sm text-[#444444]">
+              <input
+                type="checkbox"
+                checked={plugin.settings.summaryFallbackToOriginal !== false}
+                onChange={async (e) => {
+                  plugin.settings.summaryFallbackToOriginal = e.target.checked;
+                  await plugin.saveSettings();
+                  await applySummarySettings();
+                }}
+              />
+              {t("settings.summary.fallback")}
+            </label>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 mt-3 pt-3" style={{ borderTop: "1px solid #f5f5f5" }}>
+            <Button size="sm" onClick={checkOllama} disabled={isCheckingOllama}>
+              {isCheckingOllama ? t("settings.summary.checking") : t("settings.summary.check")}
+            </Button>
+            <Button size="sm" variant="secondary" onClick={pullSummaryModel} disabled={isPullingSummaryModel}>
+              {isPullingSummaryModel ? t("settings.summary.pulling") : t("settings.summary.pull")}
+            </Button>
+            <Badge className={
+              ollamaStatus === "ready"
+                ? "bg-[#0a0a0a] text-white"
+                : ollamaStatus === "error"
+                  ? "bg-[#e74c3c] text-white"
+                  : "bg-[#f5f5f5] text-[#444444]"
+            }>
+              {ollamaStatus}
+            </Badge>
+            {(ollamaMessage || summaryPullProgress) && (
+              <span className="text-xs text-[#666666] truncate max-w-[260px]" title={ollamaMessage || summaryPullProgress}>
+                {summaryPullProgress || ollamaMessage}
+              </span>
+            )}
+          </div>
         </CardContent>
       </Card>
 
@@ -867,15 +1177,21 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
       )}
 
       <div className="flex gap-2 pt-2">
-        <Button onClick={continueIndex} disabled={isRebuilding} className="flex-1">
+        {isRebuilding ? (
+          <Button onClick={stopIndexing} disabled={isStoppingIndex} variant="destructive" className="flex-1">
+            {isStoppingIndex ? t("settings.actions.stoppingIndex") : t("settings.actions.stopIndex")}
+          </Button>
+        ) : (
+          <Button onClick={continueIndex} className="flex-1">
+            {t("settings.actions.continueIndex")}
+          </Button>
+        )}
+        <Button onClick={rebuildIndex} disabled={isRebuilding} className="flex-1">
           {isRebuilding
             ? rebuildProgress
               ? `${t("settings.actions.indexing").replace("...","")} ${Math.round((rebuildProgress.current / rebuildProgress.total) * 100)}%`
               : t("settings.actions.indexing")
-            : t("settings.actions.continueIndex")}
-        </Button>
-        <Button onClick={rebuildIndex} disabled={isRebuilding} className="flex-1">
-          {t("settings.actions.rebuildIndex")}
+            : t("settings.actions.rebuildIndex")}
         </Button>
         <Button onClick={clearIndex} variant="destructive" className="flex-1">
           {t("settings.actions.clearIndex")}
