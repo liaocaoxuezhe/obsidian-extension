@@ -7,6 +7,7 @@ const root = path.resolve(__dirname, "..");
 const manifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "utf8"));
 const releaseDir = path.join(root, "release", manifest.version);
 
+
 function gitLsFiles() {
   return new Set(
     execFileSync("git", ["ls-files"], {
@@ -49,6 +50,7 @@ const requiredReleaseFiles = [
 
 for (const file of requiredReleaseFiles) {
   assert.ok(fs.existsSync(path.join(releaseDir, file)), `release/${manifest.version}/${file} is required for runtime setup`);
+
 }
 
 const forbiddenReleasePaths = [
@@ -62,6 +64,7 @@ const forbiddenReleasePaths = [
 
 for (const file of forbiddenReleasePaths) {
   assert.ok(!fs.existsSync(path.join(releaseDir, file)), `release/${manifest.version}/${file} must not be included`);
+
 }
 
 console.log("Release integrity test passed");

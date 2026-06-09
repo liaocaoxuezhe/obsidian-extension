@@ -1,7 +1,7 @@
 import {WorkspaceLeaf, Plugin, addIcon, TFile} from 'obsidian';
 import { IndexView, VIEW_TYPE_INDEX } from './src/IndexView';
 import {AnalogySettings, DEFAULT_SETTINGS, AnalogySettingTab} from "./src/SettingView";
-import {AnalogyIconId, icon} from "./src/model/Consts";
+import {icon} from "./src/model/Consts";
 import {ChromaProcessManager} from "./src/local-vector/chroma-process";
 import {getEmbeddingErrorMessage, LocalEmbeddingService, EMBEDDING_MODELS, DEFAULT_MODEL_KEY} from "./src/local-vector/embedding";
 import {LocalVectorStore} from "./src/local-vector/vector-store";
@@ -36,9 +36,9 @@ export default class Analogy extends Plugin {
 			(leaf) => new IndexView(leaf)
 		)
 
-		addIcon(AnalogyIconId, icon);
+		addIcon('analogy-icon', icon);
 
-		this.addRibbonIcon(AnalogyIconId, 'Analogy', () => {
+		this.addRibbonIcon('analogy-icon', 'Analogy', () => {
 			this.activateView();
 		});
 

@@ -28426,9 +28426,8 @@ function Badge({ className, variant, ...props }) {
 }
 
 // src/model/Consts.ts
-var appVersion = "1.0.3";
-var AnalogyIconId = "analogy-icon";
-var icon = `<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+var appVersion = "1.0.0";
+var icon = `<g transform="scale(2.08333)" fill="none" stroke="none">
   <path d="M24.2863 16.6665C9.75459 20.7972 8.37048 25.8201 8.37048 25.8201L8.59448 18.2744C11.7214 18.977 15.6838 18.4443 24.2863 15.5554C32.8889 12.6665 36.2222 7.55549 36.2222 7.55549L41.1111 13.9999C41.1111 13.9999 35.0889 13.5959 24.2863 16.6665Z" fill="currentColor" opacity="0.25"/>
   <path d="M31.3332 26.4446C40.1379 15.0715 36.6665 7.55566 36.6665 7.55566L42.8887 12.6668C38.7152 16.3404 38.5629 19.1486 32.6665 26.4446C26.7701 33.7405 25.2945 43.1894 25.2945 43.1894L19.7839 40.6315C19.7839 40.6315 24.4583 35.3248 31.3332 26.4446Z" fill="currentColor" opacity="0.25"/>
   <path d="M14.6969 32.7221C10.4173 27.5911 5.27418 25.7405 5.27418 25.7405L10.2889 19.7292C13.0125 24.1946 10.1551 25.3844 15.9611 32.4376C21.767 39.4908 24.7406 40.0327 24.7406 40.0327L19.7928 43.2164C19.7928 43.2164 17.4768 36.055 14.6969 32.7221Z" fill="currentColor" opacity="0.25"/>
@@ -28436,7 +28435,7 @@ var icon = `<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="h
   <circle cx="22.5407" cy="41.8668" r="3.06552" transform="rotate(-42.1904 22.5407 41.8668)" fill="currentColor" opacity="0.5"/>
   <circle cx="6.90143" cy="22.0068" r="4.09621" transform="rotate(-42.1904 6.90143 22.0068)" fill="currentColor" opacity="0.85"/>
   <path d="M27.5128 26.1987C27.0861 25.0325 26.6594 23.8236 26.2328 22.5721C25.8345 21.2921 25.4079 19.9267 24.9528 18.4761C24.4976 17.0254 24.1848 16.0298 24.0141 15.4894C22.6488 19.7845 21.3972 23.3401 20.2594 26.1561C22.0799 26.213 23.4736 26.2414 24.4408 26.2414C25.9199 26.2414 26.9439 26.2272 27.5128 26.1987ZM23.5448 29.3987C22.8052 29.3987 21.2692 29.3703 18.9368 29.3134C17.0879 34.0636 15.9501 37.221 15.5234 38.7854C12.9919 38.501 11.7261 37.9178 11.7261 37.0361C11.7261 36.6378 12.3234 35.0307 13.5181 32.2147C14.7412 29.3703 16.2203 25.7578 17.9554 21.3774C19.6905 16.997 21.0559 13.1143 22.0514 9.7294C22.6203 9.64407 23.3599 9.6014 24.2701 9.6014C25.0096 9.6014 25.5785 9.75785 25.9768 10.0707C26.4034 10.3552 26.7732 10.9525 27.0861 11.8627C29.2763 18.6894 30.8692 23.3827 31.8648 25.9427C33.9981 31.4894 35.6052 35.3294 36.6861 37.4627C35.6052 38.0316 34.695 38.3161 33.9554 38.3161C32.7608 38.3161 31.9359 37.9321 31.4808 37.1641C31.1394 36.2823 30.6559 34.9881 30.0301 33.2814C29.4328 31.5463 28.9634 30.2236 28.6221 29.3134C25.8345 29.3703 24.1421 29.3987 23.5448 29.3987Z" fill="currentColor"/>
-</svg>`;
+</g>`;
 
 // src/HomeView.tsx
 var import_jsx_runtime8 = __toESM(require_jsx_runtime());
@@ -28812,13 +28811,94 @@ async function loadTransformers(pluginDir) {
   try {
     transformers = pluginRequire("@huggingface/transformers");
   } catch (err) {
-    const message = err.message || String(err);
-    throw new Error(
-      `Missing local RAG runtime dependency @huggingface/transformers. Install the full local RAG runtime from the release package, then run \`npm run setup:local\` in the plugin folder. Original error: ${message}`
-    );
+    ensureEmbeddingRuntime(pluginDir);
+    try {
+      transformers = pluginRequire("@huggingface/transformers");
+    } catch (retryErr) {
+      const message = retryErr.message || String(retryErr);
+      throw new Error(
+        `Missing local RAG runtime dependency @huggingface/transformers. Analogy tried to install the embedding runtime automatically. If this keeps failing, run \`npm run setup:local\` in the plugin folder. Original error: ${message}`
+      );
+    }
   }
   installNodeFetch(transformers);
   return transformers;
+}
+var EMBEDDING_RUNTIME_PACKAGE = {
+  name: "analogy-rag-runtime",
+  version: "1.1.0",
+  private: true,
+  scripts: {
+    "setup:local": "npm install --omit=dev"
+  },
+  dependencies: {
+    "@huggingface/transformers": "^4.2.0",
+    "onnxruntime-node": "^1.26.0"
+  }
+};
+function ensureEmbeddingRuntime(pluginDir, hooks = {}) {
+  const canLoad = hooks.canLoad || canLoadEmbeddingRuntime;
+  if (canLoad(pluginDir))
+    return;
+  writeEmbeddingRuntimePackage(pluginDir);
+  const install = hooks.install || installEmbeddingRuntimeDependencies;
+  install(pluginDir);
+  if (!canLoad(pluginDir)) {
+    throw new Error("Embedding runtime install finished, but @huggingface/transformers still cannot be loaded.");
+  }
+}
+function canLoadEmbeddingRuntime(pluginDir) {
+  const path = require("path");
+  const Module = require("module");
+  const pluginRequire = Module.createRequire(path.join(pluginDir, "main.js"));
+  try {
+    pluginRequire("@huggingface/transformers");
+    return true;
+  } catch {
+    return false;
+  }
+}
+function writeEmbeddingRuntimePackage(pluginDir) {
+  const fs2 = require("fs");
+  const path = require("path");
+  const packagePath = path.join(pluginDir, "package.json");
+  let pkg = { ...EMBEDDING_RUNTIME_PACKAGE };
+  if (fs2.existsSync(packagePath)) {
+    try {
+      const existing = JSON.parse(fs2.readFileSync(packagePath, "utf8"));
+      pkg = {
+        ...existing,
+        private: existing.private ?? true,
+        scripts: {
+          ...existing.scripts || {},
+          "setup:local": existing.scripts?.["setup:local"] || "npm install --omit=dev"
+        },
+        dependencies: {
+          ...existing.dependencies || {},
+          ...EMBEDDING_RUNTIME_PACKAGE.dependencies
+        }
+      };
+    } catch {
+      pkg = { ...EMBEDDING_RUNTIME_PACKAGE };
+    }
+  }
+  fs2.writeFileSync(packagePath, JSON.stringify(pkg, null, "	") + "\n", "utf8");
+}
+function installEmbeddingRuntimeDependencies(pluginDir) {
+  const { spawnSync } = require("child_process");
+  const result = spawnSync("/bin/zsh", ["-lc", "npm install --omit=dev"], {
+    cwd: pluginDir,
+    encoding: "utf8",
+    stdio: "pipe"
+  });
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.status !== 0) {
+    const details = `${result.stdout || ""}
+${result.stderr || ""}`.trim();
+    throw new Error(`npm install --omit=dev failed${details ? `: ${details}` : ""}`);
+  }
 }
 function installNodeFetch(transformers) {
   const env = transformers.env;
@@ -28854,7 +28934,7 @@ function getEmbeddingErrorMessage(err) {
     return "Embedding model failed to load: ONNX runtime backend failed to initialize. Run `npm run setup:local` in the plugin folder and reload Obsidian.";
   }
   if (/Missing local RAG runtime dependency|Cannot find module '@huggingface\/transformers'|Cannot find module 'onnxruntime-node'/i.test(message)) {
-    return "Embedding model failed to load: local RAG runtime dependencies are missing or not installed. Copy the full release package files including `package.json`, `package-lock.json`, `scripts/`, and `mcp-server/` into the plugin folder, run `npm run setup:local`, then reload Obsidian.";
+    return "Embedding model failed to load: local RAG runtime dependencies are missing or not installed. Analogy will try to install them automatically with `npm install --omit=dev`. If this keeps failing, check that npm is available and run `npm run setup:local` in the plugin folder, then reload Obsidian.";
   }
   return `Embedding model failed to load: ${causeMessage || message}`;
 }
@@ -29165,9 +29245,9 @@ function getLocalRuntimeStatus(pluginDir) {
   };
 }
 function installLocalRuntimeDependencies(pluginDir, onLog) {
-  const { spawn } = require("child_process");
-  const fs = require("fs");
-  if (!fs.existsSync(pluginDir)) {
+  const { spawn: spawn2 } = require("child_process");
+  const fs2 = require("fs");
+  if (!fs2.existsSync(pluginDir)) {
     return Promise.reject(new Error(`Plugin folder does not exist: ${pluginDir}`));
   }
   return new Promise((resolve, reject) => {
@@ -29183,7 +29263,7 @@ function installLocalRuntimeDependencies(pluginDir, onLog) {
     }
     onLog?.(`Using npm: ${npmCommand.label}`);
     onLog?.(`$ ${npmCommand.label} ${args.join(" ")}`);
-    const child = spawn(npmCommand.command, [...npmCommand.prefixArgs, ...args], {
+    const child = spawn2(npmCommand.command, [...npmCommand.prefixArgs, ...args], {
       cwd: pluginDir,
       shell: process.platform === "win32",
       stdio: ["ignore", "pipe", "pipe"],
@@ -29213,12 +29293,12 @@ function installLocalRuntimeDependencies(pluginDir, onLog) {
 }
 function resolveNpmCommand() {
   const { spawnSync } = require("child_process");
-  const fs = require("fs");
+  const fs2 = require("fs");
   const path = require("path");
   const pathEnv = buildNpmPathEnv();
   const directCandidates = getNpmExecutableCandidates();
   for (const candidate of directCandidates) {
-    if (!candidate || !fs.existsSync(candidate))
+    if (!candidate || !fs2.existsSync(candidate))
       continue;
     const result2 = spawnSync(candidate, ["--version"], {
       stdio: "ignore",
@@ -29240,7 +29320,7 @@ function resolveNpmCommand() {
   return null;
 }
 function getNpmExecutableCandidates() {
-  const fs = require("fs");
+  const fs2 = require("fs");
   const path = require("path");
   const home = process.env.HOME || "";
   const candidates = [
@@ -29250,14 +29330,14 @@ function getNpmExecutableCandidates() {
     "/usr/bin/npm"
   ];
   const nvmVersionsDir = home ? path.join(home, ".nvm", "versions", "node") : "";
-  if (nvmVersionsDir && fs.existsSync(nvmVersionsDir)) {
-    const nvmCandidates = fs.readdirSync(nvmVersionsDir).filter((name) => /^v\d+\./.test(name)).sort().reverse().map((name) => path.join(nvmVersionsDir, name, "bin", "npm"));
+  if (nvmVersionsDir && fs2.existsSync(nvmVersionsDir)) {
+    const nvmCandidates = fs2.readdirSync(nvmVersionsDir).filter((name) => /^v\d+\./.test(name)).sort().reverse().map((name) => path.join(nvmVersionsDir, name, "bin", "npm"));
     candidates.push(...nvmCandidates);
   }
   return candidates;
 }
 function buildNpmPathEnv() {
-  const fs = require("fs");
+  const fs2 = require("fs");
   const path = require("path");
   const home = process.env.HOME || "";
   const paths = /* @__PURE__ */ new Set();
@@ -29269,8 +29349,8 @@ function buildNpmPathEnv() {
     paths.add(part);
   }
   const nvmVersionsDir = home ? path.join(home, ".nvm", "versions", "node") : "";
-  if (nvmVersionsDir && fs.existsSync(nvmVersionsDir)) {
-    for (const name of fs.readdirSync(nvmVersionsDir)) {
+  if (nvmVersionsDir && fs2.existsSync(nvmVersionsDir)) {
+    for (const name of fs2.readdirSync(nvmVersionsDir)) {
       if (/^v\d+\./.test(name)) {
         paths.add(path.join(nvmVersionsDir, name, "bin"));
       }
@@ -30790,29 +30870,60 @@ function SettingDetail({ plugin, setting }) {
 
 // src/local-vector/chroma-process.ts
 var import_http = require("http");
+var import_fs = __toESM(require("fs"));
+var import_child_process = require("child_process");
 var LOG_PREFIX = "[Analogy][Chroma]";
+var START_TIMEOUT_MS = 15e3;
+var START_POLL_MS = 500;
 var ChromaProcessManager = class {
-  constructor() {
+  constructor(hooks = {}) {
     this.dbPath = "";
     this.port = 8e3;
     this.lastError = "";
+    this.process = null;
+    this.hooks = hooks;
   }
   async start(dbPath, port = 8e3) {
     this.dbPath = dbPath;
     this.port = port;
-    if (await this.isHealthy()) {
+    if (await this.checkHealthy()) {
       this.lastError = "";
       return true;
     }
+    try {
+      import_fs.default.mkdirSync(dbPath, { recursive: true });
+      this.process = this.startProcess(dbPath, port);
+    } catch (err) {
+      this.lastError = [
+        `Failed to start ChromaDB on 127.0.0.1:${port}: ${err.message}`,
+        "You can still start it manually:",
+        this.getManualStartCommand()
+      ].join("\n");
+      console.error(`${LOG_PREFIX} start failed`, { dbPath, port, error: err.message });
+      return false;
+    }
+    const deadline = Date.now() + START_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      await this.wait(START_POLL_MS);
+      if (await this.checkHealthy()) {
+        this.lastError = "";
+        console.log(`${LOG_PREFIX} started`, { dbPath, port, pid: this.process?.pid });
+        return true;
+      }
+    }
     this.lastError = [
-      `ChromaDB is not running on 127.0.0.1:${port}.`,
-      "Start it manually before enabling local search:",
+      `ChromaDB did not become ready on 127.0.0.1:${port} after automatic start.`,
+      "You can start it manually with:",
       this.getManualStartCommand()
     ].join("\n");
-    console.error(`${LOG_PREFIX} service unavailable`, { dbPath, port });
+    console.error(`${LOG_PREFIX} start timed out`, { dbPath, port });
     return false;
   }
   async stop() {
+    if (this.process && !this.process.killed) {
+      this.process.kill();
+    }
+    this.process = null;
   }
   async isHealthy() {
     if (await this.isEndpointHealthy("/api/v2/heartbeat"))
@@ -30841,6 +30952,49 @@ var ChromaProcessManager = class {
       });
       req.end();
     });
+  }
+  startProcess(dbPath, port) {
+    const spawnProcess = this.hooks.spawn || import_child_process.spawn;
+    const command = [
+      `PY_USER_BIN="$(python3 - <<'PY'
+import site
+print(site.USER_BASE + '/bin')
+PY
+)"`,
+      'export PATH="$PY_USER_BIN:$HOME/.local/bin:$PATH"',
+      "(command -v chroma >/dev/null 2>&1 || python3 -m pip install --user chromadb)",
+      `chroma run --path ${JSON.stringify(dbPath)} --host 127.0.0.1 --port ${port}`
+    ].join(" && ");
+    const child = spawnProcess("/bin/zsh", ["-lc", command], {
+      cwd: dbPath,
+      env: process.env
+    });
+    child.stdout.on("data", (data) => {
+      console.log(`${LOG_PREFIX} ${String(data).trim()}`);
+    });
+    child.stderr.on("data", (data) => {
+      const message = String(data).trim();
+      if (message)
+        this.lastError = message;
+      console.error(`${LOG_PREFIX} ${message}`);
+    });
+    child.on("error", (err) => {
+      this.lastError = err.message;
+      console.error(`${LOG_PREFIX} process error`, err);
+    });
+    child.on("exit", (code, signal) => {
+      if (code !== null && code !== 0) {
+        this.lastError = `ChromaDB exited with code ${code}`;
+      }
+      console.log(`${LOG_PREFIX} exited`, { code, signal });
+    });
+    return child;
+  }
+  checkHealthy() {
+    return this.hooks.isHealthy ? this.hooks.isHealthy() : this.isHealthy();
+  }
+  wait(ms) {
+    return this.hooks.waitMs ? this.hooks.waitMs(ms) : new Promise((resolve) => setTimeout(resolve, ms));
   }
   getLastError() {
     return this.lastError;
@@ -31887,8 +32041,8 @@ var Analogy = class extends import_obsidian5.Plugin {
       VIEW_TYPE_INDEX,
       (leaf) => new IndexView(leaf)
     );
-    (0, import_obsidian5.addIcon)(AnalogyIconId, icon);
-    this.addRibbonIcon(AnalogyIconId, "Analogy", () => {
+    (0, import_obsidian5.addIcon)("analogy-icon", icon);
+    this.addRibbonIcon("analogy-icon", "Analogy", () => {
       this.activateView();
     });
     this.addSettingTab(new AnalogySettingTab(this.app, this));

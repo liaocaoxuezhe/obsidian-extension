@@ -28805,7 +28805,7 @@ async function loadTransformers(pluginDir) {
 }
 var EMBEDDING_RUNTIME_PACKAGE = {
   name: "analogy-rag-runtime",
-  version: "1.0.5",
+  version: "1.0.7",
   private: true,
   scripts: {
     "setup:local": "npm install --omit=dev"
@@ -28865,7 +28865,7 @@ function writeEmbeddingRuntimePackage(pluginDir) {
 }
 function installEmbeddingRuntimeDependencies(pluginDir) {
   const { spawnSync } = require("child_process");
-  const result = spawnSync("npm", ["install", "--omit=dev"], {
+  const result = spawnSync("/bin/zsh", ["-lc", "npm install --omit=dev"], {
     cwd: pluginDir,
     encoding: "utf8",
     stdio: "pipe"

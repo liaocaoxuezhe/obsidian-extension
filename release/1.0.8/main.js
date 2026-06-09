@@ -28805,7 +28805,7 @@ async function loadTransformers(pluginDir) {
 }
 var EMBEDDING_RUNTIME_PACKAGE = {
   name: "analogy-rag-runtime",
-  version: "1.0.5",
+  version: "1.0.8",
   private: true,
   scripts: {
     "setup:local": "npm install --omit=dev"
@@ -28838,13 +28838,13 @@ function canLoadEmbeddingRuntime(pluginDir) {
   }
 }
 function writeEmbeddingRuntimePackage(pluginDir) {
-  const fs = require("fs");
+  const fs2 = require("fs");
   const path = require("path");
   const packagePath = path.join(pluginDir, "package.json");
   let pkg = { ...EMBEDDING_RUNTIME_PACKAGE };
-  if (fs.existsSync(packagePath)) {
+  if (fs2.existsSync(packagePath)) {
     try {
-      const existing = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+      const existing = JSON.parse(fs2.readFileSync(packagePath, "utf8"));
       pkg = {
         ...existing,
         private: existing.private ?? true,
@@ -28861,11 +28861,11 @@ function writeEmbeddingRuntimePackage(pluginDir) {
       pkg = { ...EMBEDDING_RUNTIME_PACKAGE };
     }
   }
-  fs.writeFileSync(packagePath, JSON.stringify(pkg, null, "	") + "\n", "utf8");
+  fs2.writeFileSync(packagePath, JSON.stringify(pkg, null, "	") + "\n", "utf8");
 }
 function installEmbeddingRuntimeDependencies(pluginDir) {
   const { spawnSync } = require("child_process");
-  const result = spawnSync("npm", ["install", "--omit=dev"], {
+  const result = spawnSync("/bin/zsh", ["-lc", "npm install --omit=dev"], {
     cwd: pluginDir,
     encoding: "utf8",
     stdio: "pipe"
@@ -30620,29 +30620,60 @@ function SettingDetail({ plugin, setting }) {
 
 // src/local-vector/chroma-process.ts
 var import_http = require("http");
+var import_fs = __toESM(require("fs"));
+var import_child_process = require("child_process");
 var LOG_PREFIX = "[Analogy][Chroma]";
+var START_TIMEOUT_MS = 15e3;
+var START_POLL_MS = 500;
 var ChromaProcessManager = class {
-  constructor() {
+  constructor(hooks = {}) {
     this.dbPath = "";
     this.port = 8e3;
     this.lastError = "";
+    this.process = null;
+    this.hooks = hooks;
   }
   async start(dbPath, port = 8e3) {
     this.dbPath = dbPath;
     this.port = port;
-    if (await this.isHealthy()) {
+    if (await this.checkHealthy()) {
       this.lastError = "";
       return true;
     }
+    try {
+      import_fs.default.mkdirSync(dbPath, { recursive: true });
+      this.process = this.startProcess(dbPath, port);
+    } catch (err) {
+      this.lastError = [
+        `Failed to start ChromaDB on 127.0.0.1:${port}: ${err.message}`,
+        "You can still start it manually:",
+        this.getManualStartCommand()
+      ].join("\n");
+      console.error(`${LOG_PREFIX} start failed`, { dbPath, port, error: err.message });
+      return false;
+    }
+    const deadline = Date.now() + START_TIMEOUT_MS;
+    while (Date.now() < deadline) {
+      await this.wait(START_POLL_MS);
+      if (await this.checkHealthy()) {
+        this.lastError = "";
+        console.log(`${LOG_PREFIX} started`, { dbPath, port, pid: this.process?.pid });
+        return true;
+      }
+    }
     this.lastError = [
-      `ChromaDB is not running on 127.0.0.1:${port}.`,
-      "Start it manually before enabling local search:",
+      `ChromaDB did not become ready on 127.0.0.1:${port} after automatic start.`,
+      "You can start it manually with:",
       this.getManualStartCommand()
     ].join("\n");
-    console.error(`${LOG_PREFIX} service unavailable`, { dbPath, port });
+    console.error(`${LOG_PREFIX} start timed out`, { dbPath, port });
     return false;
   }
   async stop() {
+    if (this.process && !this.process.killed) {
+      this.process.kill();
+    }
+    this.process = null;
   }
   async isHealthy() {
     if (await this.isEndpointHealthy("/api/v2/heartbeat"))
@@ -30671,6 +30702,49 @@ var ChromaProcessManager = class {
       });
       req.end();
     });
+  }
+  startProcess(dbPath, port) {
+    const spawnProcess = this.hooks.spawn || import_child_process.spawn;
+    const command = [
+      `PY_USER_BIN="$(python3 - <<'PY'
+import site
+print(site.USER_BASE + '/bin')
+PY
+)"`,
+      'export PATH="$PY_USER_BIN:$HOME/.local/bin:$PATH"',
+      "(command -v chroma >/dev/null 2>&1 || python3 -m pip install --user chromadb)",
+      `chroma run --path ${JSON.stringify(dbPath)} --host 127.0.0.1 --port ${port}`
+    ].join(" && ");
+    const child = spawnProcess("/bin/zsh", ["-lc", command], {
+      cwd: dbPath,
+      env: process.env
+    });
+    child.stdout.on("data", (data) => {
+      console.log(`${LOG_PREFIX} ${String(data).trim()}`);
+    });
+    child.stderr.on("data", (data) => {
+      const message = String(data).trim();
+      if (message)
+        this.lastError = message;
+      console.error(`${LOG_PREFIX} ${message}`);
+    });
+    child.on("error", (err) => {
+      this.lastError = err.message;
+      console.error(`${LOG_PREFIX} process error`, err);
+    });
+    child.on("exit", (code, signal) => {
+      if (code !== null && code !== 0) {
+        this.lastError = `ChromaDB exited with code ${code}`;
+      }
+      console.log(`${LOG_PREFIX} exited`, { code, signal });
+    });
+    return child;
+  }
+  checkHealthy() {
+    return this.hooks.isHealthy ? this.hooks.isHealthy() : this.isHealthy();
+  }
+  wait(ms) {
+    return this.hooks.waitMs ? this.hooks.waitMs(ms) : new Promise((resolve) => setTimeout(resolve, ms));
   }
   getLastError() {
     return this.lastError;
