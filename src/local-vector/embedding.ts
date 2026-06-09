@@ -384,7 +384,7 @@ async function loadTransformers(pluginDir: string): Promise<TransformersModule> 
 
 const EMBEDDING_RUNTIME_PACKAGE = {
   name: "analogy-rag-runtime",
-  version: "1.0.7",
+  version: "1.0.8",
   private: true,
   scripts: {
     "setup:local": "npm install --omit=dev",

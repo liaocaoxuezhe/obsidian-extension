@@ -32,7 +32,7 @@ Enable the plugin in Obsidian Settings -> Community plugins.
 
 ### Local RAG runtime
 
-Obsidian only installs the three plugin assets above. On first local RAG startup, Analogy creates a small runtime `package.json` in the plugin folder and installs the embedding runtime with `npm install --omit=dev`.
+Obsidian only installs the three plugin assets above. On first local RAG startup, Analogy creates a small runtime `package.json`, installs the embedding runtime, and starts ChromaDB automatically.
 
 If automatic installation fails, run the setup command inside the installed plugin folder:
 
