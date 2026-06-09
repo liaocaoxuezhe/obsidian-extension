@@ -60,7 +60,10 @@ const mcpFiles = execFileSync("git", ["ls-files", "mcp-server"], {
 })
 	.split(/\r?\n/)
 	.filter(Boolean)
-	.filter((file) => !file.includes("/commercial/"));
+	.filter((file) => {
+		const basename = path.basename(file);
+		return !file.includes("/commercial/") && !basename.includes(".commercial");
+	});
 
 for (const file of mcpFiles) {
 	const dest = path.join(releaseDir, file);
