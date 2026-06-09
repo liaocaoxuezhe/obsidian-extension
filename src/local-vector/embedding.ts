@@ -360,7 +360,7 @@ async function loadTransformers(pluginDir: string): Promise<TransformersModule> 
     const message = (err as Error).message || String(err);
     throw new Error(
       "Missing local RAG runtime dependency @huggingface/transformers. " +
-        "Run `npm install --omit=dev` in the plugin folder, or install the plugin from the full GitHub repository. " +
+        "Install the full local RAG runtime from the release package, then run `npm run setup:local` in the plugin folder. " +
         `Original error: ${message}`
     );
   }
@@ -426,11 +426,11 @@ export function getEmbeddingErrorMessage(err: unknown): string {
   }
 
   if (/Cannot read properties of undefined \(reading 'create'\)/i.test(message)) {
-    return "Embedding model failed to load: ONNX runtime backend failed to initialize. Run `npm install --omit=dev` in the plugin folder and reload Obsidian.";
+    return "Embedding model failed to load: ONNX runtime backend failed to initialize. Run `npm run setup:local` in the plugin folder and reload Obsidian.";
   }
 
   if (/Missing local RAG runtime dependency|Cannot find module '@huggingface\/transformers'|Cannot find module 'onnxruntime-node'/i.test(message)) {
-    return "Embedding model failed to load: local RAG runtime dependencies are missing. Run `npm install --omit=dev` in the plugin folder, then reload Obsidian.";
+    return "Embedding model failed to load: local RAG runtime dependencies are missing or not installed. Copy the full release package files including `package.json`, `package-lock.json`, `scripts/`, and `mcp-server/` into the plugin folder, run `npm run setup:local`, then reload Obsidian.";
   }
 
   return `Embedding model failed to load: ${causeMessage || message}`;

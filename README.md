@@ -32,7 +32,7 @@ Enable the plugin in Obsidian Settings -> Community plugins.
 
 ### Local RAG runtime
 
-Obsidian loads the three plugin assets above. Local RAG and MCP also need the runtime files included in the `release/1.0.3` package: `package.json`, `package-lock.json`, `scripts/`, and `mcp-server/`.
+Obsidian loads the three plugin assets above. Local RAG and MCP also need the runtime files included in the matching `release/<version>` package: `package.json`, `package-lock.json`, `scripts/`, and `mcp-server/`.
 
 Run the setup command inside the installed plugin folder:
 
