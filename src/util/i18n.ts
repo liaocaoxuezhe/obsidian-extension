@@ -33,6 +33,28 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
   "settings.language.english": { en: "English", zh: "英文" },
   "settings.language.chinese": { en: "Chinese", zh: "中文" },
 
+  "settings.runtime.title": { en: "Local RAG runtime", zh: "本地 RAG 运行时" },
+  "settings.runtime.desc": {
+    en: "Required for local embedding inference. Community installs do not include npm dependencies, so install them here once.",
+    zh: "本地嵌入推理需要这些运行时依赖。社区插件安装不会包含 npm 依赖，请在这里安装一次。",
+  },
+  "settings.runtime.ready": { en: "Ready", zh: "就绪" },
+  "settings.runtime.missing": { en: "Missing", zh: "缺失" },
+  "settings.runtime.missingPackages": { en: "Missing packages", zh: "缺失依赖" },
+  "settings.runtime.installHint": {
+    en: "This runs npm install in the plugin folder and downloads packages from the npm registry. Keep Obsidian open until it finishes.",
+    zh: "这会在插件目录中执行 npm install，并从 npm registry 下载依赖。安装完成前请保持 Obsidian 打开。",
+  },
+  "settings.runtime.install": { en: "Install runtime", zh: "安装运行时" },
+  "settings.runtime.installing": { en: "Installing...", zh: "安装中..." },
+  "settings.runtime.refreshing": { en: "Refreshing...", zh: "刷新中..." },
+  "settings.runtime.installDone": { en: "Local RAG runtime installed", zh: "本地 RAG 运行时已安装" },
+  "settings.runtime.installFailed": { en: "Runtime install failed", zh: "运行时安装失败" },
+  "settings.runtime.confirm": {
+    en: "Install local RAG runtime dependencies with npm? This downloads @huggingface/transformers and onnxruntime-node into the plugin folder.",
+    zh: "要使用 npm 安装本地 RAG 运行时依赖吗？这会把 @huggingface/transformers 和 onnxruntime-node 下载到插件目录。",
+  },
+
   "settings.chroma.title": { en: "ChromaDB", zh: "ChromaDB" },
   "settings.chroma.status": { en: "Status", zh: "状态" },
   "settings.chroma.running": { en: "Running", zh: "运行中" },
