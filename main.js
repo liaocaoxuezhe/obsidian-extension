@@ -28790,13 +28790,94 @@ async function loadTransformers(pluginDir) {
   try {
     transformers = pluginRequire("@huggingface/transformers");
   } catch (err) {
-    const message = err.message || String(err);
-    throw new Error(
-      `Missing local RAG runtime dependency @huggingface/transformers. Install the full local RAG runtime from the release package, then run \`npm run setup:local\` in the plugin folder. Original error: ${message}`
-    );
+    ensureEmbeddingRuntime(pluginDir);
+    try {
+      transformers = pluginRequire("@huggingface/transformers");
+    } catch (retryErr) {
+      const message = retryErr.message || String(retryErr);
+      throw new Error(
+        `Missing local RAG runtime dependency @huggingface/transformers. Analogy tried to install the embedding runtime automatically. If this keeps failing, run \`npm run setup:local\` in the plugin folder. Original error: ${message}`
+      );
+    }
   }
   installNodeFetch(transformers);
   return transformers;
+}
+var EMBEDDING_RUNTIME_PACKAGE = {
+  name: "analogy-rag-runtime",
+  version: "1.0.5",
+  private: true,
+  scripts: {
+    "setup:local": "npm install --omit=dev"
+  },
+  dependencies: {
+    "@huggingface/transformers": "^4.2.0",
+    "onnxruntime-node": "^1.26.0"
+  }
+};
+function ensureEmbeddingRuntime(pluginDir, hooks = {}) {
+  const canLoad = hooks.canLoad || canLoadEmbeddingRuntime;
+  if (canLoad(pluginDir))
+    return;
+  writeEmbeddingRuntimePackage(pluginDir);
+  const install = hooks.install || installEmbeddingRuntimeDependencies;
+  install(pluginDir);
+  if (!canLoad(pluginDir)) {
+    throw new Error("Embedding runtime install finished, but @huggingface/transformers still cannot be loaded.");
+  }
+}
+function canLoadEmbeddingRuntime(pluginDir) {
+  const path = require("path");
+  const Module = require("module");
+  const pluginRequire = Module.createRequire(path.join(pluginDir, "main.js"));
+  try {
+    pluginRequire("@huggingface/transformers");
+    return true;
+  } catch {
+    return false;
+  }
+}
+function writeEmbeddingRuntimePackage(pluginDir) {
+  const fs = require("fs");
+  const path = require("path");
+  const packagePath = path.join(pluginDir, "package.json");
+  let pkg = { ...EMBEDDING_RUNTIME_PACKAGE };
+  if (fs.existsSync(packagePath)) {
+    try {
+      const existing = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+      pkg = {
+        ...existing,
+        private: existing.private ?? true,
+        scripts: {
+          ...existing.scripts || {},
+          "setup:local": existing.scripts?.["setup:local"] || "npm install --omit=dev"
+        },
+        dependencies: {
+          ...existing.dependencies || {},
+          ...EMBEDDING_RUNTIME_PACKAGE.dependencies
+        }
+      };
+    } catch {
+      pkg = { ...EMBEDDING_RUNTIME_PACKAGE };
+    }
+  }
+  fs.writeFileSync(packagePath, JSON.stringify(pkg, null, "	") + "\n", "utf8");
+}
+function installEmbeddingRuntimeDependencies(pluginDir) {
+  const { spawnSync } = require("child_process");
+  const result = spawnSync("npm", ["install", "--omit=dev"], {
+    cwd: pluginDir,
+    encoding: "utf8",
+    stdio: "pipe"
+  });
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.status !== 0) {
+    const details = `${result.stdout || ""}
+${result.stderr || ""}`.trim();
+    throw new Error(`npm install --omit=dev failed${details ? `: ${details}` : ""}`);
+  }
 }
 function installNodeFetch(transformers) {
   const env = transformers.env;
@@ -28832,7 +28913,7 @@ function getEmbeddingErrorMessage(err) {
     return "Embedding model failed to load: ONNX runtime backend failed to initialize. Run `npm run setup:local` in the plugin folder and reload Obsidian.";
   }
   if (/Missing local RAG runtime dependency|Cannot find module '@huggingface\/transformers'|Cannot find module 'onnxruntime-node'/i.test(message)) {
-    return "Embedding model failed to load: local RAG runtime dependencies are missing or not installed. Copy the full release package files including `package.json`, `package-lock.json`, `scripts/`, and `mcp-server/` into the plugin folder, run `npm run setup:local`, then reload Obsidian.";
+    return "Embedding model failed to load: local RAG runtime dependencies are missing or not installed. Analogy will try to install them automatically with `npm install --omit=dev`. If this keeps failing, check that npm is available and run `npm run setup:local` in the plugin folder, then reload Obsidian.";
   }
   return `Embedding model failed to load: ${causeMessage || message}`;
 }

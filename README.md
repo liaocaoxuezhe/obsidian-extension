@@ -32,15 +32,15 @@ Enable the plugin in Obsidian Settings -> Community plugins.
 
 ### Local RAG runtime
 
-Obsidian only installs the three plugin assets above. Local RAG needs extra runtime files, so do not assume `node_modules` exists after a marketplace install.
+Obsidian only installs the three plugin assets above. On first local RAG startup, Analogy creates a small runtime `package.json` in the plugin folder and installs the embedding runtime with `npm install --omit=dev`.
 
-Run the setup command inside the installed plugin folder:
+If automatic installation fails, run the setup command inside the installed plugin folder:
 
 ```bash
 npm run setup:local
 ```
 
-If you installed the plugin from the GitHub repository, these files are already in the repository. If you installed only the three release assets, clone the repository or copy the `package.json`, `package-lock.json`, `scripts/`, `mcp-server/`, and `models/` setup files before running the commands.
+If you need the companion MCP server files too, download the full runtime zip from the GitHub release.
 
 ## Usage
 
