@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { execFileSync } from "child_process";
 
 const root = process.cwd();
 const manifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "utf8"));
@@ -26,12 +27,48 @@ for (const asset of requiredAssets) {
 	}
 }
 
+const runtimeFiles = [
+	"package.json",
+	"package-lock.json",
+	"scripts/download-jina-model.py",
+	"scripts/install-local-runtime.mjs",
+];
+
+for (const file of runtimeFiles) {
+	const filePath = path.join(root, file);
+	if (!fs.existsSync(filePath)) {
+		throw new Error(`Missing runtime setup file: ${file}`);
+	}
+}
+
 const releaseDir = path.join(root, "release", manifest.version);
+fs.rmSync(releaseDir, { recursive: true, force: true });
 fs.mkdirSync(releaseDir, { recursive: true });
 for (const asset of requiredAssets) {
 	fs.copyFileSync(path.join(root, asset), path.join(releaseDir, asset));
 }
 
+for (const file of runtimeFiles) {
+	const dest = path.join(releaseDir, file);
+	fs.mkdirSync(path.dirname(dest), { recursive: true });
+	fs.copyFileSync(path.join(root, file), dest);
+}
+
+const mcpFiles = execFileSync("git", ["ls-files", "mcp-server"], {
+	cwd: root,
+	encoding: "utf8",
+})
+	.split(/\r?\n/)
+	.filter(Boolean)
+	.filter((file) => !file.includes("/commercial/"));
+
+for (const file of mcpFiles) {
+	const dest = path.join(releaseDir, file);
+	fs.mkdirSync(path.dirname(dest), { recursive: true });
+	fs.copyFileSync(path.join(root, file), dest);
+}
+
 console.log(`Release assets prepared in release/${manifest.version}`);
 console.log(`Create a GitHub release tagged exactly: ${manifest.version}`);
-console.log("Upload these binary assets: main.js, manifest.json, styles.css");
+console.log("Upload these Obsidian assets: main.js, manifest.json, styles.css");
+console.log("For full local RAG + MCP setup, publish the release directory contents or archive it.");

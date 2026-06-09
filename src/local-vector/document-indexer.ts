@@ -5,6 +5,7 @@ import { isPathExcludedFromIndex, normalizeExcludedIndexPaths } from "./excluded
 import { cleanMarkdown, splitByHeaders } from "./strip-markdown";
 
 const MAX_CHUNK_CHARS = 900;
+const MIN_SHORT_CHUNK_CHARS = 50;
 const MAX_SECTION_CHARS = 2000;
 const MAX_SENTENCES_PER_CHUNK_PASS = 24;
 const BREAKPOINT_PERCENTILE = 90;
@@ -86,6 +87,7 @@ export class DocumentIndexer {
   private saveDirty = false;
   private savePromise: Promise<void> | null = null;
   private lastSaveTime = 0;
+  private stopped = false;
 
   constructor(
     embedding: LocalEmbeddingService,
@@ -104,10 +106,10 @@ export class DocumentIndexer {
   }
 
   async loadState(): Promise<void> {
+    let needsSave = false;
     try {
       const raw = await this.stateStore.load();
       if (raw) {
-        let migrated = false;
         const newState: IndexState = {};
         for (const [key, entry] of Object.entries(raw)) {
           if (key.includes("::")) {
@@ -116,18 +118,21 @@ export class DocumentIndexer {
             if (!newState[filePath] || newState[filePath].mtime < migratedEntry.mtime) {
               newState[filePath] = migratedEntry;
             }
-            migrated = true;
+            needsSave = true;
           } else {
             newState[key] = { ...entry, path: entry.path ?? key };
           }
         }
         this.indexState = newState;
-        if (migrated) {
-          await this.saveState();
-        }
       }
     } catch {
       this.indexState = {};
+    }
+    if (await this.recoverStateFromVectorStore()) {
+      needsSave = true;
+    }
+    if (needsSave) {
+      await this.saveState();
     }
   }
 
@@ -180,6 +185,34 @@ export class DocumentIndexer {
     }
   }
 
+  async stop(): Promise<void> {
+    this.stopped = true;
+    this.isIndexing = false;
+    for (const timer of this.autoIndexTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.autoIndexTimers.clear();
+    this.pendingActiveFiles.clear();
+    for (const item of this.queue.splice(0)) {
+      item.resolve();
+    }
+    while (this.activeWorkers > 0) {
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+  }
+
+  shutdown(): void {
+    this.unwatchVault();
+  }
+
+  private beginIndexing(): void {
+    this.stopped = false;
+    this.isIndexing = true;
+    this.queue = [];
+    this.queueProcessed = 0;
+    this.queueTotal = 0;
+  }
+
   buildDocId(file: TFile): string {
     return file.path;
   }
@@ -226,6 +259,28 @@ export class DocumentIndexer {
       skipReason,
     };
     this.throttledSaveState();
+  }
+
+  private async recoverStateFromVectorStore(): Promise<boolean> {
+    let recovered = false;
+    try {
+      const entries = await this.vectorStore.listIndexedDocumentEntries();
+      for (const entry of entries) {
+        const existing = this.indexState[entry.docId];
+        if (existing && existing.chunkCount > 0 && existing.mtime >= entry.mtime) {
+          continue;
+        }
+        this.indexState[entry.docId] = {
+          path: entry.path,
+          mtime: entry.mtime,
+          chunkCount: entry.chunkCount,
+          muted: existing?.muted,
+          skipped: false,
+        };
+        recovered = true;
+      }
+    } catch {}
+    return recovered;
   }
 
   private splitIntoSentences(text: string): string[] {
@@ -286,6 +341,43 @@ export class DocumentIndexer {
     return parts;
   }
 
+  private mergeShortChunks(chunks: string[]): string[] {
+    const merged: string[] = [];
+    let pending = "";
+
+    for (const chunk of chunks) {
+      const text = chunk.trim();
+      if (!text) continue;
+
+      if (pending) {
+        const combined = `${pending}\n${text}`.trim();
+        if (combined.length <= MIN_SHORT_CHUNK_CHARS) {
+          pending = combined;
+        } else {
+          merged.push(combined);
+          pending = "";
+        }
+        continue;
+      }
+
+      if (text.length <= MIN_SHORT_CHUNK_CHARS) {
+        pending = text;
+      } else {
+        merged.push(text);
+      }
+    }
+
+    if (pending) {
+      if (merged.length > 0) {
+        merged[merged.length - 1] = `${merged[merged.length - 1]}\n${pending}`.trim();
+      } else {
+        merged.push(pending);
+      }
+    }
+
+    return merged;
+  }
+
   async splitIntoChunks(text: string): Promise<string[]> {
     if (text.length > SEMANTIC_CHUNK_CHAR_LIMIT) {
       return this.splitOversizedText(text, MAX_CHUNK_CHARS);
@@ -326,6 +418,7 @@ export class DocumentIndexer {
   }
 
   async indexDocument(file: TFile): Promise<void> {
+    if (this.stopped) return;
     const docId = this.buildDocId(file);
     const existing = this.indexState[docId];
     if (this.isExcluded(file)) {
@@ -348,6 +441,7 @@ export class DocumentIndexer {
     }
 
     const content = await this.vault.adapter.read(file.path);
+    if (this.stopped) return;
     if (content.length > MAX_FILE_SIZE) {
       const reason = `oversized content: ${content.length} > ${MAX_FILE_SIZE}`;
       if (existing) {
@@ -371,14 +465,17 @@ export class DocumentIndexer {
 
       const allChunks: string[] = [];
       for (const section of sections) {
+        if (this.stopped) return;
         const text = section.header
           ? `${section.header}\n${section.content}`
           : section.content;
 
         const subTexts = this.splitOversizedText(text, MAX_SECTION_CHARS);
         for (const sub of subTexts) {
+          if (this.stopped) return;
           const sectionChunks = await this.splitIntoChunks(sub);
-          allChunks.push(...sectionChunks);
+          if (this.stopped) return;
+          allChunks.push(...this.mergeShortChunks(sectionChunks));
         }
       }
       if (allChunks.length === 0) {
@@ -413,8 +510,10 @@ export class DocumentIndexer {
       };
 
       for (let i = 0; i < chunks.length; i += UPSERT_BATCH) {
+        if (this.stopped) return;
         const batch = chunks.slice(i, i + UPSERT_BATCH);
         const embeddings = await this.embedding.embedBatch(batch);
+        if (this.stopped) return;
         const chunkData = batch.map((c, j) => ({
           chunkId: `${docId}::chunk-${i + j}`,
           content: c,
@@ -449,6 +548,7 @@ export class DocumentIndexer {
   }
 
   async reindexDocument(file: TFile): Promise<void> {
+    this.stopped = false;
     await this.removeDocument(file);
     await this.indexDocument(file);
   }
@@ -489,6 +589,7 @@ export class DocumentIndexer {
   }
 
   private enqueue(file: TFile): Promise<void> {
+    if (this.stopped) return Promise.resolve();
     return new Promise((resolve, reject) => {
       this.queue.push({ file, resolve, reject });
       this.queueTotal++;
@@ -501,7 +602,7 @@ export class DocumentIndexer {
     this.activeWorkers++;
 
     try {
-      while (this.queue.length > 0) {
+      while (!this.stopped && this.queue.length > 0) {
         const item = this.queue.shift()!;
         try {
           await this.indexDocument(item.file);
@@ -537,14 +638,13 @@ export class DocumentIndexer {
     files: TFile[],
     options?: { force?: boolean; onProgress?: (progress: RebuildProgress) => void }
   ): Promise<void> {
-    this.isIndexing = true;
+    this.beginIndexing();
     const mdFiles = files.filter((f) => f.extension === "md" && !this.isExcluded(f));
-    this.queueProcessed = 0;
-    this.queueTotal = 0;
 
     try {
       const promises: Promise<void>[] = [];
       for (let i = 0; i < mdFiles.length; i++) {
+        if (this.stopped) break;
         const file = mdFiles[i];
         if (options?.force) {
           const docId = this.buildDocId(file);
@@ -556,6 +656,7 @@ export class DocumentIndexer {
 
         const p = (async () => {
           await this.enqueue(file);
+          if (this.stopped) return;
           options?.onProgress?.({
             current: this.queueProcessed,
             total: mdFiles.length,
@@ -566,7 +667,9 @@ export class DocumentIndexer {
       }
 
       await Promise.all(promises);
-      await this.saveState();
+      if (!this.stopped) {
+        await this.saveState();
+      }
     } finally {
       this.isIndexing = false;
       this.queueProcessed = 0;
@@ -589,7 +692,8 @@ export class DocumentIndexer {
   }
 
   private isEntryOutdated(entry: IndexStateEntry, file: TFile): boolean {
-    return entry.mtime < file.stat.mtime || (entry.path !== undefined && entry.path !== file.path);
+    return entry.mtime < file.stat.mtime
+      || (entry.path !== undefined && entry.path !== file.path);
   }
 
   private clearPendingFile(filePath: string): void {
@@ -713,21 +817,21 @@ export class DocumentIndexer {
     files: TFile[],
     options?: { onProgress?: (progress: RebuildProgress) => void }
   ): Promise<void> {
-    this.isIndexing = true;
+    this.beginIndexing();
     const pending = files.filter((f) => {
       if (f.extension !== "md" || this.isExcluded(f)) return false;
       const docId = this.buildDocId(f);
       const entry = this.indexState[docId];
       return !entry || this.isEntryOutdated(entry, f);
     });
-    this.queueProcessed = 0;
-    this.queueTotal = 0;
 
     try {
       const promises: Promise<void>[] = [];
       for (const file of pending) {
+        if (this.stopped) break;
         const p = (async () => {
           await this.enqueue(file);
+          if (this.stopped) return;
           options?.onProgress?.({
             current: this.queueProcessed,
             total: pending.length,
@@ -737,7 +841,9 @@ export class DocumentIndexer {
         promises.push(p);
       }
       await Promise.all(promises);
-      await this.saveState();
+      if (!this.stopped) {
+        await this.saveState();
+      }
     } finally {
       this.isIndexing = false;
       this.queueProcessed = 0;

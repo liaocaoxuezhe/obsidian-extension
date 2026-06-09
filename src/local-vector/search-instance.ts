@@ -3,6 +3,8 @@ import { LocalVectorStore } from "./vector-store";
 import { LocalSemanticSearch } from "./search";
 import { DocumentIndexer } from "./document-indexer";
 import { ChromaProcessManager } from "./chroma-process";
+import type { DocumentSummarizer } from "./document-summarizer";
+import { searchResultCache } from "./search-result-cache";
 
 export type ServiceStatus = "initializing" | "ready" | "degraded" | "error";
 type ServiceStateListener = (state: ServiceState) => void;
@@ -28,6 +30,7 @@ export const searchInstance = {
   localSearch: null as LocalSemanticSearch | null,
   documentIndexer: null as DocumentIndexer | null,
   chromaManager: null as ChromaProcessManager | null,
+  documentSummarizer: null as DocumentSummarizer | null,
   state: {
     status: "initializing" as ServiceStatus,
     chromaManager: null as ChromaProcessManager | null,
@@ -63,14 +66,17 @@ export function initLocalVectorServices(
   indexer: DocumentIndexer | null,
   chromaManager: ChromaProcessManager | null,
   state: Partial<ServiceState>,
-  maxInputChars?: number
+  maxInputChars?: number,
+  summarizer?: DocumentSummarizer | null
 ) {
+  searchResultCache.clear();
   searchInstance.embeddingService = embedding;
   searchInstance.vectorStore = store;
   searchInstance.documentIndexer = indexer;
   searchInstance.chromaManager = chromaManager;
+  searchInstance.documentSummarizer = summarizer ?? null;
   if (embedding && store && embedding.isReady() && store) {
-    const search = new LocalSemanticSearch(embedding, store, maxInputChars);
+    const search = new LocalSemanticSearch(embedding, store, maxInputChars, summarizer ?? undefined);
     if (indexer) search.setDocumentIndexer(indexer);
     searchInstance.localSearch = search;
   } else {

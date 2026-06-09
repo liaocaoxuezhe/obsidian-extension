@@ -6,6 +6,9 @@ import {ChromaProcessManager} from "./src/local-vector/chroma-process";
 import {getEmbeddingErrorMessage, LocalEmbeddingService, EMBEDDING_MODELS, DEFAULT_MODEL_KEY} from "./src/local-vector/embedding";
 import {LocalVectorStore} from "./src/local-vector/vector-store";
 import {DocumentIndexer, type IndexState} from "./src/local-vector/document-indexer";
+import {DEFAULT_SUMMARY_PROMPT, DocumentSummarizer} from "./src/local-vector/document-summarizer";
+import {OllamaClient} from "./src/local-vector/ollama-client";
+import {DEFAULT_SUMMARY_MODEL_KEY, SUMMARY_MODELS} from "./src/local-vector/summary-models";
 import {initLocalVectorServices, updateServiceState} from "./src/local-vector/search-instance";
 import {setLocale} from "./src/util/i18n";
 import {refreshCachedLicense} from "./src/license/license-api";
@@ -153,6 +156,33 @@ export default class Analogy extends Plugin {
 			return;
 		}
 
+		const ollamaClient = new OllamaClient({
+			host: this.settings.summaryOllamaHost || DEFAULT_SETTINGS.summaryOllamaHost,
+			timeoutMs: this.settings.summaryTimeoutMs || DEFAULT_SETTINGS.summaryTimeoutMs,
+		});
+		const summaryConfig = SUMMARY_MODELS[this.settings.summaryModel] || SUMMARY_MODELS[DEFAULT_SUMMARY_MODEL_KEY];
+		const summarizer = new DocumentSummarizer({
+			enabled: Boolean(this.settings.summarizeBeforeEmbedding),
+			model: summaryConfig.ollamaName,
+			maxInputChars: this.settings.summaryMaxInputChars || DEFAULT_SETTINGS.summaryMaxInputChars,
+			fallbackToOriginal: this.settings.summaryFallbackToOriginal !== false,
+			promptTemplate: this.settings.summaryPrompt || DEFAULT_SUMMARY_PROMPT,
+			client: ollamaClient,
+		});
+		if (this.settings.summarizeBeforeEmbedding) {
+			try {
+				const models = await ollamaClient.listModels();
+				const installed = models.some((m) => m.name === summaryConfig.ollamaName);
+				if (!installed && this.settings.summaryAutoPullModel) {
+					await ollamaClient.pullModel(summaryConfig.ollamaName);
+				}
+			} catch (err) {
+				if (this.settings.summaryFallbackToOriginal === false) {
+					console.error(`${INIT_LOG_PREFIX} failed`, { stage: "summary", error: (err as Error).message });
+				}
+			}
+		}
+
 		this.documentIndexer = new DocumentIndexer(
 			this.embeddingService,
 			this.vectorStore,
@@ -178,7 +208,8 @@ export default class Analogy extends Plugin {
 				embeddingStatus: "ready",
 				activeModel: modelConfig.shortName,
 			},
-			modelConfig.maxInputChars
+			modelConfig.maxInputChars,
+			summarizer
 		);
 		console.log(`${INIT_LOG_PREFIX} success`, {
 			dbPath,
@@ -189,8 +220,10 @@ export default class Analogy extends Plugin {
 
 	async onunload() {
 		if (this.documentIndexer) {
+			await this.documentIndexer.stop();
+			this.documentIndexer.shutdown();
 			await this.documentIndexer.flushState();
-			this.documentIndexer.unwatchVault();
+			this.documentIndexer = null;
 		}
 		if (this.embeddingService) {
 			try {
@@ -224,6 +257,7 @@ export default class Analogy extends Plugin {
 			? this.settings.excludedIndexPaths
 			: [];
 		this.settings.indexStates = this.settings.indexStates || {};
+		this.settings.summaryPrompt = this.settings.summaryPrompt || DEFAULT_SUMMARY_PROMPT;
 	}
 
 	async saveSettings() {

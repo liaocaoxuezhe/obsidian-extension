@@ -1,6 +1,6 @@
 {
 	"name": "analogy-rag-in-your-vault",
-	"version": "1.0.4",
+	"version": "1.0.3",
 	"description": "Obsidian plugin for local vault RAG with semantic search and MCP access.",
 	"main": "main.js",
 	"scripts": {
