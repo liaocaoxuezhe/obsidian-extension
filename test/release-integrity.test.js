@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 
 const root = path.resolve(__dirname, "..");
-const releaseVersion = "1.0.6";
+const releaseVersion = "1.0.7";
 const releaseDir = path.join(root, "release", releaseVersion);
 
 function gitLsFiles() {

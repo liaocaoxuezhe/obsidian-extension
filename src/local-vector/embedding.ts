@@ -384,7 +384,7 @@ async function loadTransformers(pluginDir: string): Promise<TransformersModule> 
 
 const EMBEDDING_RUNTIME_PACKAGE = {
   name: "analogy-rag-runtime",
-  version: "1.0.5",
+  version: "1.0.7",
   private: true,
   scripts: {
     "setup:local": "npm install --omit=dev",
@@ -454,9 +454,9 @@ function writeEmbeddingRuntimePackage(pluginDir: string): void {
   fs.writeFileSync(packagePath, JSON.stringify(pkg, null, "\t") + "\n", "utf8");
 }
 
-function installEmbeddingRuntimeDependencies(pluginDir: string): void {
+export function installEmbeddingRuntimeDependencies(pluginDir: string): void {
   const { spawnSync } = require("child_process");
-  const result = spawnSync("npm", ["install", "--omit=dev"], {
+  const result = spawnSync("/bin/zsh", ["-lc", "npm install --omit=dev"], {
     cwd: pluginDir,
     encoding: "utf8",
     stdio: "pipe",

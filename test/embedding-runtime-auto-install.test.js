@@ -20,11 +20,16 @@ async function loadModule() {
 }
 
 (async () => {
-  const { ensureEmbeddingRuntime } = await loadModule();
+  const { ensureEmbeddingRuntime, installEmbeddingRuntimeDependencies } = await loadModule();
   assert.strictEqual(
     typeof ensureEmbeddingRuntime,
     "function",
     "ensureEmbeddingRuntime should be exported for testing the missing-runtime bootstrap"
+  );
+  assert.strictEqual(
+    typeof installEmbeddingRuntimeDependencies,
+    "function",
+    "installEmbeddingRuntimeDependencies should be exported so GUI PATH handling is testable"
   );
 
   const pluginDir = fs.mkdtempSync(path.join(os.tmpdir(), "analogy-runtime-"));
@@ -44,6 +49,29 @@ async function loadModule() {
   assert.strictEqual(pkg.scripts["setup:local"], "npm install --omit=dev");
   assert.ok(pkg.dependencies["@huggingface/transformers"]);
   assert.ok(pkg.dependencies["onnxruntime-node"]);
+
+  const childProcess = require("child_process");
+  const originalSpawnSync = childProcess.spawnSync;
+  const spawnCalls = [];
+  childProcess.spawnSync = (command, args, options) => {
+    spawnCalls.push({ command, args, cwd: options && options.cwd });
+    if (command === "npm") {
+      return { status: null, error: Object.assign(new Error("spawnSync npm ENOENT"), { code: "ENOENT" }) };
+    }
+    if (command === "/bin/zsh" && args[0] === "-lc" && args[1] === "npm install --omit=dev") {
+      return { status: 0, stdout: "", stderr: "" };
+    }
+    return { status: 1, stdout: "", stderr: "unexpected command" };
+  };
+  try {
+    installEmbeddingRuntimeDependencies(pluginDir);
+  } finally {
+    childProcess.spawnSync = originalSpawnSync;
+  }
+
+  assert.deepStrictEqual(spawnCalls, [
+    { command: "/bin/zsh", args: ["-lc", "npm install --omit=dev"], cwd: pluginDir },
+  ]);
 
   console.log("Embedding runtime auto-install test passed");
 })().catch((err) => {
