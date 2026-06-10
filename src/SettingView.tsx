@@ -132,6 +132,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
   const [modelProgress, setModelProgress] = useState(0);
   const [isRebuilding, setIsRebuilding] = useState(false);
   const [isStoppingIndex, setIsStoppingIndex] = useState(false);
+  const [isStartingChroma, setIsStartingChroma] = useState(false);
   const [rebuildProgress, setRebuildProgress] = useState<RebuildProgress | null>(null);
   const [dbPath, setDbPath] = useState("");
   const [lastError, setLastError] = useState("");
@@ -476,6 +477,33 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     plugin.settings.chromaPort = val;
     await plugin.saveSettings();
     new Notice(`ChromaDB port saved: ${val}. Reload plugin to apply.`);
+  }
+
+  async function startChromaFromSettings() {
+    const val = parseInt(portInput, 10);
+    if (isNaN(val) || val < 1 || val > 65535) {
+      new Notice("Port must be between 1 and 65535");
+      return;
+    }
+    setIsStartingChroma(true);
+    try {
+      plugin.settings.chromaPort = val;
+      await plugin.saveSettings();
+      await plugin.initLocalServices();
+      await refreshServiceStatus();
+      refreshFileStatuses();
+      if (searchInstance.state.status === "ready") {
+        new Notice(t("settings.chroma.startDone"));
+      } else if (searchInstance.state.lastError) {
+        new Notice(searchInstance.state.lastError);
+      }
+    } catch (err) {
+      const message = (err as Error).message;
+      setLastError(message);
+      new Notice(message);
+    } finally {
+      setIsStartingChroma(false);
+    }
   }
 
   async function saveModelHost() {
@@ -918,7 +946,10 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
           </div>
           {!chromaHealthy && (
             <div className="mt-3 text-xs text-[#666666] bg-[#fafafa] border border-[#f0f0f0] rounded-md px-3 py-2">
-              <div className="mb-1">{t("settings.chroma.manualStart")}</div>
+              <div className="mb-2">{t("settings.chroma.manualStart")}</div>
+              <Button size="sm" onClick={startChromaFromSettings} disabled={isStartingChroma} className="mb-2">
+                {isStartingChroma ? t("settings.chroma.starting") : t("settings.chroma.start")}
+              </Button>
               <code className="block whitespace-pre-wrap break-all font-mono text-[#333333]">{manualChromaCommand}</code>
             </div>
           )}
