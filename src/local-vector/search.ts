@@ -20,6 +20,12 @@ export interface LocalDocumentSearchResponse {
   queryText?: string;
 }
 
+export interface LocalSearchOptions {
+  excludePaths?: string[];
+}
+
+const SEARCH_RESULT_EXPANSION_LIMIT = 200;
+
 export function createDocumentSearchInput(content: string, maxInputChars: number): string {
   const limit = Math.max(1, Math.min(maxInputChars, MAX_DOCUMENT_SEARCH_CHARS));
   return cleanMarkdown(content)
@@ -55,19 +61,21 @@ export class LocalSemanticSearch {
     this.summarizer = summarizer;
   }
 
-  async searchByQuery(query: string, topK: number = 5): Promise<LocalSearchResult[]> {
+  async searchByQuery(query: string, topK: number = 5, options: LocalSearchOptions = {}): Promise<LocalSearchResult[]> {
     const queryEmbedding = await this.embedding.embedQuery(query);
-    const extra = this.documentIndexer ? this.documentIndexer.getMutedPaths().size : 0;
-    const results = await this.vectorStore.search(queryEmbedding, topK + extra);
-    return this.filterAndFormat(results, topK);
+    return this.searchWithBackfill(queryEmbedding, topK, options.excludePaths);
   }
 
-  async searchByDocument(file: TFile, topK: number = 5): Promise<LocalSearchResult[]> {
-    const response = await this.searchByDocumentWithQueryText(file, topK);
+  async searchByDocument(file: TFile, topK: number = 5, options: LocalSearchOptions = {}): Promise<LocalSearchResult[]> {
+    const response = await this.searchByDocumentWithQueryText(file, topK, options);
     return response.results;
   }
 
-  async searchByDocumentWithQueryText(file: TFile, topK: number = 5): Promise<LocalDocumentSearchResponse> {
+  async searchByDocumentWithQueryText(
+    file: TFile,
+    topK: number = 5,
+    options: LocalSearchOptions = {}
+  ): Promise<LocalDocumentSearchResponse> {
     const vault = file.vault;
     const content = await vault.adapter.read(file.path);
     const firstChunk = createDocumentSearchInput(content, this.maxInputChars);
@@ -78,19 +86,64 @@ export class LocalSemanticSearch {
       : null;
     const textForMatching = summaryResult?.text || firstChunk;
     const docEmbedding = await this.embedding.embedDocument(textForMatching);
-    const extra = this.documentIndexer ? this.documentIndexer.getMutedPaths().size : 0;
-    const results = await this.vectorStore.search(docEmbedding, topK + extra);
     return {
-      results: this.filterAndFormat(results, topK),
+      results: await this.searchWithBackfill(docEmbedding, topK, options.excludePaths),
       queryText: summaryResult?.usedSummary ? summaryResult.text : undefined,
     };
   }
 
-  private filterAndFormat(results: SearchResult[], topK: number): LocalSearchResult[] {
+  private getSearchExtra(topK: number, excludePaths: string[] = []): number {
+    const mutedCount = this.documentIndexer ? this.documentIndexer.getMutedPaths().size : 0;
+    return mutedCount + excludePaths.length + topK;
+  }
+
+  private async searchWithBackfill(
+    embedding: number[],
+    topK: number,
+    excludePaths: string[] = []
+  ): Promise<LocalSearchResult[]> {
+    const targetCount = Math.max(1, topK);
+    const batchSize = Math.max(targetCount, 10);
+    let requestedCount = Math.min(
+      SEARCH_RESULT_EXPANSION_LIMIT,
+      targetCount + this.getSearchExtra(targetCount, excludePaths)
+    );
+    let lastRawCount = -1;
+
+    while (requestedCount <= SEARCH_RESULT_EXPANSION_LIMIT) {
+      const rawResults = await this.vectorStore.search(embedding, requestedCount);
+      const filteredResults = this.filterAndFormat(rawResults, targetCount, excludePaths);
+      if (filteredResults.length >= targetCount) {
+        return filteredResults;
+      }
+
+      if (rawResults.length < requestedCount || rawResults.length === lastRawCount) {
+        return filteredResults;
+      }
+
+      lastRawCount = rawResults.length;
+      const nextRequestedCount = Math.min(SEARCH_RESULT_EXPANSION_LIMIT, requestedCount + batchSize);
+      if (nextRequestedCount === requestedCount) {
+        return filteredResults;
+      }
+      requestedCount = nextRequestedCount;
+    }
+
+    const rawResults = await this.vectorStore.search(embedding, SEARCH_RESULT_EXPANSION_LIMIT);
+    return this.filterAndFormat(rawResults, targetCount, excludePaths);
+  }
+
+  private filterAndFormat(
+    results: SearchResult[],
+    topK: number,
+    excludePaths: string[] = []
+  ): LocalSearchResult[] {
     const mutedPaths = this.documentIndexer?.getMutedPaths() ?? new Set<string>();
-    const filtered = mutedPaths.size > 0
-      ? results.filter((r) => !mutedPaths.has(r.metadata?.path))
-      : results;
+    const excluded = new Set(excludePaths);
+    const filtered = results.filter((r) => {
+      const path = r.metadata?.path;
+      return !mutedPaths.has(path) && !excluded.has(path);
+    });
     return filtered.slice(0, topK).map((r) => ({
       title: r.metadata?.title || "Untitled",
       content: r.content,

@@ -86,7 +86,7 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
   "settings.license.activating": { en: "Activating...", zh: "激活中..." },
   "settings.license.deactivate": { en: "Deactivate", zh: "停用" },
   "settings.license.deactivating": { en: "Deactivating...", zh: "停用中..." },
-  "settings.license.links": { en: "License server and payment links", zh: "许可证服务和支付链接" },
+  "settings.license.links": { en: "License server links", zh: "许可证服务链接" },
   "settings.license.serverUrl": { en: "License server URL", zh: "许可证服务 URL" },
   "settings.license.buyUrl": { en: "Buy license URL", zh: "购买链接 URL" },
   "settings.license.manageUrl": { en: "Manage license URL", zh: "管理链接 URL" },

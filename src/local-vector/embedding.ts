@@ -164,15 +164,19 @@ export class LocalEmbeddingService {
 
       const modelConfig = this.options.modelConfig;
 
-      this.embedder = await pipeline("feature-extraction", modelConfig.id, {
-        dtype: modelConfig.dtype,
-        progress_callback: (progressInfo: any) => {
-          if (typeof progressInfo === "object" && progressInfo.status === "progress") {
-            const pct = Math.round((progressInfo.loaded / progressInfo.total) * 100);
-            onProgress?.(pct);
-          }
-        },
-      });
+      this.embedder = await withTimeout(
+        pipeline("feature-extraction", modelConfig.id, {
+          dtype: modelConfig.dtype,
+          progress_callback: (progressInfo: any) => {
+            if (typeof progressInfo === "object" && progressInfo.status === "progress") {
+              const pct = Math.round((progressInfo.loaded / progressInfo.total) * 100);
+              onProgress?.(pct);
+            }
+          },
+        }),
+        EMBEDDING_TIMEOUT_MS,
+        `Embedding model ${modelConfig.shortName} initialization`,
+      );
       this.ready = true;
       this.inferenceCount = 0;
       onProgress?.(100);
@@ -384,7 +388,7 @@ async function loadTransformers(pluginDir: string): Promise<TransformersModule> 
 
 const EMBEDDING_RUNTIME_PACKAGE = {
   name: "analogy-rag-runtime",
-  version: "1.1.0",
+  version: "1.0.8",
   private: true,
   scripts: {
     "setup:local": "npm install --omit=dev",

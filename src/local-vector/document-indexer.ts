@@ -61,6 +61,11 @@ interface QueueItem {
   reject: (err: Error) => void;
 }
 
+interface ChunkSentence {
+  text: string;
+  leadingSeparator: string;
+}
+
 export class DocumentIndexer {
   private embedding: LocalEmbeddingService;
   private vectorStore: LocalVectorStore;
@@ -283,13 +288,45 @@ export class DocumentIndexer {
     return recovered;
   }
 
-  private splitIntoSentences(text: string): string[] {
-    const raw = text.split(
-      /(?<=[。！？!?\.\n])\s*/
-    );
-    return raw
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
+  private splitIntoSentences(text: string): ChunkSentence[] {
+    const sentences: ChunkSentence[] = [];
+    const regex = /([\s\S]*?[。！？!?\.\n])(\s*)/g;
+    let match: RegExpExecArray | null;
+    let cursor = 0;
+    let leadingSeparator = "";
+
+    while ((match = regex.exec(text)) !== null) {
+      let sentence = match[1];
+      let separator = match[2] || "";
+      const trailingWhitespace = sentence.match(/\s+$/)?.[0] || "";
+      if (trailingWhitespace) {
+        sentence = sentence.slice(0, -trailingWhitespace.length);
+        separator = trailingWhitespace + separator;
+      }
+      const trimmed = sentence.trim();
+      if (trimmed) {
+        sentences.push({ text: trimmed, leadingSeparator });
+      }
+      leadingSeparator = separator;
+      cursor = regex.lastIndex;
+    }
+
+    const tail = text.slice(cursor).trim();
+    if (tail) {
+      sentences.push({ text: tail, leadingSeparator });
+    }
+
+    return sentences;
+  }
+
+  private sentenceJoiner(separator: string): string {
+    if (/\n\s*\n/.test(separator)) {
+      return "\n\n";
+    }
+    if (/\n/.test(separator)) {
+      return "\n";
+    }
+    return " ";
   }
 
   private cosineSimilarity(a: number[], b: number[]): number {
@@ -390,7 +427,8 @@ export class DocumentIndexer {
       return this.splitOversizedText(text, MAX_CHUNK_CHARS);
     }
 
-    const embeddings = await this.embedding.embedBatch(sentences);
+    const sentenceTexts = sentences.map((sentence) => sentence.text);
+    const embeddings = await this.embedding.embedBatch(sentenceTexts);
 
     const distances: number[] = [];
     for (let i = 0; i < embeddings.length - 1; i++) {
@@ -401,14 +439,16 @@ export class DocumentIndexer {
     const threshold = this.percentile(distances, BREAKPOINT_PERCENTILE);
 
     const chunks: string[] = [];
-    let current = sentences[0];
+    let current = sentences[0].text;
     for (let i = 0; i < distances.length; i++) {
       const next = sentences[i + 1];
-      if (distances[i] >= threshold || (current.length + next.length) > MAX_CHUNK_CHARS) {
+      const joiner = this.sentenceJoiner(next.leadingSeparator);
+      const nextText = next.text;
+      if (distances[i] >= threshold || (current.length + joiner.length + nextText.length) > MAX_CHUNK_CHARS) {
         chunks.push(current.trim());
-        current = next;
+        current = nextText;
       } else {
-        current += " " + next;
+        current += joiner + nextText;
       }
     }
     if (current.trim()) {
