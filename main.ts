@@ -26,6 +26,7 @@ export default class Analogy extends Plugin {
 	embeddingService: LocalEmbeddingService | null = null;
 	vectorStore: LocalVectorStore | null = null;
 	documentIndexer: DocumentIndexer | null = null;
+	private initLocalServicesPromise: Promise<void> | null = null;
 
 	async onload() {
 		await this.loadSettings();
@@ -76,6 +77,16 @@ export default class Analogy extends Plugin {
 	}
 
 	async initLocalServices() {
+		if (this.initLocalServicesPromise) {
+			return this.initLocalServicesPromise;
+		}
+		this.initLocalServicesPromise = this.doInitLocalServices().finally(() => {
+			this.initLocalServicesPromise = null;
+		});
+		return this.initLocalServicesPromise;
+	}
+
+	private async doInitLocalServices() {
 		const basePath = (this.app.vault.adapter as any).basePath;
 		const manifestDir = (this.manifest as any).dir;
 		const pluginDir = manifestDir
@@ -260,6 +271,7 @@ export default class Analogy extends Plugin {
 	}
 
 	async onunload() {
+		this.initLocalServicesPromise = null;
 		if (this.documentIndexer) {
 			await this.documentIndexer.stop();
 			this.documentIndexer.shutdown();

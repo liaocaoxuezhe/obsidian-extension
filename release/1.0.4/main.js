@@ -27991,7 +27991,7 @@ var TRANSLATIONS = {
   "settings.license.activating": { en: "Activating...", zh: "\u6FC0\u6D3B\u4E2D..." },
   "settings.license.deactivate": { en: "Deactivate", zh: "\u505C\u7528" },
   "settings.license.deactivating": { en: "Deactivating...", zh: "\u505C\u7528\u4E2D..." },
-  "settings.license.links": { en: "License server and payment links", zh: "\u8BB8\u53EF\u8BC1\u670D\u52A1\u548C\u652F\u4ED8\u94FE\u63A5" },
+  "settings.license.links": { en: "License server links", zh: "\u8BB8\u53EF\u8BC1\u670D\u52A1\u94FE\u63A5" },
   "settings.license.serverUrl": { en: "License server URL", zh: "\u8BB8\u53EF\u8BC1\u670D\u52A1 URL" },
   "settings.license.buyUrl": { en: "Buy license URL", zh: "\u8D2D\u4E70\u94FE\u63A5 URL" },
   "settings.license.manageUrl": { en: "Manage license URL", zh: "\u7BA1\u7406\u94FE\u63A5 URL" },

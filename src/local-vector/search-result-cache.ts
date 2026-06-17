@@ -10,6 +10,7 @@ export interface SearchResultCacheKey {
   mtime?: number;
   query?: string;
   activePath?: string;
+  excludePaths?: string[];
 }
 
 export interface SearchResultCacheValue {
@@ -26,6 +27,7 @@ function normalizeKey(key: SearchResultCacheKey): string {
     mtime: key.mtime || 0,
     query: key.query || "",
     activePath: key.activePath || "",
+    excludePaths: [...(key.excludePaths || [])].sort(),
   });
 }
 

@@ -305,8 +305,8 @@ var require_react_development = __commonJS({
           return refObject;
         }
         var isArrayImpl = Array.isArray;
-        function isArray(a2) {
-          return isArrayImpl(a2);
+        function isArray(a) {
+          return isArrayImpl(a);
         }
         function typeName(value) {
           {
@@ -320,7 +320,7 @@ var require_react_development = __commonJS({
             try {
               testStringCoercion(value);
               return false;
-            } catch (e2) {
+            } catch (e) {
               return true;
             }
           }
@@ -398,7 +398,7 @@ var require_react_development = __commonJS({
                 var init = lazyComponent._init;
                 try {
                   return getComponentNameFromType(init(payload));
-                } catch (x2) {
+                } catch (x) {
                   return null;
                 }
               }
@@ -519,7 +519,7 @@ var require_react_development = __commonJS({
           }
           return element;
         };
-        function createElement4(type, config, children) {
+        function createElement3(type, config, children) {
           var propName;
           var props = {};
           var key = null;
@@ -552,8 +552,8 @@ var require_react_development = __commonJS({
             props.children = children;
           } else if (childrenLength > 1) {
             var childArray = Array(childrenLength);
-            for (var i2 = 0; i2 < childrenLength; i2++) {
-              childArray[i2] = arguments[i2 + 2];
+            for (var i = 0; i < childrenLength; i++) {
+              childArray[i] = arguments[i + 2];
             }
             {
               if (Object.freeze) {
@@ -587,7 +587,7 @@ var require_react_development = __commonJS({
           var newElement = ReactElement(oldElement.type, newKey, oldElement.ref, oldElement._self, oldElement._source, oldElement._owner, oldElement.props);
           return newElement;
         }
-        function cloneElement3(element, config, children) {
+        function cloneElement2(element, config, children) {
           if (element === null || element === void 0) {
             throw new Error("React.cloneElement(...): The argument must be a React element, but you passed " + element + ".");
           }
@@ -628,8 +628,8 @@ var require_react_development = __commonJS({
             props.children = children;
           } else if (childrenLength > 1) {
             var childArray = Array(childrenLength);
-            for (var i2 = 0; i2 < childrenLength; i2++) {
-              childArray[i2] = arguments[i2 + 2];
+            for (var i = 0; i < childrenLength; i++) {
+              childArray[i] = arguments[i + 2];
             }
             props.children = childArray;
           }
@@ -696,8 +696,8 @@ var require_react_development = __commonJS({
               if (childKey != null) {
                 escapedChildKey = escapeUserProvidedKey(childKey) + "/";
               }
-              mapIntoArray(mappedChild, array, escapedChildKey, "", function(c2) {
-                return c2;
+              mapIntoArray(mappedChild, array, escapedChildKey, "", function(c) {
+                return c;
               });
             } else if (mappedChild != null) {
               if (isValidElement2(mappedChild)) {
@@ -727,9 +727,9 @@ var require_react_development = __commonJS({
           var subtreeCount = 0;
           var nextNamePrefix = nameSoFar === "" ? SEPARATOR : nameSoFar + SUBSEPARATOR;
           if (isArray(children)) {
-            for (var i2 = 0; i2 < children.length; i2++) {
-              child = children[i2];
-              nextName = nextNamePrefix + getElementKey(child, i2);
+            for (var i = 0; i < children.length; i++) {
+              child = children[i];
+              nextName = nextNamePrefix + getElementKey(child, i);
               subtreeCount += mapIntoArray(child, array, escapedPrefix, nextName, callback);
             }
           } else {
@@ -771,11 +771,11 @@ var require_react_development = __commonJS({
           return result;
         }
         function countChildren(children) {
-          var n2 = 0;
+          var n = 0;
           mapChildren(children, function() {
-            n2++;
+            n++;
           });
-          return n2;
+          return n;
         }
         function forEachChildren(children, forEachFunc, forEachContext) {
           mapChildren(children, function() {
@@ -1236,8 +1236,8 @@ var require_react_development = __commonJS({
             if (prefix === void 0) {
               try {
                 throw Error();
-              } catch (x2) {
-                var match = x2.stack.trim().match(/\n( *(at )?)/);
+              } catch (x) {
+                var match = x.stack.trim().match(/\n( *(at )?)/);
                 prefix = match && match[1] || "";
               }
             }
@@ -1283,23 +1283,23 @@ var require_react_development = __commonJS({
               if (typeof Reflect === "object" && Reflect.construct) {
                 try {
                   Reflect.construct(Fake, []);
-                } catch (x2) {
-                  control = x2;
+                } catch (x) {
+                  control = x;
                 }
                 Reflect.construct(fn, [], Fake);
               } else {
                 try {
                   Fake.call();
-                } catch (x2) {
-                  control = x2;
+                } catch (x) {
+                  control = x;
                 }
                 fn.call(Fake.prototype);
               }
             } else {
               try {
                 throw Error();
-              } catch (x2) {
-                control = x2;
+              } catch (x) {
+                control = x;
               }
               fn();
             }
@@ -1307,19 +1307,19 @@ var require_react_development = __commonJS({
             if (sample && control && typeof sample.stack === "string") {
               var sampleLines = sample.stack.split("\n");
               var controlLines = control.stack.split("\n");
-              var s2 = sampleLines.length - 1;
-              var c2 = controlLines.length - 1;
-              while (s2 >= 1 && c2 >= 0 && sampleLines[s2] !== controlLines[c2]) {
-                c2--;
+              var s = sampleLines.length - 1;
+              var c = controlLines.length - 1;
+              while (s >= 1 && c >= 0 && sampleLines[s] !== controlLines[c]) {
+                c--;
               }
-              for (; s2 >= 1 && c2 >= 0; s2--, c2--) {
-                if (sampleLines[s2] !== controlLines[c2]) {
-                  if (s2 !== 1 || c2 !== 1) {
+              for (; s >= 1 && c >= 0; s--, c--) {
+                if (sampleLines[s] !== controlLines[c]) {
+                  if (s !== 1 || c !== 1) {
                     do {
-                      s2--;
-                      c2--;
-                      if (c2 < 0 || sampleLines[s2] !== controlLines[c2]) {
-                        var _frame = "\n" + sampleLines[s2].replace(" at new ", " at ");
+                      s--;
+                      c--;
+                      if (c < 0 || sampleLines[s] !== controlLines[c]) {
+                        var _frame = "\n" + sampleLines[s].replace(" at new ", " at ");
                         if (fn.displayName && _frame.includes("<anonymous>")) {
                           _frame = _frame.replace("<anonymous>", fn.displayName);
                         }
@@ -1330,7 +1330,7 @@ var require_react_development = __commonJS({
                         }
                         return _frame;
                       }
-                    } while (s2 >= 1 && c2 >= 0);
+                    } while (s >= 1 && c >= 0);
                   }
                   break;
                 }
@@ -1392,7 +1392,7 @@ var require_react_development = __commonJS({
                 var init = lazyComponent._init;
                 try {
                   return describeUnknownElementTypeFrameInDEV(init(payload), source, ownerFn);
-                } catch (x2) {
+                } catch (x) {
                 }
               }
             }
@@ -1517,8 +1517,8 @@ var require_react_development = __commonJS({
             return;
           }
           if (isArray(node)) {
-            for (var i2 = 0; i2 < node.length; i2++) {
-              var child = node[i2];
+            for (var i = 0; i < node.length; i++) {
+              var child = node[i];
               if (isValidElement2(child)) {
                 validateExplicitKey(child, parentType);
               }
@@ -1574,8 +1574,8 @@ var require_react_development = __commonJS({
         function validateFragmentProps(fragment) {
           {
             var keys = Object.keys(fragment.props);
-            for (var i2 = 0; i2 < keys.length; i2++) {
-              var key = keys[i2];
+            for (var i = 0; i < keys.length; i++) {
+              var key = keys[i];
               if (key !== "children" && key !== "key") {
                 setCurrentlyValidatingElement$1(fragment);
                 error("Invalid prop `%s` supplied to `React.Fragment`. React.Fragment can only have `key` and `children` props.", key);
@@ -1618,13 +1618,13 @@ var require_react_development = __commonJS({
               error("React.createElement: type is invalid -- expected a string (for built-in components) or a class/function (for composite components) but got: %s.%s", typeString, info);
             }
           }
-          var element = createElement4.apply(this, arguments);
+          var element = createElement3.apply(this, arguments);
           if (element == null) {
             return element;
           }
           if (validType) {
-            for (var i2 = 2; i2 < arguments.length; i2++) {
-              validateChildKeys(arguments[i2], type);
+            for (var i = 2; i < arguments.length; i++) {
+              validateChildKeys(arguments[i], type);
             }
           }
           if (type === REACT_FRAGMENT_TYPE) {
@@ -1657,9 +1657,9 @@ var require_react_development = __commonJS({
           return validatedFactory;
         }
         function cloneElementWithValidation(element, props, children) {
-          var newElement = cloneElement3.apply(this, arguments);
-          for (var i2 = 2; i2 < arguments.length; i2++) {
-            validateChildKeys(arguments[i2], newElement.type);
+          var newElement = cloneElement2.apply(this, arguments);
+          for (var i = 2; i < arguments.length; i++) {
+            validateChildKeys(arguments[i], newElement.type);
           }
           validatePropTypes(newElement);
           return newElement;
@@ -1836,17 +1836,17 @@ var require_react_development = __commonJS({
           {
             if (!isFlushing) {
               isFlushing = true;
-              var i2 = 0;
+              var i = 0;
               try {
-                for (; i2 < queue.length; i2++) {
-                  var callback = queue[i2];
+                for (; i < queue.length; i++) {
+                  var callback = queue[i];
                   do {
                     callback = callback(true);
                   } while (callback !== null);
                 }
                 queue.length = 0;
               } catch (error2) {
-                queue = queue.slice(i2 + 1);
+                queue = queue.slice(i + 1);
                 throw error2;
               } finally {
                 isFlushing = false;
@@ -1953,8 +1953,8 @@ var require_scheduler_development = __commonJS({
           }
           return first;
         }
-        function siftUp(heap, node, i2) {
-          var index = i2;
+        function siftUp(heap, node, i) {
+          var index = i;
           while (index > 0) {
             var parentIndex = index - 1 >>> 1;
             var parent = heap[parentIndex];
@@ -1967,8 +1967,8 @@ var require_scheduler_development = __commonJS({
             }
           }
         }
-        function siftDown(heap, node, i2) {
-          var index = i2;
+        function siftDown(heap, node, i) {
+          var index = i;
           var length = heap.length;
           var halfLength = length >>> 1;
           while (index < halfLength) {
@@ -1995,9 +1995,9 @@ var require_scheduler_development = __commonJS({
             }
           }
         }
-        function compare(a2, b2) {
-          var diff = a2.sortIndex - b2.sortIndex;
-          return diff !== 0 ? diff : a2.id - b2.id;
+        function compare(a, b) {
+          var diff = a.sortIndex - b.sortIndex;
+          return diff !== 0 ? diff : a.id - b.id;
         }
         var ImmediatePriority = 1;
         var UserBlockingPriority = 2;
@@ -2443,7 +2443,7 @@ var require_react_dom_development = __commonJS({
         var HostPortal = 4;
         var HostComponent = 5;
         var HostText = 6;
-        var Fragment2 = 7;
+        var Fragment3 = 7;
         var Mode = 8;
         var ContextConsumer = 9;
         var ContextProvider = 10;
@@ -2493,8 +2493,8 @@ var require_react_dom_development = __commonJS({
               possibleRegistrationNames.ondblclick = registrationName;
             }
           }
-          for (var i2 = 0; i2 < dependencies.length; i2++) {
-            allNativeEvents.add(dependencies[i2]);
+          for (var i = 0; i < dependencies.length; i++) {
+            allNativeEvents.add(dependencies[i]);
           }
         }
         var canUseDOM = !!(typeof window !== "undefined" && typeof window.document !== "undefined" && typeof window.document.createElement !== "undefined");
@@ -2511,7 +2511,7 @@ var require_react_dom_development = __commonJS({
             try {
               testStringCoercion(value);
               return false;
-            } catch (e2) {
+            } catch (e) {
               return true;
             }
           }
@@ -3302,8 +3302,8 @@ var require_react_dom_development = __commonJS({
             if (prefix === void 0) {
               try {
                 throw Error();
-              } catch (x2) {
-                var match = x2.stack.trim().match(/\n( *(at )?)/);
+              } catch (x) {
+                var match = x.stack.trim().match(/\n( *(at )?)/);
                 prefix = match && match[1] || "";
               }
             }
@@ -3349,23 +3349,23 @@ var require_react_dom_development = __commonJS({
               if (typeof Reflect === "object" && Reflect.construct) {
                 try {
                   Reflect.construct(Fake, []);
-                } catch (x2) {
-                  control = x2;
+                } catch (x) {
+                  control = x;
                 }
                 Reflect.construct(fn, [], Fake);
               } else {
                 try {
                   Fake.call();
-                } catch (x2) {
-                  control = x2;
+                } catch (x) {
+                  control = x;
                 }
                 fn.call(Fake.prototype);
               }
             } else {
               try {
                 throw Error();
-              } catch (x2) {
-                control = x2;
+              } catch (x) {
+                control = x;
               }
               fn();
             }
@@ -3373,19 +3373,19 @@ var require_react_dom_development = __commonJS({
             if (sample && control && typeof sample.stack === "string") {
               var sampleLines = sample.stack.split("\n");
               var controlLines = control.stack.split("\n");
-              var s2 = sampleLines.length - 1;
-              var c2 = controlLines.length - 1;
-              while (s2 >= 1 && c2 >= 0 && sampleLines[s2] !== controlLines[c2]) {
-                c2--;
+              var s = sampleLines.length - 1;
+              var c = controlLines.length - 1;
+              while (s >= 1 && c >= 0 && sampleLines[s] !== controlLines[c]) {
+                c--;
               }
-              for (; s2 >= 1 && c2 >= 0; s2--, c2--) {
-                if (sampleLines[s2] !== controlLines[c2]) {
-                  if (s2 !== 1 || c2 !== 1) {
+              for (; s >= 1 && c >= 0; s--, c--) {
+                if (sampleLines[s] !== controlLines[c]) {
+                  if (s !== 1 || c !== 1) {
                     do {
-                      s2--;
-                      c2--;
-                      if (c2 < 0 || sampleLines[s2] !== controlLines[c2]) {
-                        var _frame = "\n" + sampleLines[s2].replace(" at new ", " at ");
+                      s--;
+                      c--;
+                      if (c < 0 || sampleLines[s] !== controlLines[c]) {
+                        var _frame = "\n" + sampleLines[s].replace(" at new ", " at ");
                         if (fn.displayName && _frame.includes("<anonymous>")) {
                           _frame = _frame.replace("<anonymous>", fn.displayName);
                         }
@@ -3396,7 +3396,7 @@ var require_react_dom_development = __commonJS({
                         }
                         return _frame;
                       }
-                    } while (s2 >= 1 && c2 >= 0);
+                    } while (s >= 1 && c >= 0);
                   }
                   break;
                 }
@@ -3463,7 +3463,7 @@ var require_react_dom_development = __commonJS({
                 var init = lazyComponent._init;
                 try {
                   return describeUnknownElementTypeFrameInDEV(init(payload), source, ownerFn);
-                } catch (x2) {
+                } catch (x) {
                 }
               }
             }
@@ -3503,8 +3503,8 @@ var require_react_dom_development = __commonJS({
               node = node.return;
             } while (node);
             return info;
-          } catch (x2) {
-            return "\nError generating stack: " + x2.message + "\n" + x2.stack;
+          } catch (x) {
+            return "\nError generating stack: " + x.message + "\n" + x.stack;
           }
         }
         function getWrappedName(outerType, innerType, wrapperName) {
@@ -3569,7 +3569,7 @@ var require_react_dom_development = __commonJS({
                 var init = lazyComponent._init;
                 try {
                   return getComponentNameFromType(init(payload));
-                } catch (x2) {
+                } catch (x) {
                   return null;
                 }
               }
@@ -3599,7 +3599,7 @@ var require_react_dom_development = __commonJS({
               return "DehydratedFragment";
             case ForwardRef:
               return getWrappedName$1(type, type.render, "ForwardRef");
-            case Fragment2:
+            case Fragment3:
               return "Fragment";
             case HostComponent:
               return type;
@@ -3825,7 +3825,7 @@ var require_react_dom_development = __commonJS({
           }
           try {
             return doc.activeElement || doc.body;
-          } catch (e2) {
+          } catch (e) {
             return doc.body;
           }
         }
@@ -3966,8 +3966,8 @@ var require_react_dom_development = __commonJS({
               checkAttributeStringCoercion(name, "name");
             }
             var group = queryRoot.querySelectorAll("input[name=" + JSON.stringify("" + name) + '][type="radio"]');
-            for (var i2 = 0; i2 < group.length; i2++) {
-              var otherNode = group[i2];
+            for (var i = 0; i < group.length; i++) {
+              var otherNode = group[i];
               if (otherNode === rootNode || otherNode.form !== rootNode.form) {
                 continue;
               }
@@ -4030,8 +4030,8 @@ var require_react_dom_development = __commonJS({
           }
         }
         var isArrayImpl = Array.isArray;
-        function isArray(a2) {
-          return isArrayImpl(a2);
+        function isArray(a) {
+          return isArrayImpl(a);
         }
         var didWarnValueDefaultValue$1;
         {
@@ -4048,8 +4048,8 @@ var require_react_dom_development = __commonJS({
         function checkSelectPropTypes(props) {
           {
             checkControlledValueProps("select", props);
-            for (var i2 = 0; i2 < valuePropNames.length; i2++) {
-              var propName = valuePropNames[i2];
+            for (var i = 0; i < valuePropNames.length; i++) {
+              var propName = valuePropNames[i];
               if (props[propName] == null) {
                 continue;
               }
@@ -4067,8 +4067,8 @@ var require_react_dom_development = __commonJS({
           if (multiple) {
             var selectedValues = propValue;
             var selectedValue = {};
-            for (var i2 = 0; i2 < selectedValues.length; i2++) {
-              selectedValue["$" + selectedValues[i2]] = true;
+            for (var i = 0; i < selectedValues.length; i++) {
+              selectedValue["$" + selectedValues[i]] = true;
             }
             for (var _i = 0; _i < options2.length; _i++) {
               var selected = selectedValue.hasOwnProperty("$" + options2[_i].value);
@@ -4431,7 +4431,7 @@ var require_react_dom_development = __commonJS({
           var warnedForNaNValue = false;
           var warnedForInfinityValue = false;
           var camelize = function(string) {
-            return string.replace(hyphenPattern, function(_2, character) {
+            return string.replace(hyphenPattern, function(_, character) {
               return character.toUpperCase();
             });
           };
@@ -4544,8 +4544,8 @@ var require_react_dom_development = __commonJS({
           var expanded = {};
           for (var key in styles) {
             var longhands = shorthandToLonghand[key] || [key];
-            for (var i2 = 0; i2 < longhands.length; i2++) {
-              expanded[longhands[i2]] = key;
+            for (var i = 0; i < longhands.length; i++) {
+              expanded[longhands[i]] = key;
             }
           }
           return expanded;
@@ -5467,8 +5467,8 @@ var require_react_dom_development = __commonJS({
           restoreQueue = null;
           restoreStateOfTarget(target);
           if (queuedTargets) {
-            for (var i2 = 0; i2 < queuedTargets.length; i2++) {
-              restoreStateOfTarget(queuedTargets[i2]);
+            for (var i = 0; i < queuedTargets.length; i++) {
+              restoreStateOfTarget(queuedTargets[i]);
             }
           }
         }
@@ -5485,13 +5485,13 @@ var require_react_dom_development = __commonJS({
             restoreStateIfNeeded();
           }
         }
-        function batchedUpdates(fn, a2, b2) {
+        function batchedUpdates(fn, a, b) {
           if (isInsideEventHandler) {
-            return fn(a2, b2);
+            return fn(a, b);
           }
           isInsideEventHandler = true;
           try {
-            return batchedUpdatesImpl(fn, a2, b2);
+            return batchedUpdatesImpl(fn, a, b);
           } finally {
             isInsideEventHandler = false;
             finishEventHandler();
@@ -5551,11 +5551,11 @@ var require_react_dom_development = __commonJS({
             });
             window.addEventListener("test", options, options);
             window.removeEventListener("test", options, options);
-          } catch (e2) {
+          } catch (e) {
             passiveBrowserEventsSupported = false;
           }
         }
-        function invokeGuardedCallbackProd(name, func, context, a2, b2, c2, d2, e2, f2) {
+        function invokeGuardedCallbackProd(name, func, context, a, b, c, d, e, f) {
           var funcArgs = Array.prototype.slice.call(arguments, 3);
           try {
             func.apply(context, funcArgs);
@@ -5567,7 +5567,7 @@ var require_react_dom_development = __commonJS({
         {
           if (typeof window !== "undefined" && typeof window.dispatchEvent === "function" && typeof document !== "undefined" && typeof document.createEvent === "function") {
             var fakeNode = document.createElement("react");
-            invokeGuardedCallbackImpl = function invokeGuardedCallbackDev(name, func, context, a2, b2, c2, d2, e2, f2) {
+            invokeGuardedCallbackImpl = function invokeGuardedCallbackDev(name, func, context, a, b, c, d, e, f) {
               if (typeof document === "undefined" || document === null) {
                 throw new Error("The `document` global was defined when React was initialized, but is not defined anymore. This can happen in a test environment if a component schedules an update from an asynchronous callback, but the test has already finished running. To solve this, you can either unmount the component at the end of your test (and ensure that any asynchronous operations get canceled in `componentWillUnmount`), or you can change the test itself to be asynchronous.");
               }
@@ -5642,12 +5642,12 @@ var require_react_dom_development = __commonJS({
             caughtError = error2;
           }
         };
-        function invokeGuardedCallback(name, func, context, a2, b2, c2, d2, e2, f2) {
+        function invokeGuardedCallback(name, func, context, a, b, c, d, e, f) {
           hasError = false;
           caughtError = null;
           invokeGuardedCallbackImpl$1.apply(reporter, arguments);
         }
-        function invokeGuardedCallbackAndCatchFirstError(name, func, context, a2, b2, c2, d2, e2, f2) {
+        function invokeGuardedCallbackAndCatchFirstError(name, func, context, a, b, c, d, e, f) {
           invokeGuardedCallback.apply(this, arguments);
           if (hasError) {
             var error2 = clearCaughtError();
@@ -5876,10 +5876,10 @@ var require_react_dom_development = __commonJS({
             }
             return fiber;
           }
-          var a2 = fiber;
-          var b2 = alternate;
+          var a = fiber;
+          var b = alternate;
           while (true) {
-            var parentA = a2.return;
+            var parentA = a.return;
             if (parentA === null) {
               break;
             }
@@ -5887,7 +5887,7 @@ var require_react_dom_development = __commonJS({
             if (parentB === null) {
               var nextParent = parentA.return;
               if (nextParent !== null) {
-                a2 = b2 = nextParent;
+                a = b = nextParent;
                 continue;
               }
               break;
@@ -5895,11 +5895,11 @@ var require_react_dom_development = __commonJS({
             if (parentA.child === parentB.child) {
               var child = parentA.child;
               while (child) {
-                if (child === a2) {
+                if (child === a) {
                   assertIsMounted(parentA);
                   return fiber;
                 }
-                if (child === b2) {
+                if (child === b) {
                   assertIsMounted(parentA);
                   return alternate;
                 }
@@ -5907,23 +5907,23 @@ var require_react_dom_development = __commonJS({
               }
               throw new Error("Unable to find node on an unmounted component.");
             }
-            if (a2.return !== b2.return) {
-              a2 = parentA;
-              b2 = parentB;
+            if (a.return !== b.return) {
+              a = parentA;
+              b = parentB;
             } else {
               var didFindChild = false;
               var _child = parentA.child;
               while (_child) {
-                if (_child === a2) {
+                if (_child === a) {
                   didFindChild = true;
-                  a2 = parentA;
-                  b2 = parentB;
+                  a = parentA;
+                  b = parentB;
                   break;
                 }
-                if (_child === b2) {
+                if (_child === b) {
                   didFindChild = true;
-                  b2 = parentA;
-                  a2 = parentB;
+                  b = parentA;
+                  a = parentB;
                   break;
                 }
                 _child = _child.sibling;
@@ -5931,16 +5931,16 @@ var require_react_dom_development = __commonJS({
               if (!didFindChild) {
                 _child = parentB.child;
                 while (_child) {
-                  if (_child === a2) {
+                  if (_child === a) {
                     didFindChild = true;
-                    a2 = parentB;
-                    b2 = parentA;
+                    a = parentB;
+                    b = parentA;
                     break;
                   }
-                  if (_child === b2) {
+                  if (_child === b) {
                     didFindChild = true;
-                    b2 = parentB;
-                    a2 = parentA;
+                    b = parentB;
+                    a = parentA;
                     break;
                   }
                   _child = _child.sibling;
@@ -5950,14 +5950,14 @@ var require_react_dom_development = __commonJS({
                 }
               }
             }
-            if (a2.alternate !== b2) {
+            if (a.alternate !== b) {
               throw new Error("Return fibers should always be each others' alternates. This error is likely caused by a bug in React. Please file an issue.");
             }
           }
-          if (a2.tag !== HostRoot) {
+          if (a.tag !== HostRoot) {
             throw new Error("Unable to find node on an unmounted component.");
           }
-          if (a2.stateNode.current === a2) {
+          if (a.stateNode.current === a) {
             return fiber;
           }
           return alternate;
@@ -6357,8 +6357,8 @@ var require_react_dom_development = __commonJS({
         var clz32 = Math.clz32 ? Math.clz32 : clz32Fallback;
         var log = Math.log;
         var LN2 = Math.LN2;
-        function clz32Fallback(x2) {
-          var asUint = x2 >>> 0;
+        function clz32Fallback(x) {
+          var asUint = x >>> 0;
           if (asUint === 0) {
             return 32;
           }
@@ -6814,30 +6814,30 @@ var require_react_dom_development = __commonJS({
         function laneToIndex(lane) {
           return pickArbitraryLaneIndex(lane);
         }
-        function includesSomeLane(a2, b2) {
-          return (a2 & b2) !== NoLanes;
+        function includesSomeLane(a, b) {
+          return (a & b) !== NoLanes;
         }
         function isSubsetOfLanes(set2, subset) {
           return (set2 & subset) === subset;
         }
-        function mergeLanes(a2, b2) {
-          return a2 | b2;
+        function mergeLanes(a, b) {
+          return a | b;
         }
         function removeLanes(set2, subset) {
           return set2 & ~subset;
         }
-        function intersectLanes(a2, b2) {
-          return a2 & b2;
+        function intersectLanes(a, b) {
+          return a & b;
         }
         function laneToLanes(lane) {
           return lane;
         }
-        function higherPriorityLane(a2, b2) {
-          return a2 !== NoLane && a2 < b2 ? a2 : b2;
+        function higherPriorityLane(a, b) {
+          return a !== NoLane && a < b ? a : b;
         }
         function createLaneMap(initial) {
           var laneMap = [];
-          for (var i2 = 0; i2 < TotalLanes; i2++) {
+          for (var i = 0; i < TotalLanes; i++) {
             laneMap.push(initial);
           }
           return laneMap;
@@ -7010,14 +7010,14 @@ var require_react_dom_development = __commonJS({
             currentUpdatePriority = previousPriority;
           }
         }
-        function higherEventPriority(a2, b2) {
-          return a2 !== 0 && a2 < b2 ? a2 : b2;
+        function higherEventPriority(a, b) {
+          return a !== 0 && a < b ? a : b;
         }
-        function lowerEventPriority(a2, b2) {
-          return a2 === 0 || a2 > b2 ? a2 : b2;
+        function lowerEventPriority(a, b) {
+          return a === 0 || a > b ? a : b;
         }
-        function isHigherEventPriority(a2, b2) {
-          return a2 !== 0 && a2 < b2;
+        function isHigherEventPriority(a, b) {
+          return a !== 0 && a < b;
         }
         function lanesToEventPriority(lanes) {
           var lane = getHighestPriorityLane(lanes);
@@ -7221,14 +7221,14 @@ var require_react_dom_development = __commonJS({
             target,
             priority: updatePriority
           };
-          var i2 = 0;
-          for (; i2 < queuedExplicitHydrationTargets.length; i2++) {
-            if (!isHigherEventPriority(updatePriority, queuedExplicitHydrationTargets[i2].priority)) {
+          var i = 0;
+          for (; i < queuedExplicitHydrationTargets.length; i++) {
+            if (!isHigherEventPriority(updatePriority, queuedExplicitHydrationTargets[i].priority)) {
               break;
             }
           }
-          queuedExplicitHydrationTargets.splice(i2, 0, queuedTarget);
-          if (i2 === 0) {
+          queuedExplicitHydrationTargets.splice(i, 0, queuedTarget);
+          if (i === 0) {
             attemptExplicitHydrationTarget(queuedTarget);
           }
         }
@@ -7291,8 +7291,8 @@ var require_react_dom_development = __commonJS({
         function retryIfBlockedOn(unblocked) {
           if (queuedDiscreteEvents.length > 0) {
             scheduleCallbackIfUnblocked(queuedDiscreteEvents[0], unblocked);
-            for (var i2 = 1; i2 < queuedDiscreteEvents.length; i2++) {
-              var queuedEvent = queuedDiscreteEvents[i2];
+            for (var i = 1; i < queuedDiscreteEvents.length; i++) {
+              var queuedEvent = queuedDiscreteEvents[i];
               if (queuedEvent.blockedOn === unblocked) {
                 queuedEvent.blockedOn = null;
               }
@@ -8389,8 +8389,8 @@ var require_react_dom_development = __commonJS({
           }
           accumulateEnterLeaveTwoPhaseListeners(dispatchQueue, leave, enter, from, to);
         }
-        function is(x2, y2) {
-          return x2 === y2 && (x2 !== 0 || 1 / x2 === 1 / y2) || x2 !== x2 && y2 !== y2;
+        function is(x, y) {
+          return x === y && (x !== 0 || 1 / x === 1 / y) || x !== x && y !== y;
         }
         var objectIs = typeof Object.is === "function" ? Object.is : is;
         function shallowEqual(objA, objB) {
@@ -8405,8 +8405,8 @@ var require_react_dom_development = __commonJS({
           if (keysA.length !== keysB.length) {
             return false;
           }
-          for (var i2 = 0; i2 < keysA.length; i2++) {
-            var currentKey = keysA[i2];
+          for (var i = 0; i < keysA.length; i++) {
+            var currentKey = keysA[i];
             if (!hasOwnProperty.call(objB, currentKey) || !objectIs(objA[currentKey], objB[currentKey])) {
               return false;
             }
@@ -8456,7 +8456,7 @@ var require_react_dom_development = __commonJS({
           try {
             anchorNode.nodeType;
             focusNode.nodeType;
-          } catch (e2) {
+          } catch (e) {
             return null;
           }
           return getModernOffsetsFromPoints(outerNode, anchorNode, anchorOffset, focusNode, focusOffset);
@@ -8623,8 +8623,8 @@ var require_react_dom_development = __commonJS({
             if (typeof priorFocusedElem.focus === "function") {
               priorFocusedElem.focus();
             }
-            for (var i2 = 0; i2 < ancestors.length; i2++) {
-              var info = ancestors[i2];
+            for (var i = 0; i < ancestors.length; i++) {
+              var info = ancestors[i];
               info.element.scrollLeft = info.left;
               info.element.scrollTop = info.top;
             }
@@ -8789,8 +8789,8 @@ var require_react_dom_development = __commonJS({
           registerTwoPhaseEvent(reactName, [domEventName]);
         }
         function registerSimpleEvents() {
-          for (var i2 = 0; i2 < simpleEventPluginEvents.length; i2++) {
-            var eventName = simpleEventPluginEvents[i2];
+          for (var i = 0; i < simpleEventPluginEvents.length; i++) {
+            var eventName = simpleEventPluginEvents[i];
             var domEventName = eventName.toLowerCase();
             var capitalizedEvent = eventName[0].toUpperCase() + eventName.slice(1);
             registerSimpleEvent(domEventName, "on" + capitalizedEvent);
@@ -8934,8 +8934,8 @@ var require_react_dom_development = __commonJS({
         function processDispatchQueueItemsInOrder(event, dispatchListeners, inCapturePhase) {
           var previousInstance;
           if (inCapturePhase) {
-            for (var i2 = dispatchListeners.length - 1; i2 >= 0; i2--) {
-              var _dispatchListeners$i = dispatchListeners[i2], instance = _dispatchListeners$i.instance, currentTarget = _dispatchListeners$i.currentTarget, listener = _dispatchListeners$i.listener;
+            for (var i = dispatchListeners.length - 1; i >= 0; i--) {
+              var _dispatchListeners$i = dispatchListeners[i], instance = _dispatchListeners$i.instance, currentTarget = _dispatchListeners$i.currentTarget, listener = _dispatchListeners$i.listener;
               if (instance !== previousInstance && event.isPropagationStopped()) {
                 return;
               }
@@ -8955,8 +8955,8 @@ var require_react_dom_development = __commonJS({
         }
         function processDispatchQueue(dispatchQueue, eventSystemFlags) {
           var inCapturePhase = (eventSystemFlags & IS_CAPTURE_PHASE) !== 0;
-          for (var i2 = 0; i2 < dispatchQueue.length; i2++) {
-            var _dispatchQueue$i = dispatchQueue[i2], event = _dispatchQueue$i.event, listeners3 = _dispatchQueue$i.listeners;
+          for (var i = 0; i < dispatchQueue.length; i++) {
+            var _dispatchQueue$i = dispatchQueue[i], event = _dispatchQueue$i.event, listeners3 = _dispatchQueue$i.listeners;
             processDispatchQueueItemsInOrder(event, listeners3, inCapturePhase);
           }
           rethrowCaughtError();
@@ -9384,9 +9384,9 @@ var require_react_dom_development = __commonJS({
           }
         }
         function updateDOMProperties(domElement, updatePayload, wasCustomComponentTag, isCustomComponentTag) {
-          for (var i2 = 0; i2 < updatePayload.length; i2 += 2) {
-            var propKey = updatePayload[i2];
-            var propValue = updatePayload[i2 + 1];
+          for (var i = 0; i < updatePayload.length; i += 2) {
+            var propKey = updatePayload[i];
+            var propValue = updatePayload[i + 1];
             if (propKey === STYLE) {
               setValueForStyles(domElement, propValue);
             } else if (propKey === DANGEROUSLY_SET_INNER_HTML) {
@@ -9398,7 +9398,7 @@ var require_react_dom_development = __commonJS({
             }
           }
         }
-        function createElement4(type, props, rootContainerElement, parentNamespace) {
+        function createElement3(type, props, rootContainerElement, parentNamespace) {
           var isCustomComponentTag;
           var ownerDocument = getOwnerDocumentFromRootContainer(rootContainerElement);
           var domElement;
@@ -9469,8 +9469,8 @@ var require_react_dom_development = __commonJS({
               break;
             case "video":
             case "audio":
-              for (var i2 = 0; i2 < mediaEventTypes.length; i2++) {
-                listenToNonDelegatedEvent(mediaEventTypes[i2], domElement);
+              for (var i = 0; i < mediaEventTypes.length; i++) {
+                listenToNonDelegatedEvent(mediaEventTypes[i], domElement);
               }
               props = rawProps;
               break;
@@ -9721,8 +9721,8 @@ var require_react_dom_development = __commonJS({
               break;
             case "video":
             case "audio":
-              for (var i2 = 0; i2 < mediaEventTypes.length; i2++) {
-                listenToNonDelegatedEvent(mediaEventTypes[i2], domElement);
+              for (var i = 0; i < mediaEventTypes.length; i++) {
+                listenToNonDelegatedEvent(mediaEventTypes[i], domElement);
               }
               break;
             case "source":
@@ -10259,7 +10259,7 @@ var require_react_dom_development = __commonJS({
             }
             parentNamespace = hostContextDev.namespace;
           }
-          var domElement = createElement4(type, props, rootContainerInstance, parentNamespace);
+          var domElement = createElement3(type, props, rootContainerInstance, parentNamespace);
           precacheFiberNode(internalInstanceHandle, domElement);
           updateFiberProps(domElement, props);
           return domElement;
@@ -11038,14 +11038,14 @@ var require_react_dom_development = __commonJS({
         function flushSyncCallbacks() {
           if (!isFlushingSyncQueue && syncQueue !== null) {
             isFlushingSyncQueue = true;
-            var i2 = 0;
+            var i = 0;
             var previousUpdatePriority = getCurrentUpdatePriority();
             try {
               var isSync = true;
               var queue = syncQueue;
               setCurrentUpdatePriority(DiscreteEventPriority);
-              for (; i2 < queue.length; i2++) {
-                var callback = queue[i2];
+              for (; i < queue.length; i++) {
+                var callback = queue[i];
                 do {
                   callback = callback(isSync);
                 } while (callback !== null);
@@ -11054,7 +11054,7 @@ var require_react_dom_development = __commonJS({
               includesLegacySyncCallbacks = false;
             } catch (error2) {
               if (syncQueue !== null) {
-                syncQueue = syncQueue.slice(i2 + 1);
+                syncQueue = syncQueue.slice(i + 1);
               }
               scheduleCallback(ImmediatePriority, flushSyncCallbacks);
               throw error2;
@@ -12000,7 +12000,7 @@ var require_react_dom_development = __commonJS({
             }
           }
           function updateFragment2(returnFiber, current2, fragment, lanes, key) {
-            if (current2 === null || current2.tag !== Fragment2) {
+            if (current2 === null || current2.tag !== Fragment3) {
               var created = createFiberFromFragment(fragment, returnFiber.mode, lanes, key);
               created.return = returnFiber;
               return created;
@@ -12163,8 +12163,8 @@ var require_react_dom_development = __commonJS({
           function reconcileChildrenArray(returnFiber, currentFirstChild, newChildren, lanes) {
             {
               var knownKeys = null;
-              for (var i2 = 0; i2 < newChildren.length; i2++) {
-                var child = newChildren[i2];
+              for (var i = 0; i < newChildren.length; i++) {
+                var child = newChildren[i];
                 knownKeys = warnOnInvalidKey(child, knownKeys, returnFiber);
               }
             }
@@ -12403,7 +12403,7 @@ var require_react_dom_development = __commonJS({
               if (child.key === key) {
                 var elementType = element.type;
                 if (elementType === REACT_FRAGMENT_TYPE) {
-                  if (child.tag === Fragment2) {
+                  if (child.tag === Fragment3) {
                     deleteRemainingChildren(returnFiber, child.sibling);
                     var existing = useFiber(child, element.props.children);
                     existing.return = returnFiber;
@@ -12749,8 +12749,8 @@ var require_react_dom_development = __commonJS({
         }
         function finishQueueingConcurrentUpdates() {
           if (concurrentQueues !== null) {
-            for (var i2 = 0; i2 < concurrentQueues.length; i2++) {
-              var queue = concurrentQueues[i2];
+            for (var i = 0; i < concurrentQueues.length; i++) {
+              var queue = concurrentQueues[i];
               var lastInterleavedUpdate = queue.interleaved;
               if (lastInterleavedUpdate !== null) {
                 queue.interleaved = null;
@@ -13192,8 +13192,8 @@ var require_react_dom_development = __commonJS({
           var effects = finishedQueue.effects;
           finishedQueue.effects = null;
           if (effects !== null) {
-            for (var i2 = 0; i2 < effects.length; i2++) {
-              var effect = effects[i2];
+            for (var i = 0; i < effects.length; i++) {
+              var effect = effects[i];
               var callback = effect.callback;
               if (callback !== null) {
                 effect.callback = null;
@@ -13206,11 +13206,11 @@ var require_react_dom_development = __commonJS({
         var contextStackCursor$1 = createCursor(NO_CONTEXT);
         var contextFiberStackCursor = createCursor(NO_CONTEXT);
         var rootInstanceStackCursor = createCursor(NO_CONTEXT);
-        function requiredContext(c2) {
-          if (c2 === NO_CONTEXT) {
+        function requiredContext(c) {
+          if (c === NO_CONTEXT) {
             throw new Error("Expected host context to exist. This error is likely caused by a bug in React. Please file an issue.");
           }
-          return c2;
+          return c;
         }
         function getRootHostContainer() {
           var rootInstance = requiredContext(rootInstanceStackCursor.current);
@@ -13345,8 +13345,8 @@ var require_react_dom_development = __commonJS({
         );
         var workInProgressSources = [];
         function resetWorkInProgressVersions() {
-          for (var i2 = 0; i2 < workInProgressSources.length; i2++) {
-            var mutableSource = workInProgressSources[i2];
+          for (var i = 0; i < workInProgressSources.length; i++) {
+            var mutableSource = workInProgressSources[i];
             {
               mutableSource._workInProgressVersionPrimary = null;
             }
@@ -13417,10 +13417,10 @@ var require_react_dom_development = __commonJS({
               if (hookTypesDev !== null) {
                 var table = "";
                 var secondColumnStart = 30;
-                for (var i2 = 0; i2 <= hookTypesUpdateIndexDev; i2++) {
-                  var oldHookName = hookTypesDev[i2];
-                  var newHookName = i2 === hookTypesUpdateIndexDev ? currentHookName : oldHookName;
-                  var row = i2 + 1 + ". " + oldHookName;
+                for (var i = 0; i <= hookTypesUpdateIndexDev; i++) {
+                  var oldHookName = hookTypesDev[i];
+                  var newHookName = i === hookTypesUpdateIndexDev ? currentHookName : oldHookName;
+                  var row = i + 1 + ". " + oldHookName;
                   while (row.length < secondColumnStart) {
                     row += " ";
                   }
@@ -13452,8 +13452,8 @@ var require_react_dom_development = __commonJS({
               error("The final argument passed to %s changed size between renders. The order and size of this array must remain constant.\n\nPrevious: %s\nIncoming: %s", currentHookNameInDev, "[" + prevDeps.join(", ") + "]", "[" + nextDeps.join(", ") + "]");
             }
           }
-          for (var i2 = 0; i2 < prevDeps.length && i2 < nextDeps.length; i2++) {
-            if (objectIs(nextDeps[i2], prevDeps[i2])) {
+          for (var i = 0; i < prevDeps.length && i < nextDeps.length; i++) {
+            if (objectIs(nextDeps[i], prevDeps[i])) {
               continue;
             }
             return false;
@@ -15968,9 +15968,9 @@ var require_react_dom_development = __commonJS({
             } else {
               console["error"](error2);
             }
-          } catch (e2) {
+          } catch (e) {
             setTimeout(function() {
-              throw e2;
+              throw e;
             });
           }
         }
@@ -16365,7 +16365,7 @@ var require_react_dom_development = __commonJS({
                 var init = lazyComponent._init;
                 try {
                   outerMemoType = init(payload);
-                } catch (x2) {
+                } catch (x) {
                   outerMemoType = null;
                 }
                 var outerPropTypes = outerMemoType && outerMemoType.propTypes;
@@ -17416,8 +17416,8 @@ var require_react_dom_development = __commonJS({
           {
             if ((revealOrder === "forwards" || revealOrder === "backwards") && children !== void 0 && children !== null && children !== false) {
               if (isArray(children)) {
-                for (var i2 = 0; i2 < children.length; i2++) {
-                  if (!validateSuspenseListNestedChild(children[i2], i2)) {
+                for (var i = 0; i < children.length; i++) {
+                  if (!validateSuspenseListNestedChild(children[i], i)) {
                     return;
                   }
                 }
@@ -17880,7 +17880,7 @@ var require_react_dom_development = __commonJS({
               var _resolvedProps2 = workInProgress2.elementType === type ? _unresolvedProps2 : resolveDefaultProps(type, _unresolvedProps2);
               return updateForwardRef(current2, workInProgress2, type, _resolvedProps2, renderLanes2);
             }
-            case Fragment2:
+            case Fragment3:
               return updateFragment(current2, workInProgress2, renderLanes2);
             case Mode:
               return updateMode(current2, workInProgress2, renderLanes2);
@@ -18153,7 +18153,7 @@ var require_react_dom_development = __commonJS({
             case SimpleMemoComponent:
             case FunctionComponent:
             case ForwardRef:
-            case Fragment2:
+            case Fragment3:
             case Mode:
             case Profiler:
             case ContextConsumer:
@@ -19611,8 +19611,8 @@ var require_react_dom_development = __commonJS({
         function recursivelyTraverseMutationEffects(root2, parentFiber, lanes) {
           var deletions = parentFiber.deletions;
           if (deletions !== null) {
-            for (var i2 = 0; i2 < deletions.length; i2++) {
-              var childToDelete = deletions[i2];
+            for (var i = 0; i < deletions.length; i++) {
+              var childToDelete = deletions[i];
               try {
                 commitDeletionEffects(root2, parentFiber, childToDelete);
               } catch (error2) {
@@ -20118,8 +20118,8 @@ var require_react_dom_development = __commonJS({
             if ((nextEffect.flags & ChildDeletion) !== NoFlags) {
               var deletions = fiber.deletions;
               if (deletions !== null) {
-                for (var i2 = 0; i2 < deletions.length; i2++) {
-                  var fiberToDelete = deletions[i2];
+                for (var i = 0; i < deletions.length; i++) {
+                  var fiberToDelete = deletions[i];
                   nextEffect = fiberToDelete;
                   commitPassiveUnmountEffectsInsideOfDeletedTree_begin(fiberToDelete, fiber);
                 }
@@ -20761,8 +20761,8 @@ var require_react_dom_development = __commonJS({
               if (updateQueue !== null) {
                 var checks = updateQueue.stores;
                 if (checks !== null) {
-                  for (var i2 = 0; i2 < checks.length; i2++) {
-                    var check = checks[i2];
+                  for (var i = 0; i < checks.length; i++) {
+                    var check = checks[i];
                     var getSnapshot = check.getSnapshot;
                     var renderedValue = check.value;
                     try {
@@ -20849,11 +20849,11 @@ var require_react_dom_development = __commonJS({
             }
           }
         }
-        function batchedUpdates$1(fn, a2) {
+        function batchedUpdates$1(fn, a) {
           var prevExecutionContext = executionContext;
           executionContext |= BatchedContext;
           try {
-            return fn(a2);
+            return fn(a);
           } finally {
             executionContext = prevExecutionContext;
             if (executionContext === NoContext && // Treat `act` as if it's inside `batchedUpdates`, even in legacy mode.
@@ -20863,13 +20863,13 @@ var require_react_dom_development = __commonJS({
             }
           }
         }
-        function discreteUpdates(fn, a2, b2, c2, d2) {
+        function discreteUpdates(fn, a, b, c, d) {
           var previousPriority = getCurrentUpdatePriority();
           var prevTransition = ReactCurrentBatchConfig$3.transition;
           try {
             ReactCurrentBatchConfig$3.transition = null;
             setCurrentUpdatePriority(DiscreteEventPriority);
-            return fn(a2, b2, c2, d2);
+            return fn(a, b, c, d);
           } finally {
             setCurrentUpdatePriority(previousPriority);
             ReactCurrentBatchConfig$3.transition = prevTransition;
@@ -21339,8 +21339,8 @@ var require_react_dom_development = __commonJS({
           ensureRootIsScheduled(root2, now());
           if (recoverableErrors !== null) {
             var onRecoverableError = root2.onRecoverableError;
-            for (var i2 = 0; i2 < recoverableErrors.length; i2++) {
-              var recoverableError = recoverableErrors[i2];
+            for (var i = 0; i < recoverableErrors.length; i++) {
+              var recoverableError = recoverableErrors[i];
               var componentStack = recoverableError.stack;
               var digest = recoverableError.digest;
               onRecoverableError(recoverableError.value, {
@@ -21434,8 +21434,8 @@ var require_react_dom_development = __commonJS({
           {
             var profilerEffects = pendingPassiveProfilerEffects;
             pendingPassiveProfilerEffects = [];
-            for (var i2 = 0; i2 < profilerEffects.length; i2++) {
-              var _fiber = profilerEffects[i2];
+            for (var i = 0; i < profilerEffects.length; i++) {
+              var _fiber = profilerEffects[i];
               commitPassiveEffectDurations(root2, _fiber);
             }
           }
@@ -22118,7 +22118,7 @@ var require_react_dom_development = __commonJS({
             var nonExtensibleObject = Object.preventExtensions({});
             /* @__PURE__ */ new Map([[nonExtensibleObject, null]]);
             /* @__PURE__ */ new Set([nonExtensibleObject]);
-          } catch (e2) {
+          } catch (e) {
             hasBadMapPolyfill = true;
           }
         }
@@ -22412,7 +22412,7 @@ var require_react_dom_development = __commonJS({
           return fiber;
         }
         function createFiberFromFragment(elements, mode, lanes, key) {
-          var fiber = createFiber(Fragment2, elements, key, mode);
+          var fiber = createFiber(Fragment3, elements, key, mode);
           fiber.lanes = lanes;
           return fiber;
         }
@@ -22868,8 +22868,8 @@ var require_react_dom_development = __commonJS({
               warn("copyWithRename() expects paths of the same length");
               return;
             } else {
-              for (var i2 = 0; i2 < newPath.length - 1; i2++) {
-                if (oldPath[i2] !== newPath[i2]) {
+              for (var i = 0; i < newPath.length - 1; i++) {
+                if (oldPath[i] !== newPath[i]) {
                   warn("copyWithRename() expects paths to be the same except for the deepest key");
                   return;
                 }
@@ -23159,8 +23159,8 @@ var require_react_dom_development = __commonJS({
           markContainerAsRoot(root2.current, container);
           listenToAllSupportedEvents(container);
           if (mutableSources) {
-            for (var i2 = 0; i2 < mutableSources.length; i2++) {
-              var mutableSource = mutableSources[i2];
+            for (var i = 0; i < mutableSources.length; i++) {
+              var mutableSource = mutableSources[i];
               registerMutableSourceForHydration(root2, mutableSource);
             }
           }
@@ -23534,30 +23534,30 @@ var require_react_dom = __commonJS({
 var require_client = __commonJS({
   "node_modules/react-dom/client.js"(exports) {
     "use strict";
-    var m2 = require_react_dom();
+    var m = require_react_dom();
     if (false) {
-      exports.createRoot = m2.createRoot;
-      exports.hydrateRoot = m2.hydrateRoot;
+      exports.createRoot = m.createRoot;
+      exports.hydrateRoot = m.hydrateRoot;
     } else {
-      i2 = m2.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
-      exports.createRoot = function(c2, o2) {
-        i2.usingClientEntryPoint = true;
+      i = m.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+      exports.createRoot = function(c, o) {
+        i.usingClientEntryPoint = true;
         try {
-          return m2.createRoot(c2, o2);
+          return m.createRoot(c, o);
         } finally {
-          i2.usingClientEntryPoint = false;
+          i.usingClientEntryPoint = false;
         }
       };
-      exports.hydrateRoot = function(c2, h2, o2) {
-        i2.usingClientEntryPoint = true;
+      exports.hydrateRoot = function(c, h, o) {
+        i.usingClientEntryPoint = true;
         try {
-          return m2.hydrateRoot(c2, h2, o2);
+          return m.hydrateRoot(c, h, o);
         } finally {
-          i2.usingClientEntryPoint = false;
+          i.usingClientEntryPoint = false;
         }
       };
     }
-    var i2;
+    var i;
   }
 });
 
@@ -23709,7 +23709,7 @@ var require_react_jsx_runtime_development = __commonJS({
                 var init = lazyComponent._init;
                 try {
                   return getComponentNameFromType(init(payload));
-                } catch (x2) {
+                } catch (x) {
                   return null;
                 }
               }
@@ -23803,8 +23803,8 @@ var require_react_jsx_runtime_development = __commonJS({
             if (prefix === void 0) {
               try {
                 throw Error();
-              } catch (x2) {
-                var match = x2.stack.trim().match(/\n( *(at )?)/);
+              } catch (x) {
+                var match = x.stack.trim().match(/\n( *(at )?)/);
                 prefix = match && match[1] || "";
               }
             }
@@ -23850,23 +23850,23 @@ var require_react_jsx_runtime_development = __commonJS({
               if (typeof Reflect === "object" && Reflect.construct) {
                 try {
                   Reflect.construct(Fake, []);
-                } catch (x2) {
-                  control = x2;
+                } catch (x) {
+                  control = x;
                 }
                 Reflect.construct(fn, [], Fake);
               } else {
                 try {
                   Fake.call();
-                } catch (x2) {
-                  control = x2;
+                } catch (x) {
+                  control = x;
                 }
                 fn.call(Fake.prototype);
               }
             } else {
               try {
                 throw Error();
-              } catch (x2) {
-                control = x2;
+              } catch (x) {
+                control = x;
               }
               fn();
             }
@@ -23874,19 +23874,19 @@ var require_react_jsx_runtime_development = __commonJS({
             if (sample && control && typeof sample.stack === "string") {
               var sampleLines = sample.stack.split("\n");
               var controlLines = control.stack.split("\n");
-              var s2 = sampleLines.length - 1;
-              var c2 = controlLines.length - 1;
-              while (s2 >= 1 && c2 >= 0 && sampleLines[s2] !== controlLines[c2]) {
-                c2--;
+              var s = sampleLines.length - 1;
+              var c = controlLines.length - 1;
+              while (s >= 1 && c >= 0 && sampleLines[s] !== controlLines[c]) {
+                c--;
               }
-              for (; s2 >= 1 && c2 >= 0; s2--, c2--) {
-                if (sampleLines[s2] !== controlLines[c2]) {
-                  if (s2 !== 1 || c2 !== 1) {
+              for (; s >= 1 && c >= 0; s--, c--) {
+                if (sampleLines[s] !== controlLines[c]) {
+                  if (s !== 1 || c !== 1) {
                     do {
-                      s2--;
-                      c2--;
-                      if (c2 < 0 || sampleLines[s2] !== controlLines[c2]) {
-                        var _frame = "\n" + sampleLines[s2].replace(" at new ", " at ");
+                      s--;
+                      c--;
+                      if (c < 0 || sampleLines[s] !== controlLines[c]) {
+                        var _frame = "\n" + sampleLines[s].replace(" at new ", " at ");
                         if (fn.displayName && _frame.includes("<anonymous>")) {
                           _frame = _frame.replace("<anonymous>", fn.displayName);
                         }
@@ -23897,7 +23897,7 @@ var require_react_jsx_runtime_development = __commonJS({
                         }
                         return _frame;
                       }
-                    } while (s2 >= 1 && c2 >= 0);
+                    } while (s >= 1 && c >= 0);
                   }
                   break;
                 }
@@ -23959,7 +23959,7 @@ var require_react_jsx_runtime_development = __commonJS({
                 var init = lazyComponent._init;
                 try {
                   return describeUnknownElementTypeFrameInDEV(init(payload), source, ownerFn);
-                } catch (x2) {
+                } catch (x) {
                 }
               }
             }
@@ -24012,8 +24012,8 @@ var require_react_jsx_runtime_development = __commonJS({
           }
         }
         var isArrayImpl = Array.isArray;
-        function isArray(a2) {
-          return isArrayImpl(a2);
+        function isArray(a) {
+          return isArrayImpl(a);
         }
         function typeName(value) {
           {
@@ -24027,7 +24027,7 @@ var require_react_jsx_runtime_development = __commonJS({
             try {
               testStringCoercion(value);
               return false;
-            } catch (e2) {
+            } catch (e) {
               return true;
             }
           }
@@ -24287,8 +24287,8 @@ var require_react_jsx_runtime_development = __commonJS({
               return;
             }
             if (isArray(node)) {
-              for (var i2 = 0; i2 < node.length; i2++) {
-                var child = node[i2];
+              for (var i = 0; i < node.length; i++) {
+                var child = node[i];
                 if (isValidElement2(child)) {
                   validateExplicitKey(child, parentType);
                 }
@@ -24345,8 +24345,8 @@ var require_react_jsx_runtime_development = __commonJS({
         function validateFragmentProps(fragment) {
           {
             var keys = Object.keys(fragment.props);
-            for (var i2 = 0; i2 < keys.length; i2++) {
-              var key = keys[i2];
+            for (var i = 0; i < keys.length; i++) {
+              var key = keys[i];
               if (key !== "children" && key !== "key") {
                 setCurrentlyValidatingElement$1(fragment);
                 error("Invalid prop `%s` supplied to `React.Fragment`. React.Fragment can only have `key` and `children` props.", key);
@@ -24398,8 +24398,8 @@ var require_react_jsx_runtime_development = __commonJS({
               if (children !== void 0) {
                 if (isStaticChildren) {
                   if (isArray(children)) {
-                    for (var i2 = 0; i2 < children.length; i2++) {
-                      validateChildKeys(children[i2], type);
+                    for (var i = 0; i < children.length; i++) {
+                      validateChildKeys(children[i], type);
                     }
                     if (Object.freeze) {
                       Object.freeze(children);
@@ -24415,8 +24415,8 @@ var require_react_jsx_runtime_development = __commonJS({
             {
               if (hasOwnProperty.call(props, "key")) {
                 var componentName = getComponentNameFromType(type);
-                var keys = Object.keys(props).filter(function(k2) {
-                  return k2 !== "key";
+                var keys = Object.keys(props).filter(function(k) {
+                  return k !== "key";
                 });
                 var beforeExample = keys.length > 0 ? "{key: someKey, " + keys.join(": ..., ") + ": ...}" : "{key: someKey}";
                 if (!didWarnAboutKeySpread[componentName + beforeExample]) {
@@ -24575,406 +24575,46 @@ var FileText = createLucideIcon("FileText", [
   ["path", { d: "M16 17H8", key: "z1uh3a" }]
 ]);
 
+// node_modules/lucide-react/dist/esm/icons/plus.js
+var Plus = createLucideIcon("Plus", [
+  ["path", { d: "M5 12h14", key: "1ays0h" }],
+  ["path", { d: "M12 5v14", key: "s699le" }]
+]);
+
+// node_modules/lucide-react/dist/esm/icons/shuffle.js
+var Shuffle = createLucideIcon("Shuffle", [
+  ["path", { d: "m18 14 4 4-4 4", key: "10pe0f" }],
+  ["path", { d: "m18 2 4 4-4 4", key: "pucp1d" }],
+  ["path", { d: "M2 18h1.973a4 4 0 0 0 3.3-1.7l5.454-8.6a4 4 0 0 1 3.3-1.7H22", key: "1ailkh" }],
+  ["path", { d: "M2 6h1.972a4 4 0 0 1 3.6 2.2", key: "km57vx" }],
+  ["path", { d: "M22 18h-6.041a4 4 0 0 1-3.3-1.8l-.359-.45", key: "os18l9" }]
+]);
+
 // src/SmartConnection.tsx
 var import_react4 = __toESM(require_react());
-
-// node_modules/markdown-to-jsx/dist/index.modern.js
-var e = __toESM(require_react(), 1);
-function t() {
-  return t = Object.assign ? Object.assign.bind() : function(e2) {
-    for (var t3 = 1; t3 < arguments.length; t3++) {
-      var n2 = arguments[t3];
-      for (var r3 in n2)
-        Object.prototype.hasOwnProperty.call(n2, r3) && (e2[r3] = n2[r3]);
-    }
-    return e2;
-  }, t.apply(this, arguments);
-}
-var n = ["children", "options"];
-var r = { blockQuote: "0", breakLine: "1", breakThematic: "2", codeBlock: "3", codeFenced: "4", codeInline: "5", footnote: "6", footnoteReference: "7", gfmTask: "8", heading: "9", headingSetext: "10", htmlBlock: "11", htmlComment: "12", htmlSelfClosing: "13", image: "14", link: "15", linkAngleBraceStyleDetector: "16", linkBareUrlDetector: "17", linkMailtoDetector: "18", newlineCoalescer: "19", orderedList: "20", paragraph: "21", ref: "22", refImage: "23", refLink: "24", table: "25", tableSeparator: "26", text: "27", textBolded: "28", textEmphasized: "29", textEscaped: "30", textMarked: "31", textStrikethroughed: "32", unorderedList: "33" };
-var i;
-!function(e2) {
-  e2[e2.MAX = 0] = "MAX", e2[e2.HIGH = 1] = "HIGH", e2[e2.MED = 2] = "MED", e2[e2.LOW = 3] = "LOW", e2[e2.MIN = 4] = "MIN";
-}(i || (i = {}));
-var l = ["allowFullScreen", "allowTransparency", "autoComplete", "autoFocus", "autoPlay", "cellPadding", "cellSpacing", "charSet", "classId", "colSpan", "contentEditable", "contextMenu", "crossOrigin", "encType", "formAction", "formEncType", "formMethod", "formNoValidate", "formTarget", "frameBorder", "hrefLang", "inputMode", "keyParams", "keyType", "marginHeight", "marginWidth", "maxLength", "mediaGroup", "minLength", "noValidate", "radioGroup", "readOnly", "rowSpan", "spellCheck", "srcDoc", "srcLang", "srcSet", "tabIndex", "useMap"].reduce((e2, t3) => (e2[t3.toLowerCase()] = t3, e2), { class: "className", for: "htmlFor" });
-var a = { amp: "&", apos: "'", gt: ">", lt: "<", nbsp: "\xA0", quot: "\u201C" };
-var o = ["style", "script"];
-var c = /([-A-Z0-9_:]+)(?:\s*=\s*(?:(?:"((?:\\.|[^"])*)")|(?:'((?:\\.|[^'])*)')|(?:\{((?:\\.|{[^}]*?}|[^}])*)\})))?/gi;
-var s = /mailto:/i;
-var d = /\n{2,}$/;
-var p = /^(\s*>[\s\S]*?)(?=\n\n|$)/;
-var u = /^ *> ?/gm;
-var f = /^(?:\[!([^\]]*)\]\n)?([\s\S]*)/;
-var h = /^ {2,}\n/;
-var m = /^(?:( *[-*_])){3,} *(?:\n *)+\n/;
-var g = /^(?: {1,3})?(`{3,}|~{3,}) *(\S+)? *([^\n]*?)?\n([\s\S]*?)(?:\1\n?|$)/;
-var y = /^(?: {4}[^\n]+\n*)+(?:\n *)+\n?/;
-var k = /^(`+)\s*([\s\S]*?[^`])\s*\1(?!`)/;
-var x = /^(?:\n *)*\n/;
-var b = /\r\n?/g;
-var v = /^\[\^([^\]]+)](:(.*)((\n+ {4,}.*)|(\n(?!\[\^).+))*)/;
-var S = /^\[\^([^\]]+)]/;
-var C = /\f/g;
-var $ = /^---[ \t]*\n(.|\n)*\n---[ \t]*\n/;
-var E = /^\s*?\[(x|\s)\]/;
-var w = /^ *(#{1,6}) *([^\n]+?)(?: +#*)?(?:\n *)*(?:\n|$)/;
-var z = /^ *(#{1,6}) +([^\n]+?)(?: +#*)?(?:\n *)*(?:\n|$)/;
-var L = /^([^\n]+)\n *(=|-){3,} *(?:\n *)+\n/;
-var A = /^ *(?!<[a-z][^ >/]* ?\/>)<([a-z][^ >/]*) ?((?:[^>]*[^/])?)>\n?(\s*(?:<\1[^>]*?>[\s\S]*?<\/\1>|(?!<\1\b)[\s\S])*?)<\/\1>(?!<\/\1>)\n*/i;
-var T = /&([a-z0-9]+|#[0-9]{1,6}|#x[0-9a-fA-F]{1,6});/gi;
-var O = /^<!--[\s\S]*?(?:-->)/;
-var B = /^(data|aria|x)-[a-z_][a-z\d_.-]*$/;
-var M = /^ *<([a-z][a-z0-9:]*)(?:\s+((?:<.*?>|[^>])*))?\/?>(?!<\/\1>)(\s*\n)?/i;
-var R = /^\{.*\}$/;
-var I = /^(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/;
-var U = /^<([^ >]+@[^ >]+)>/;
-var D = /^<([^ >]+:\/[^ >]+)>/;
-var N = /-([a-z])?/gi;
-var j = /^(\|.*)\n(?: *(\|? *[-:]+ *\|[-| :]*)\n((?:.*\|.*\n)*))?\n?/;
-var H = /^\[([^\]]*)\]:\s+<?([^\s>]+)>?\s*("([^"]*)")?/;
-var P = /^!\[([^\]]*)\] ?\[([^\]]*)\]/;
-var F = /^\[([^\]]*)\] ?\[([^\]]*)\]/;
-var _ = /(\n|^[-*]\s|^#|^ {2,}|^-{2,}|^>\s)/;
-var G = /\t/g;
-var W = /(^ *\||\| *$)/g;
-var Z = /^ *:-+: *$/;
-var q = /^ *:-+ *$/;
-var Q = /^ *-+: *$/;
-var V = "((?:\\[.*?\\][([].*?[)\\]]|<.*?>(?:.*?<.*?>)?|`.*?`|~~.*?~~|==.*?==|.|\\n)*?)";
-var X = new RegExp(`^([*_])\\1${V}\\1\\1(?!\\1)`);
-var J = new RegExp(`^([*_])${V}\\1(?!\\1|\\w)`);
-var K = new RegExp(`^==${V}==`);
-var Y = new RegExp(`^~~${V}~~`);
-var ee = /^\\([^0-9A-Za-z\s])/;
-var te = /^[\s\S]+?(?=[^0-9A-Z\s\u00c0-\uffff&#;.()'"]|\d+\.|\n\n| {2,}\n|\w+:\S|$)/i;
-var ne = /^\n+/;
-var re = /^([ \t]*)/;
-var ie = /\\([^\\])/g;
-var le = / *\n+$/;
-var ae = /(?:^|\n)( *)$/;
-var oe = "(?:\\d+\\.)";
-var ce = "(?:[*+-])";
-function se(e2) {
-  return "( *)(" + (1 === e2 ? oe : ce) + ") +";
-}
-var de = se(1);
-var pe = se(2);
-function ue(e2) {
-  return new RegExp("^" + (1 === e2 ? de : pe));
-}
-var fe = ue(1);
-var he = ue(2);
-function me(e2) {
-  return new RegExp("^" + (1 === e2 ? de : pe) + "[^\\n]*(?:\\n(?!\\1" + (1 === e2 ? oe : ce) + " )[^\\n]*)*(\\n|$)", "gm");
-}
-var ge = me(1);
-var ye = me(2);
-function ke(e2) {
-  const t3 = 1 === e2 ? oe : ce;
-  return new RegExp("^( *)(" + t3 + ") [\\s\\S]+?(?:\\n{2,}(?! )(?!\\1" + t3 + " (?!" + t3 + " ))\\n*|\\s*\\n*$)");
-}
-var xe = ke(1);
-var be = ke(2);
-function ve(e2, t3) {
-  const n2 = 1 === t3, i2 = n2 ? xe : be, l2 = n2 ? ge : ye, a2 = n2 ? fe : he;
-  return { match(e3, t4) {
-    const n3 = ae.exec(t4.prevCapture);
-    return n3 && (t4.list || !t4.inline && !t4.simple) ? i2.exec(e3 = n3[1] + e3) : null;
-  }, order: 1, parse(e3, t4, r3) {
-    const i3 = n2 ? +e3[2] : void 0, o2 = e3[0].replace(d, "\n").match(l2);
-    let c2 = false;
-    return { items: o2.map(function(e4, n3) {
-      const i4 = a2.exec(e4)[0].length, l3 = new RegExp("^ {1," + i4 + "}", "gm"), s2 = e4.replace(l3, "").replace(a2, ""), d2 = n3 === o2.length - 1, p2 = -1 !== s2.indexOf("\n\n") || d2 && c2;
-      c2 = p2;
-      const u2 = r3.inline, f2 = r3.list;
-      let h2;
-      r3.list = true, p2 ? (r3.inline = false, h2 = s2.replace(le, "\n\n")) : (r3.inline = true, h2 = s2.replace(le, ""));
-      const m2 = t4(h2, r3);
-      return r3.inline = u2, r3.list = f2, m2;
-    }), ordered: n2, start: i3 };
-  }, render: (t4, n3, i3) => e2(t4.ordered ? "ol" : "ul", { key: i3.key, start: t4.type === r.orderedList ? t4.start : void 0 }, t4.items.map(function(t5, r3) {
-    return e2("li", { key: r3 }, n3(t5, i3));
-  })) };
-}
-var Se = new RegExp(`^\\[((?:\\[[^\\]]*\\]|[^\\[\\]]|\\](?=[^\\[]*\\]))*)\\]\\(\\s*<?((?:\\([^)]*\\)|[^\\s\\\\]|\\\\.)*?)>?(?:\\s+['"]([\\s\\S]*?)['"])?\\s*\\)`);
-var Ce = /^!\[(.*?)\]\( *((?:\([^)]*\)|[^() ])*) *"?([^)"]*)?"?\)/;
-var $e = [p, g, y, w, L, z, O, j, ge, xe, ye, be];
-var Ee = [...$e, /^[^\n]+(?:  \n|\n{2,})/, A, M];
-function we(e2) {
-  return e2.replace(/[ÀÁÂÃÄÅàáâãäåæÆ]/g, "a").replace(/[çÇ]/g, "c").replace(/[ðÐ]/g, "d").replace(/[ÈÉÊËéèêë]/g, "e").replace(/[ÏïÎîÍíÌì]/g, "i").replace(/[Ññ]/g, "n").replace(/[øØœŒÕõÔôÓóÒò]/g, "o").replace(/[ÜüÛûÚúÙù]/g, "u").replace(/[ŸÿÝý]/g, "y").replace(/[^a-z0-9- ]/gi, "").replace(/ /gi, "-").toLowerCase();
-}
-function ze(e2) {
-  return Q.test(e2) ? "right" : Z.test(e2) ? "center" : q.test(e2) ? "left" : null;
-}
-function Le(e2, t3, n2, i2) {
-  const l2 = n2.inTable;
-  n2.inTable = true;
-  let a2 = e2.trim().split(/( *(?:`[^`]*`|\\\||\|) *)/).reduce((e3, l3) => ("|" === l3.trim() ? e3.push(i2 ? { type: r.tableSeparator } : { type: r.text, text: l3 }) : "" !== l3 && e3.push.apply(e3, t3(l3, n2)), e3), []);
-  n2.inTable = l2;
-  let o2 = [[]];
-  return a2.forEach(function(e3, t4) {
-    e3.type === r.tableSeparator ? 0 !== t4 && t4 !== a2.length - 1 && o2.push([]) : (e3.type !== r.text || null != a2[t4 + 1] && a2[t4 + 1].type !== r.tableSeparator || (e3.text = e3.text.trimEnd()), o2[o2.length - 1].push(e3));
-  }), o2;
-}
-function Ae(e2, t3, n2) {
-  n2.inline = true;
-  const i2 = e2[2] ? e2[2].replace(W, "").split("|").map(ze) : [], l2 = e2[3] ? function(e3, t4, n3) {
-    return e3.trim().split("\n").map(function(e4) {
-      return Le(e4, t4, n3, true);
-    });
-  }(e2[3], t3, n2) : [], a2 = Le(e2[1], t3, n2, !!l2.length);
-  return n2.inline = false, l2.length ? { align: i2, cells: l2, header: a2, type: r.table } : { children: a2, type: r.paragraph };
-}
-function Te(e2, t3) {
-  return null == e2.align[t3] ? {} : { textAlign: e2.align[t3] };
-}
-function Oe(e2) {
-  return function(t3, n2) {
-    return n2.inline ? e2.exec(t3) : null;
-  };
-}
-function Be(e2) {
-  return function(t3, n2) {
-    return n2.inline || n2.simple ? e2.exec(t3) : null;
-  };
-}
-function Me(e2) {
-  return function(t3, n2) {
-    return n2.inline || n2.simple ? null : e2.exec(t3);
-  };
-}
-function Re(e2) {
-  return function(t3) {
-    return e2.exec(t3);
-  };
-}
-function Ie(e2, t3) {
-  if (t3.inline || t3.simple)
-    return null;
-  let n2 = "";
-  e2.split("\n").every((e3) => !$e.some((t4) => t4.test(e3)) && (n2 += e3 + "\n", e3.trim()));
-  const r3 = n2.trimEnd();
-  return "" == r3 ? null : [n2, r3];
-}
-function Ue(e2) {
-  try {
-    if (decodeURIComponent(e2).replace(/[^A-Za-z0-9/:]/g, "").match(/^\s*(javascript|vbscript|data(?!:image)):/i))
-      return null;
-  } catch (e3) {
-    return null;
-  }
-  return e2;
-}
-function De(e2) {
-  return e2.replace(ie, "$1");
-}
-function Ne(e2, t3, n2) {
-  const r3 = n2.inline || false, i2 = n2.simple || false;
-  n2.inline = true, n2.simple = true;
-  const l2 = e2(t3, n2);
-  return n2.inline = r3, n2.simple = i2, l2;
-}
-function je(e2, t3, n2) {
-  const r3 = n2.inline || false, i2 = n2.simple || false;
-  n2.inline = false, n2.simple = true;
-  const l2 = e2(t3, n2);
-  return n2.inline = r3, n2.simple = i2, l2;
-}
-function He(e2, t3, n2) {
-  const r3 = n2.inline || false;
-  n2.inline = false;
-  const i2 = e2(t3, n2);
-  return n2.inline = r3, i2;
-}
-var Pe = (e2, t3, n2) => ({ children: Ne(t3, e2[1], n2) });
-function Fe() {
-  return {};
-}
-function _e() {
-  return null;
-}
-function Ge(...e2) {
-  return e2.filter(Boolean).join(" ");
-}
-function We(e2, t3, n2) {
-  let r3 = e2;
-  const i2 = t3.split(".");
-  for (; i2.length && (r3 = r3[i2[0]], void 0 !== r3); )
-    i2.shift();
-  return r3 || n2;
-}
-function Ze(n2 = "", i2 = {}) {
-  function d2(e2, n3, ...r3) {
-    const l2 = We(i2.overrides, `${e2}.props`, {});
-    return i2.createElement(function(e3, t3) {
-      const n4 = We(t3, e3);
-      return n4 ? "function" == typeof n4 || "object" == typeof n4 && "render" in n4 ? n4 : We(t3, `${e3}.component`, e3) : e3;
-    }(e2, i2.overrides), t({}, n3, l2, { className: Ge(null == n3 ? void 0 : n3.className, l2.className) || void 0 }), ...r3);
-  }
-  function W2(e2) {
-    e2 = e2.replace($, "");
-    let t3 = false;
-    i2.forceInline ? t3 = true : i2.forceBlock || (t3 = false === _.test(e2));
-    const n3 = le2(ie2(t3 ? e2 : `${e2.trimEnd().replace(ne, "")}
-
-`, { inline: t3 }));
-    for (; "string" == typeof n3[n3.length - 1] && !n3[n3.length - 1].trim(); )
-      n3.pop();
-    if (null === i2.wrapper)
-      return n3;
-    const r3 = i2.wrapper || (t3 ? "span" : "div");
-    let l2;
-    if (n3.length > 1 || i2.forceWrapper)
-      l2 = n3;
-    else {
-      if (1 === n3.length)
-        return l2 = n3[0], "string" == typeof l2 ? d2("span", { key: "outer" }, l2) : l2;
-      l2 = null;
-    }
-    return i2.createElement(r3, { key: "outer" }, l2);
-  }
-  function Z2(e2, t3) {
-    const n3 = t3.match(c);
-    return n3 ? n3.reduce(function(t4, n4, r3) {
-      const a2 = n4.indexOf("=");
-      if (-1 !== a2) {
-        const r4 = function(e3) {
-          return -1 !== e3.indexOf("-") && null === e3.match(B) && (e3 = e3.replace(N, function(e4, t5) {
-            return t5.toUpperCase();
-          })), e3;
-        }(n4.slice(0, a2)).trim(), o2 = function(e3) {
-          const t5 = e3[0];
-          return ('"' === t5 || "'" === t5) && e3.length >= 2 && e3[e3.length - 1] === t5 ? e3.slice(1, -1) : e3;
-        }(n4.slice(a2 + 1).trim()), c2 = l[r4] || r4;
-        if ("ref" === c2)
-          return t4;
-        const s2 = t4[c2] = function(e3, t5, n5, r5) {
-          return "style" === t5 ? n5.split(/;\s?/).reduce(function(e4, t6) {
-            const n6 = t6.slice(0, t6.indexOf(":"));
-            return e4[n6.trim().replace(/(-[a-z])/g, (e5) => e5[1].toUpperCase())] = t6.slice(n6.length + 1).trim(), e4;
-          }, {}) : "href" === t5 || "src" === t5 ? r5(n5, e3, t5) : (n5.match(R) && (n5 = n5.slice(1, n5.length - 1)), "true" === n5 || "false" !== n5 && n5);
-        }(e2, r4, o2, i2.sanitizer);
-        "string" == typeof s2 && (A.test(s2) || M.test(s2)) && (t4[c2] = W2(s2.trim()));
-      } else
-        "style" !== n4 && (t4[l[n4] || n4] = true);
-      return t4;
-    }, {}) : null;
-  }
-  i2.overrides = i2.overrides || {}, i2.sanitizer = i2.sanitizer || Ue, i2.slugify = i2.slugify || we, i2.namedCodesToUnicode = i2.namedCodesToUnicode ? t({}, a, i2.namedCodesToUnicode) : a, i2.createElement = i2.createElement || e.createElement;
-  const q2 = [], Q2 = {}, V2 = { [r.blockQuote]: { match: Me(p), order: 1, parse(e2, t3, n3) {
-    const [, r3, i3] = e2[0].replace(u, "").match(f);
-    return { alert: r3, children: t3(i3, n3) };
-  }, render(e2, t3, n3) {
-    const l2 = { key: n3.key };
-    return e2.alert && (l2.className = "markdown-alert-" + i2.slugify(e2.alert.toLowerCase(), we), e2.children.unshift({ attrs: {}, children: [{ type: r.text, text: e2.alert }], noInnerParse: true, type: r.htmlBlock, tag: "header" })), d2("blockquote", l2, t3(e2.children, n3));
-  } }, [r.breakLine]: { match: Re(h), order: 1, parse: Fe, render: (e2, t3, n3) => d2("br", { key: n3.key }) }, [r.breakThematic]: { match: Me(m), order: 1, parse: Fe, render: (e2, t3, n3) => d2("hr", { key: n3.key }) }, [r.codeBlock]: { match: Me(y), order: 0, parse: (e2) => ({ lang: void 0, text: e2[0].replace(/^ {4}/gm, "").replace(/\n+$/, "") }), render: (e2, n3, r3) => d2("pre", { key: r3.key }, d2("code", t({}, e2.attrs, { className: e2.lang ? `lang-${e2.lang}` : "" }), e2.text)) }, [r.codeFenced]: { match: Me(g), order: 0, parse: (e2) => ({ attrs: Z2("code", e2[3] || ""), lang: e2[2] || void 0, text: e2[4], type: r.codeBlock }) }, [r.codeInline]: { match: Be(k), order: 3, parse: (e2) => ({ text: e2[2] }), render: (e2, t3, n3) => d2("code", { key: n3.key }, e2.text) }, [r.footnote]: { match: Me(v), order: 0, parse: (e2) => (q2.push({ footnote: e2[2], identifier: e2[1] }), {}), render: _e }, [r.footnoteReference]: { match: Oe(S), order: 1, parse: (e2) => ({ target: `#${i2.slugify(e2[1], we)}`, text: e2[1] }), render: (e2, t3, n3) => d2("a", { key: n3.key, href: i2.sanitizer(e2.target, "a", "href") }, d2("sup", { key: n3.key }, e2.text)) }, [r.gfmTask]: { match: Oe(E), order: 1, parse: (e2) => ({ completed: "x" === e2[1].toLowerCase() }), render: (e2, t3, n3) => d2("input", { checked: e2.completed, key: n3.key, readOnly: true, type: "checkbox" }) }, [r.heading]: { match: Me(i2.enforceAtxHeadings ? z : w), order: 1, parse: (e2, t3, n3) => ({ children: Ne(t3, e2[2], n3), id: i2.slugify(e2[2], we), level: e2[1].length }), render: (e2, t3, n3) => d2(`h${e2.level}`, { id: e2.id, key: n3.key }, t3(e2.children, n3)) }, [r.headingSetext]: { match: Me(L), order: 0, parse: (e2, t3, n3) => ({ children: Ne(t3, e2[1], n3), level: "=" === e2[2] ? 1 : 2, type: r.heading }) }, [r.htmlBlock]: { match: Re(A), order: 1, parse(e2, t3, n3) {
-    const [, r3] = e2[3].match(re), i3 = new RegExp(`^${r3}`, "gm"), l2 = e2[3].replace(i3, ""), a2 = (c2 = l2, Ee.some((e3) => e3.test(c2)) ? He : Ne);
-    var c2;
-    const s2 = e2[1].toLowerCase(), d3 = -1 !== o.indexOf(s2), p2 = (d3 ? s2 : e2[1]).trim(), u2 = { attrs: Z2(p2, e2[2]), noInnerParse: d3, tag: p2 };
-    return n3.inAnchor = n3.inAnchor || "a" === s2, d3 ? u2.text = e2[3] : u2.children = a2(t3, l2, n3), n3.inAnchor = false, u2;
-  }, render: (e2, n3, r3) => d2(e2.tag, t({ key: r3.key }, e2.attrs), e2.text || (e2.children ? n3(e2.children, r3) : "")) }, [r.htmlSelfClosing]: { match: Re(M), order: 1, parse(e2) {
-    const t3 = e2[1].trim();
-    return { attrs: Z2(t3, e2[2] || ""), tag: t3 };
-  }, render: (e2, n3, r3) => d2(e2.tag, t({}, e2.attrs, { key: r3.key })) }, [r.htmlComment]: { match: Re(O), order: 1, parse: () => ({}), render: _e }, [r.image]: { match: Be(Ce), order: 1, parse: (e2) => ({ alt: e2[1], target: De(e2[2]), title: e2[3] }), render: (e2, t3, n3) => d2("img", { key: n3.key, alt: e2.alt || void 0, title: e2.title || void 0, src: i2.sanitizer(e2.target, "img", "src") }) }, [r.link]: { match: Oe(Se), order: 3, parse: (e2, t3, n3) => ({ children: je(t3, e2[1], n3), target: De(e2[2]), title: e2[3] }), render: (e2, t3, n3) => d2("a", { key: n3.key, href: i2.sanitizer(e2.target, "a", "href"), title: e2.title }, t3(e2.children, n3)) }, [r.linkAngleBraceStyleDetector]: { match: Oe(D), order: 0, parse: (e2) => ({ children: [{ text: e2[1], type: r.text }], target: e2[1], type: r.link }) }, [r.linkBareUrlDetector]: { match: (e2, t3) => t3.inAnchor || i2.disableAutoLink ? null : Oe(I)(e2, t3), order: 0, parse: (e2) => ({ children: [{ text: e2[1], type: r.text }], target: e2[1], title: void 0, type: r.link }) }, [r.linkMailtoDetector]: { match: Oe(U), order: 0, parse(e2) {
-    let t3 = e2[1], n3 = e2[1];
-    return s.test(n3) || (n3 = "mailto:" + n3), { children: [{ text: t3.replace("mailto:", ""), type: r.text }], target: n3, type: r.link };
-  } }, [r.orderedList]: ve(d2, 1), [r.unorderedList]: ve(d2, 2), [r.newlineCoalescer]: { match: Me(x), order: 3, parse: Fe, render: () => "\n" }, [r.paragraph]: { match: Ie, order: 3, parse: Pe, render: (e2, t3, n3) => d2("p", { key: n3.key }, t3(e2.children, n3)) }, [r.ref]: { match: Oe(H), order: 0, parse: (e2) => (Q2[e2[1]] = { target: e2[2], title: e2[4] }, {}), render: _e }, [r.refImage]: { match: Be(P), order: 0, parse: (e2) => ({ alt: e2[1] || void 0, ref: e2[2] }), render: (e2, t3, n3) => Q2[e2.ref] ? d2("img", { key: n3.key, alt: e2.alt, src: i2.sanitizer(Q2[e2.ref].target, "img", "src"), title: Q2[e2.ref].title }) : null }, [r.refLink]: { match: Oe(F), order: 0, parse: (e2, t3, n3) => ({ children: t3(e2[1], n3), fallbackChildren: e2[0], ref: e2[2] }), render: (e2, t3, n3) => Q2[e2.ref] ? d2("a", { key: n3.key, href: i2.sanitizer(Q2[e2.ref].target, "a", "href"), title: Q2[e2.ref].title }, t3(e2.children, n3)) : d2("span", { key: n3.key }, e2.fallbackChildren) }, [r.table]: { match: Me(j), order: 1, parse: Ae, render(e2, t3, n3) {
-    const r3 = e2;
-    return d2("table", { key: n3.key }, d2("thead", null, d2("tr", null, r3.header.map(function(e3, i3) {
-      return d2("th", { key: i3, style: Te(r3, i3) }, t3(e3, n3));
-    }))), d2("tbody", null, r3.cells.map(function(e3, i3) {
-      return d2("tr", { key: i3 }, e3.map(function(e4, i4) {
-        return d2("td", { key: i4, style: Te(r3, i4) }, t3(e4, n3));
-      }));
-    })));
-  } }, [r.text]: { match: Re(te), order: 4, parse: (e2) => ({ text: e2[0].replace(T, (e3, t3) => i2.namedCodesToUnicode[t3] ? i2.namedCodesToUnicode[t3] : e3) }), render: (e2) => e2.text }, [r.textBolded]: { match: Be(X), order: 2, parse: (e2, t3, n3) => ({ children: t3(e2[2], n3) }), render: (e2, t3, n3) => d2("strong", { key: n3.key }, t3(e2.children, n3)) }, [r.textEmphasized]: { match: Be(J), order: 3, parse: (e2, t3, n3) => ({ children: t3(e2[2], n3) }), render: (e2, t3, n3) => d2("em", { key: n3.key }, t3(e2.children, n3)) }, [r.textEscaped]: { match: Be(ee), order: 1, parse: (e2) => ({ text: e2[1], type: r.text }) }, [r.textMarked]: { match: Be(K), order: 3, parse: Pe, render: (e2, t3, n3) => d2("mark", { key: n3.key }, t3(e2.children, n3)) }, [r.textStrikethroughed]: { match: Be(Y), order: 3, parse: Pe, render: (e2, t3, n3) => d2("del", { key: n3.key }, t3(e2.children, n3)) } };
-  true === i2.disableParsingRawHTML && (delete V2[r.htmlBlock], delete V2[r.htmlSelfClosing]);
-  const ie2 = function(e2) {
-    let t3 = Object.keys(e2);
-    function n3(r3, i3) {
-      let l2 = [];
-      for (i3.prevCapture = i3.prevCapture || ""; r3; ) {
-        let a2 = 0;
-        for (; a2 < t3.length; ) {
-          const o2 = t3[a2], c2 = e2[o2], s2 = c2.match(r3, i3);
-          if (s2) {
-            const e3 = s2[0];
-            i3.prevCapture += e3, r3 = r3.substring(e3.length);
-            const t4 = c2.parse(s2, n3, i3);
-            null == t4.type && (t4.type = o2), l2.push(t4);
-            break;
-          }
-          a2++;
-        }
-      }
-      return i3.prevCapture = "", l2;
-    }
-    return t3.sort(function(t4, n4) {
-      let r3 = e2[t4].order, i3 = e2[n4].order;
-      return r3 !== i3 ? r3 - i3 : t4 < n4 ? -1 : 1;
-    }), function(e3, t4) {
-      return n3(function(e4) {
-        return e4.replace(b, "\n").replace(C, "").replace(G, "    ");
-      }(e3), t4);
-    };
-  }(V2), le2 = (ae2 = function(e2, t3) {
-    return function(n3, r3, i3) {
-      const l2 = e2[n3.type].render;
-      return t3 ? t3(() => l2(n3, r3, i3), n3, r3, i3) : l2(n3, r3, i3);
-    };
-  }(V2, i2.renderRule), function e2(t3, n3 = {}) {
-    if (Array.isArray(t3)) {
-      const r3 = n3.key, i3 = [];
-      let l2 = false;
-      for (let r4 = 0; r4 < t3.length; r4++) {
-        n3.key = r4;
-        const a2 = e2(t3[r4], n3), o2 = "string" == typeof a2;
-        o2 && l2 ? i3[i3.length - 1] += a2 : null !== a2 && i3.push(a2), l2 = o2;
-      }
-      return n3.key = r3, i3;
-    }
-    return ae2(t3, e2, n3);
-  });
-  var ae2;
-  const oe2 = W2(n2);
-  return q2.length ? d2("div", null, oe2, d2("footer", { key: "footer" }, q2.map(function(e2) {
-    return d2("div", { id: i2.slugify(e2.identifier, we), key: e2.identifier }, e2.identifier, le2(ie2(e2.footnote, { inline: true })));
-  }))) : oe2;
-}
-var index_modern_default = (t3) => {
-  let { children: r3 = "", options: i2 } = t3, l2 = function(e2, t4) {
-    if (null == e2)
-      return {};
-    var n2, r4, i3 = {}, l3 = Object.keys(e2);
-    for (r4 = 0; r4 < l3.length; r4++)
-      t4.indexOf(n2 = l3[r4]) >= 0 || (i3[n2] = e2[n2]);
-    return i3;
-  }(t3, n);
-  return e.cloneElement(Ze(r3, i2), l2);
-};
 
 // src/components/textarea.tsx
 var React = __toESM(require_react());
 
 // node_modules/clsx/dist/clsx.mjs
-function r2(e2) {
-  var t3, f2, n2 = "";
-  if ("string" == typeof e2 || "number" == typeof e2)
-    n2 += e2;
-  else if ("object" == typeof e2)
-    if (Array.isArray(e2)) {
-      var o2 = e2.length;
-      for (t3 = 0; t3 < o2; t3++)
-        e2[t3] && (f2 = r2(e2[t3])) && (n2 && (n2 += " "), n2 += f2);
+function r(e) {
+  var t2, f, n = "";
+  if ("string" == typeof e || "number" == typeof e)
+    n += e;
+  else if ("object" == typeof e)
+    if (Array.isArray(e)) {
+      var o = e.length;
+      for (t2 = 0; t2 < o; t2++)
+        e[t2] && (f = r(e[t2])) && (n && (n += " "), n += f);
     } else
-      for (f2 in e2)
-        e2[f2] && (n2 && (n2 += " "), n2 += f2);
-  return n2;
+      for (f in e)
+        e[f] && (n && (n += " "), n += f);
+  return n;
 }
 function clsx() {
-  for (var e2, t3, f2 = 0, n2 = "", o2 = arguments.length; f2 < o2; f2++)
-    (e2 = arguments[f2]) && (t3 = r2(e2)) && (n2 && (n2 += " "), n2 += t3);
-  return n2;
+  for (var e, t2, f = 0, n = "", o = arguments.length; f < o; f++)
+    (e = arguments[f]) && (t2 = r(e)) && (n && (n += " "), n += t2);
+  return n;
 }
 
 // node_modules/tailwind-merge/dist/bundle-mjs.mjs
@@ -25256,8 +24896,8 @@ var mergeClassList = (classList, configUtils) => {
     }
     classGroupsInConflict.push(classId);
     const conflictGroups = getConflictingClassGroupIds(classGroupId, hasPostfixModifier);
-    for (let i2 = 0; i2 < conflictGroups.length; ++i2) {
-      const group = conflictGroups[i2];
+    for (let i = 0; i < conflictGroups.length; ++i) {
+      const group = conflictGroups[i];
       classGroupsInConflict.push(modifierId + group);
     }
     result = originalClassName + (result.length > 0 ? " " + result : result);
@@ -25285,9 +24925,9 @@ var toValue = (mix) => {
   }
   let resolvedValue;
   let string = "";
-  for (let k2 = 0; k2 < mix.length; k2++) {
-    if (mix[k2]) {
-      if (resolvedValue = toValue(mix[k2])) {
+  for (let k = 0; k < mix.length; k++) {
+    if (mix[k]) {
+      if (resolvedValue = toValue(mix[k])) {
         string && (string += " ");
         string += resolvedValue;
       }
@@ -27486,12 +27126,12 @@ function composeRefs(...refs) {
     });
     if (hasCleanup) {
       return () => {
-        for (let i2 = 0; i2 < cleanups.length; i2++) {
-          const cleanup = cleanups[i2];
+        for (let i = 0; i < cleanups.length; i++) {
+          const cleanup = cleanups[i];
           if (typeof cleanup == "function") {
             cleanup();
           } else {
-            setRef(refs[i2], null);
+            setRef(refs[i], null);
           }
         }
       };
@@ -27748,7 +27388,7 @@ var import_obsidian = require("obsidian");
 function cleanMarkdown(content) {
   return content.replace(/^---\n[\s\S]*?\n---\n?/, "").replace(/^(`{3,}|~{3,}).*\n[\s\S]*?\n\1\s*$/gm, "").replace(/%%[\s\S]*?%%/g, "").replace(/\$\$[\s\S]*?\$\$/g, "").replace(/!\[\[.*?\]\]/g, "").replace(/\[\[(?:[^\]|]*?\|)?([^\]]*?)\]\]/g, "$1").replace(/!\[.*?\]\(.*?\)/gs, "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\[\^[^\]]+\]/g, "").replace(/^\|[-:\s|]+\|$/gm, "").replace(
     /^\|(.+)\|$/gm,
-    (_2, inner) => inner.replace(/\|/g, " ").trim()
+    (_, inner) => inner.replace(/\|/g, " ").trim()
   ).replace(/^(\s*>)+\s?/gm, "").replace(/\[![\w-]+\]/g, "").replace(/^[-*_]{3,}\s*$/gm, "").replace(/^\s*[-*+]\s+/gm, "").replace(/^\s*\d+\.\s+/gm, "").replace(/^\[\^[^\]]+\]:\s*/gm, "").replace(/`([^`]*)`/g, "$1").replace(/\$[^$\n]+\$/g, "").replace(/<\/?[^>]+(>|$)/g, "").replace(/[*_~]{1,3}/g, "").replace(/==/g, "").replace(/https?:\/\/[^\s)>\]]+/g, "").replace(/\n{3,}/g, "\n\n").trim();
 }
 function splitByHeaders(cleaned) {
@@ -27760,18 +27400,18 @@ function splitByHeaders(cleaned) {
     const body = currentLines.join("\n").trim();
     if (body || headerStack.length > 0) {
       sections.push({
-        header: headerStack.map((h2) => h2.text).join(" > "),
+        header: headerStack.map((h) => h.text).join(" > "),
         content: body
       });
     }
     currentLines = [];
   }
   for (const line of lines) {
-    const m2 = line.match(/^(#{1,3})\s+(.*)/);
-    if (m2) {
+    const m = line.match(/^(#{1,3})\s+(.*)/);
+    if (m) {
       flush();
-      const level = m2[1].length;
-      const text = m2[2].trim();
+      const level = m[1].length;
+      const text = m[2].trim();
       while (headerStack.length > 0 && headerStack[headerStack.length - 1].level >= level) {
         headerStack.pop();
       }
@@ -27781,11 +27421,12 @@ function splitByHeaders(cleaned) {
     }
   }
   flush();
-  return sections.filter((s2) => s2.content.length > 0);
+  return sections.filter((s) => s.content.length > 0);
 }
 
 // src/local-vector/search.ts
 var MAX_DOCUMENT_SEARCH_CHARS = 5e3;
+var SEARCH_RESULT_EXPANSION_LIMIT = 200;
 function createDocumentSearchInput(content, maxInputChars) {
   const limit = Math.max(1, Math.min(maxInputChars, MAX_DOCUMENT_SEARCH_CHARS));
   return cleanMarkdown(content).replace(/^#{1,6}\s+/gm, "").trim().slice(0, limit);
@@ -27804,17 +27445,15 @@ var LocalSemanticSearch = class {
   setDocumentSummarizer(summarizer) {
     this.summarizer = summarizer;
   }
-  async searchByQuery(query, topK = 5) {
+  async searchByQuery(query, topK = 5, options = {}) {
     const queryEmbedding = await this.embedding.embedQuery(query);
-    const extra = this.documentIndexer ? this.documentIndexer.getMutedPaths().size : 0;
-    const results = await this.vectorStore.search(queryEmbedding, topK + extra);
-    return this.filterAndFormat(results, topK);
+    return this.searchWithBackfill(queryEmbedding, topK, options.excludePaths);
   }
-  async searchByDocument(file, topK = 5) {
-    const response = await this.searchByDocumentWithQueryText(file, topK);
+  async searchByDocument(file, topK = 5, options = {}) {
+    const response = await this.searchByDocumentWithQueryText(file, topK, options);
     return response.results;
   }
-  async searchByDocumentWithQueryText(file, topK = 5) {
+  async searchByDocumentWithQueryText(file, topK = 5, options = {}) {
     const vault = file.vault;
     const content = await vault.adapter.read(file.path);
     const firstChunk = createDocumentSearchInput(content, this.maxInputChars);
@@ -27823,22 +27462,55 @@ var LocalSemanticSearch = class {
     const summaryResult = this.summarizer ? await this.summarizer.summarize(firstChunk, file.path) : null;
     const textForMatching = summaryResult?.text || firstChunk;
     const docEmbedding = await this.embedding.embedDocument(textForMatching);
-    const extra = this.documentIndexer ? this.documentIndexer.getMutedPaths().size : 0;
-    const results = await this.vectorStore.search(docEmbedding, topK + extra);
     return {
-      results: this.filterAndFormat(results, topK),
+      results: await this.searchWithBackfill(docEmbedding, topK, options.excludePaths),
       queryText: summaryResult?.usedSummary ? summaryResult.text : void 0
     };
   }
-  filterAndFormat(results, topK) {
+  getSearchExtra(topK, excludePaths = []) {
+    const mutedCount = this.documentIndexer ? this.documentIndexer.getMutedPaths().size : 0;
+    return mutedCount + excludePaths.length + topK;
+  }
+  async searchWithBackfill(embedding, topK, excludePaths = []) {
+    const targetCount = Math.max(1, topK);
+    const batchSize = Math.max(targetCount, 10);
+    let requestedCount = Math.min(
+      SEARCH_RESULT_EXPANSION_LIMIT,
+      targetCount + this.getSearchExtra(targetCount, excludePaths)
+    );
+    let lastRawCount = -1;
+    while (requestedCount <= SEARCH_RESULT_EXPANSION_LIMIT) {
+      const rawResults2 = await this.vectorStore.search(embedding, requestedCount);
+      const filteredResults = this.filterAndFormat(rawResults2, targetCount, excludePaths);
+      if (filteredResults.length >= targetCount) {
+        return filteredResults;
+      }
+      if (rawResults2.length < requestedCount || rawResults2.length === lastRawCount) {
+        return filteredResults;
+      }
+      lastRawCount = rawResults2.length;
+      const nextRequestedCount = Math.min(SEARCH_RESULT_EXPANSION_LIMIT, requestedCount + batchSize);
+      if (nextRequestedCount === requestedCount) {
+        return filteredResults;
+      }
+      requestedCount = nextRequestedCount;
+    }
+    const rawResults = await this.vectorStore.search(embedding, SEARCH_RESULT_EXPANSION_LIMIT);
+    return this.filterAndFormat(rawResults, targetCount, excludePaths);
+  }
+  filterAndFormat(results, topK, excludePaths = []) {
     const mutedPaths = this.documentIndexer?.getMutedPaths() ?? /* @__PURE__ */ new Set();
-    const filtered = mutedPaths.size > 0 ? results.filter((r3) => !mutedPaths.has(r3.metadata?.path)) : results;
-    return filtered.slice(0, topK).map((r3) => ({
-      title: r3.metadata?.title || "Untitled",
-      content: r3.content,
+    const excluded = new Set(excludePaths);
+    const filtered = results.filter((r2) => {
+      const path = r2.metadata?.path;
+      return !mutedPaths.has(path) && !excluded.has(path);
+    });
+    return filtered.slice(0, topK).map((r2) => ({
+      title: r2.metadata?.title || "Untitled",
+      content: r2.content,
       source: "local",
-      score: r3.score,
-      path: r3.metadata?.path
+      score: r2.score,
+      path: r2.metadata?.path
     }));
   }
 };
@@ -27852,7 +27524,8 @@ function normalizeKey(key) {
     path: key.path || "",
     mtime: key.mtime || 0,
     query: key.query || "",
-    activePath: key.activePath || ""
+    activePath: key.activePath || "",
+    excludePaths: [...key.excludePaths || []].sort()
   });
 }
 var SearchResultCache = class {
@@ -27944,6 +27617,86 @@ function updateServiceState(updates) {
   notifyServiceState();
 }
 
+// src/search-tabs.ts
+var MAX_SEARCH_TABS = 5;
+var SEARCH_TAB_TITLE_MAX_LENGTH = 15;
+function createTabTitle(text, fallback = "\u641C\u7D22") {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  return normalized ? normalized.slice(0, SEARCH_TAB_TITLE_MAX_LENGTH) : fallback;
+}
+function createDefaultSearchTab(id) {
+  return {
+    id,
+    title: "\u641C\u7D22",
+    query: "",
+    results: [],
+    documentQueryText: "",
+    isLoading: false,
+    excludedPaths: [],
+    source: { type: "manual" }
+  };
+}
+function createEmptySearchTab(id) {
+  return createDefaultSearchTab(id);
+}
+function canCreateSearchTab(tabs) {
+  return tabs.length < MAX_SEARCH_TABS;
+}
+function uniquePaths(paths) {
+  const seen = /* @__PURE__ */ new Set();
+  const unique = [];
+  paths.forEach((path) => {
+    if (!path || seen.has(path))
+      return;
+    seen.add(path);
+    unique.push(path);
+  });
+  return unique;
+}
+function createDerivedSearchQuery(result) {
+  return result.title ? `${result.title}
+
+${result.content}` : result.content;
+}
+function createDerivedSearchTab(id, parentTab, result) {
+  return {
+    id,
+    title: createTabTitle(result.title || result.content, "\u641C\u7D22"),
+    query: createDerivedSearchQuery(result),
+    results: [],
+    documentQueryText: "",
+    isLoading: false,
+    excludedPaths: uniquePaths([
+      ...parentTab.excludedPaths,
+      ...parentTab.results.map((item) => item.path)
+    ]),
+    source: {
+      type: "result-card",
+      parentTabId: parentTab.id,
+      sourcePath: result.path
+    }
+  };
+}
+function closeSearchTab(tabs, closingTabId, activeTabId, createFallbackTab, fallbackTabId) {
+  const closingIndex = tabs.findIndex((tab) => tab.id === closingTabId);
+  if (closingIndex === -1) {
+    return { tabs, activeTabId };
+  }
+  const nextTabs = tabs.filter((tab) => tab.id !== closingTabId);
+  if (nextTabs.length === 0) {
+    const fallbackTab = createFallbackTab(fallbackTabId);
+    return { tabs: [fallbackTab], activeTabId: fallbackTab.id };
+  }
+  if (closingTabId !== activeTabId) {
+    return { tabs: nextTabs, activeTabId };
+  }
+  const nextActiveIndex = Math.min(closingIndex, nextTabs.length - 1);
+  return {
+    tabs: nextTabs,
+    activeTabId: nextTabs[nextActiveIndex].id
+  };
+}
+
 // src/util/i18n.ts
 var SUPPORTED_LOCALES = ["en", "zh"];
 var currentLocale = "en";
@@ -28015,7 +27768,7 @@ var TRANSLATIONS = {
   "settings.license.activating": { en: "Activating...", zh: "\u6FC0\u6D3B\u4E2D..." },
   "settings.license.deactivate": { en: "Deactivate", zh: "\u505C\u7528" },
   "settings.license.deactivating": { en: "Deactivating...", zh: "\u505C\u7528\u4E2D..." },
-  "settings.license.links": { en: "License server and payment links", zh: "\u8BB8\u53EF\u8BC1\u670D\u52A1\u548C\u652F\u4ED8\u94FE\u63A5" },
+  "settings.license.links": { en: "License server links", zh: "\u8BB8\u53EF\u8BC1\u670D\u52A1\u94FE\u63A5" },
   "settings.license.serverUrl": { en: "License server URL", zh: "\u8BB8\u53EF\u8BC1\u670D\u52A1 URL" },
   "settings.license.buyUrl": { en: "Buy license URL", zh: "\u8D2D\u4E70\u94FE\u63A5 URL" },
   "settings.license.manageUrl": { en: "Manage license URL", zh: "\u7BA1\u7406\u94FE\u63A5 URL" },
@@ -28137,7 +27890,7 @@ function onLocaleChange(cb) {
   listeners2.add(cb);
   return () => listeners2.delete(cb);
 }
-function t2(key) {
+function t(key) {
   const entry = TRANSLATIONS[key];
   if (!entry)
     return key;
@@ -28147,6 +27900,7 @@ function t2(key) {
 // src/SmartConnection.tsx
 var import_jsx_runtime6 = __toESM(require_jsx_runtime());
 var SEARCH_LOG_PREFIX = "[Analogy][Search]";
+var DEFAULT_TOP_K = 10;
 function compactSearchText(text) {
   const normalized = text.replace(/\s+/g, " ").trim();
   return normalized.length <= 160 ? normalized : `${normalized.slice(0, 160)}...`;
@@ -28163,158 +27917,159 @@ function getServiceStatusMessage(state) {
     return "Embedding model downloading...";
   return "Local vector service initializing...";
 }
-var SmartConnection = ({ activeFile }) => {
-  const [searchInputValue, setSearchInputValue] = (0, import_react4.useState)("");
-  const [searchResults, setSearchResults] = (0, import_react4.useState)([]);
-  const [documentQueryText, setDocumentQueryText] = (0, import_react4.useState)("");
+function createTabId() {
+  return `search-tab-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+function SearchTabBar({ tabs, activeTabId, onSelectTab, onCreateTab, onCloseTab }) {
+  const [hoveredTabId, setHoveredTabId] = (0, import_react4.useState)(null);
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "mt-2 flex items-center gap-1", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "flex min-w-0 flex-1 gap-1 overflow-x-auto whitespace-nowrap pb-1", children: tabs.map((tab) => {
+      const active = tab.id === activeTabId;
+      const hovered = tab.id === hoveredTabId;
+      return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+        "button",
+        {
+          type: "button",
+          className: "shrink-0 truncate",
+          style: {
+            alignItems: "center",
+            backgroundColor: active ? "#f0f0f0" : hovered ? "#f6f6f6" : "transparent",
+            border: active ? "1px solid #d8d8d8" : "1px solid transparent",
+            borderRadius: "9999px",
+            boxShadow: active ? "0 1px 3px rgba(0, 0, 0, 0.12)" : "none",
+            color: active ? "#111111" : hovered ? "#222222" : "#666666",
+            cursor: "pointer",
+            display: "inline-flex",
+            fontSize: "12px",
+            fontWeight: active ? 600 : 500,
+            height: "32px",
+            justifyContent: "flex-start",
+            lineHeight: "16px",
+            maxWidth: "168px",
+            minWidth: "118px",
+            padding: hovered ? "0 28px 0 12px" : "0 12px",
+            position: "relative",
+            transition: "background-color 120ms ease, color 120ms ease, border-color 120ms ease"
+          },
+          onMouseEnter: () => setHoveredTabId(tab.id),
+          onMouseLeave: () => setHoveredTabId(null),
+          onClick: () => onSelectTab(tab.id),
+          title: tab.title,
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "truncate", children: tab.title }),
+            hovered && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+              "span",
+              {
+                role: "button",
+                tabIndex: -1,
+                "aria-label": `\u5173\u95ED\u6807\u7B7E\u9875 ${tab.title}`,
+                title: "\u5173\u95ED\u6807\u7B7E\u9875",
+                style: {
+                  alignItems: "center",
+                  backgroundColor: active ? "#e3e3e3" : "#eeeeee",
+                  borderRadius: "9999px",
+                  color: "#555555",
+                  display: "inline-flex",
+                  fontSize: "14px",
+                  height: "18px",
+                  justifyContent: "center",
+                  lineHeight: "18px",
+                  position: "absolute",
+                  right: "6px",
+                  top: "7px",
+                  width: "18px"
+                },
+                onMouseDown: (event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                },
+                onPointerDown: (event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                },
+                onClick: (event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onCloseTab(tab.id);
+                },
+                children: "\xD7"
+              }
+            )
+          ]
+        },
+        tab.id
+      );
+    }) }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      "button",
+      {
+        type: "button",
+        className: "shrink-0",
+        style: {
+          alignItems: "center",
+          backgroundColor: "#ffffff",
+          border: "1px solid #e2e2e2",
+          borderRadius: "9999px",
+          boxShadow: "0 2px 6px rgba(0, 0, 0, 0.16)",
+          color: "#222222",
+          cursor: "pointer",
+          display: "inline-flex",
+          height: "32px",
+          justifyContent: "center",
+          padding: 0,
+          width: "32px"
+        },
+        title: "\u65B0\u589E\u641C\u7D22\u6807\u7B7E",
+        "aria-label": "\u65B0\u589E\u641C\u7D22\u6807\u7B7E",
+        onClick: onCreateTab,
+        children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Plus, { style: { width: "17px", height: "17px" } })
+      }
+    )
+  ] });
+}
+function SearchPanel({
+  tab,
+  activeFile,
+  serviceReady,
+  onQueryChange,
+  onSearch,
+  onOpenResult,
+  onExploreResult
+}) {
   const [isSummaryHovered, setIsSummaryHovered] = (0, import_react4.useState)(false);
-  const [isLoading, setIsLoading] = (0, import_react4.useState)(false);
-  const [serviceState, setServiceState] = (0, import_react4.useState)({ ...searchInstance.state });
-  const [, setLocaleVersion] = (0, import_react4.useState)(0);
-  const { workspace } = useApp();
-  const serviceReady = serviceState.status === "ready";
-  const getSearchCacheKey = (query, topK) => {
-    const trimmedQuery = query.trim();
-    if (trimmedQuery === "" && activeFile) {
-      return {
-        mode: "document",
-        path: activeFile.path,
-        mtime: activeFile.stat?.mtime,
-        topK,
-        model: serviceState.activeModel
-      };
-    }
-    if (trimmedQuery !== "") {
-      return {
-        mode: "query",
-        query: trimmedQuery,
-        activePath: activeFile?.path,
-        mtime: activeFile?.stat?.mtime,
-        topK,
-        model: serviceState.activeModel
-      };
-    }
-    return null;
-  };
+  (0, import_react4.useEffect)(() => {
+    setIsSummaryHovered(false);
+  }, [tab.id, tab.documentQueryText]);
   const handleSearch = (event) => {
     if (event.keyCode === 13 || event.key === "Enter") {
       event.preventDefault();
-      performSearch(searchInputValue);
+      onSearch(tab.query);
     }
   };
   const copyDocumentQueryText = async () => {
-    if (!documentQueryText)
+    if (!tab.documentQueryText)
       return;
     try {
-      await navigator.clipboard.writeText(documentQueryText);
-      new import_obsidian.Notice(t2("common.copiedToClipboard"));
+      await navigator.clipboard.writeText(tab.documentQueryText);
+      new import_obsidian.Notice(t("common.copiedToClipboard"));
     } catch (err) {
       console.error(`${SEARCH_LOG_PREFIX} copy-query-text-failed`, err);
       new import_obsidian.Notice("\u590D\u5236\u5931\u8D25\uFF0C\u8BF7\u624B\u52A8\u9009\u62E9\u6587\u672C\u590D\u5236\u3002");
     }
   };
-  const performSearch = async (query) => {
-    if (!searchInstance.localSearch) {
-      console.error(`${SEARCH_LOG_PREFIX} failed`, {
-        mode: "unavailable",
-        reason: "Local search not initialized"
-      });
-      new import_obsidian.Notice("Local search not initialized yet.");
-      return;
-    }
-    const trimmedQuery = query.trim();
-    const mode = trimmedQuery === "" && activeFile ? "document" : "query";
-    if (trimmedQuery === "" && !activeFile) {
-      setSearchResults([]);
-      setDocumentQueryText("");
-      console.log(`${SEARCH_LOG_PREFIX} skipped`, {
-        mode: "empty-query",
-        reason: "No active file and no query text"
-      });
-      return;
-    }
-    const topK = 10;
-    const cacheKey = getSearchCacheKey(query, topK);
-    const cachedEntry = cacheKey ? searchResultCache.get(cacheKey) : null;
-    if (cachedEntry) {
-      setSearchResults(cachedEntry.results);
-      setDocumentQueryText(mode === "document" ? cachedEntry.queryText || "" : "");
-      console.log(
-        `${SEARCH_LOG_PREFIX} cache-hit`,
-        mode === "document" ? { mode, path: activeFile.path, resultCount: cachedEntry.results.length } : { mode, query: compactSearchText(trimmedQuery), resultCount: cachedEntry.results.length }
-      );
-      return;
-    }
-    console.log(
-      `${SEARCH_LOG_PREFIX} start`,
-      mode === "document" ? { mode, path: activeFile.path } : { mode, query: compactSearchText(trimmedQuery) }
-    );
-    setIsLoading(true);
-    try {
-      let results;
-      let queryText = "";
-      if (mode === "document" && activeFile) {
-        const response = await searchInstance.localSearch.searchByDocumentWithQueryText(activeFile, topK);
-        results = response.results;
-        queryText = response.queryText || "";
-      } else {
-        results = await searchInstance.localSearch.searchByQuery(trimmedQuery, topK);
-      }
-      if (activeFile) {
-        results = results.filter((r3) => r3.path !== activeFile.path);
-      }
-      if (cacheKey) {
-        searchResultCache.set(cacheKey, { results, queryText });
-      }
-      setDocumentQueryText(mode === "document" ? queryText : "");
-      setSearchResults(results);
-      console.log(`${SEARCH_LOG_PREFIX} success`, {
-        mode,
-        resultCount: results.length,
-        paths: results.slice(0, 5).map((r3) => r3.path).filter(Boolean)
-      });
-    } catch (err) {
-      console.error(`${SEARCH_LOG_PREFIX} failed`, {
-        mode,
-        error: err.message || String(err)
-      });
-      new import_obsidian.Notice("Local search failed. Ensure ChromaDB is running.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  (0, import_react4.useEffect)(() => {
-    const cacheKey = getSearchCacheKey(searchInputValue, 10);
-    const cachedEntry = cacheKey ? searchResultCache.get(cacheKey) : null;
-    setSearchResults(cachedEntry?.results || []);
-    setDocumentQueryText(cacheKey?.mode === "document" ? cachedEntry?.queryText || "" : "");
-    setIsSummaryHovered(false);
-  }, [activeFile, serviceState.activeModel]);
-  (0, import_react4.useEffect)(() => {
-    return subscribeServiceState((state) => {
-      setServiceState(state);
-    });
-  }, []);
-  (0, import_react4.useEffect)(() => {
-    return onLocaleChange(() => {
-      setLocaleVersion((version) => version + 1);
-    });
-  }, []);
-  const statusMsg = getServiceStatusMessage(serviceState);
-  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "px-2 animate-fade-in-up", children: [
-    statusMsg && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "mb-2 text-xs text-[#e74c3c] bg-[#fff5f5] p-2 rounded-md", children: statusMsg }),
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(import_jsx_runtime6.Fragment, { children: [
     /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "relative mt-2 rounded-md", children: [
       /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
         Textarea,
         {
           className: "analogy-textarea-autoresize resize-none pl-3 pr-14 block tracking-wide placeholder:text-[#444444] rounded-md border-[#e5e5e5] focus-visible:ring-[#0a0a0a] disabled:opacity-50 text-sm",
           placeholder: serviceReady ? "\u8F93\u5165\u5185\u5BB9\u540E\u6309 Enter \u641C\u7D22" : "\u672C\u5730\u641C\u7D22\u4E0D\u53EF\u7528",
-          value: searchInputValue,
+          value: tab.query,
           disabled: !serviceReady,
-          onChange: (e2) => setSearchInputValue(e2.target.value),
+          onChange: (e) => onQueryChange(e.target.value),
           onKeyDown: handleSearch,
-          onInput: (e2) => {
-            const target = e2.target;
+          onInput: (e) => {
+            const target = e.target;
             target.setCssProps({ "--analogy-textarea-height": "auto" });
             target.setCssProps({ "--analogy-textarea-height": `${target.scrollHeight + 2}px` });
           },
@@ -28330,12 +28085,12 @@ var SmartConnection = ({ activeFile }) => {
           variant: "secondary",
           size: "sm",
           className: "w-full text-xs",
-          disabled: isLoading,
-          onClick: () => performSearch(""),
+          disabled: tab.isLoading,
+          onClick: () => onSearch(""),
           children: "\u57FA\u4E8E\u6587\u7AE0\u5185\u5BB9\u641C\u7D22"
         }
       ),
-      documentQueryText && /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+      tab.documentQueryText && /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
         Card,
         {
           className: "relative mt-2 overflow-hidden",
@@ -28350,16 +28105,16 @@ var SmartConnection = ({ activeFile }) => {
           onPointerEnter: () => setIsSummaryHovered(true),
           onPointerLeave: () => setIsSummaryHovered(false),
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CardHeader, { className: "px-3 py-2.5", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CardTitle, { className: "m-0 text-sm leading-5", children: t2("search.articleSummaryQueryTitle") }) }),
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CardContent, { className: "px-3 pt-0", style: { paddingBottom: "42px" }, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "max-h-[400px] overflow-y-auto whitespace-pre-wrap break-all pr-1 text-sm leading-5 text-[#444444]", children: documentQueryText }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CardHeader, { className: "px-3 py-2.5", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CardTitle, { className: "m-0 text-sm leading-5", children: t("search.articleSummaryQueryTitle") }) }),
+            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CardContent, { className: "px-3 pt-0", style: { paddingBottom: "42px" }, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "max-h-[400px] overflow-y-auto whitespace-pre-wrap break-all pr-1 text-sm leading-5 text-[#444444]", children: tab.documentQueryText }) }),
             /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
               Button,
               {
                 type: "button",
                 variant: "ghost",
                 size: "icon",
-                title: t2("common.copy"),
-                "aria-label": t2("common.copy"),
+                title: t("common.copy"),
+                "aria-label": t("common.copy"),
                 className: "absolute border border-[#e5e5e5] bg-white text-[#444444] shadow-md hover:bg-[#f5f5f5]",
                 style: {
                   position: "absolute",
@@ -28385,24 +28140,306 @@ var SmartConnection = ({ activeFile }) => {
         }
       )
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { children: isLoading ? Loading("\u6B63\u5728\u641C\u7D22...") : searchResults?.length ? searchResults.map((item, index) => /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "pt-2", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
-      Card,
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { children: tab.isLoading ? Loading("\u6B63\u5728\u641C\u7D22...") : tab.results?.length ? tab.results.map((item, index) => /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "pt-2", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      SearchResultCard,
       {
-        className: "hover:bg-[#f5f5f5] cursor-pointer",
-        onClick: () => {
-          if (item.path) {
-            workspace.openLinkText(item.path, "", true);
-          }
-        },
-        children: [
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CardHeader, { className: "py-2.5 px-3", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(CardTitle, { className: "text-sm truncate m-0 flex items-center gap-1.5", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(FileText, { className: "w-4 h-4 shrink-0 text-[#444444]" }),
-            /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "truncate", children: item.title })
-          ] }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CardContent, { className: "px-3 pb-2.5 pt-0", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "text-[#444444] card-content-clamp text-sm leading-5", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(index_modern_default, { children: item.content }) }) })
-        ]
+        result: item,
+        serviceReady,
+        onOpen: onOpenResult,
+        onExplore: onExploreResult
       }
-    ) }, index)) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "pt-7", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "flex justify-center items-center text-sm text-[#444444]", children: "\u6682\u65E0\u7ED3\u679C" }) }) })
+    ) }, `${item.path || item.title}-${index}`)) : /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "pt-7", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "flex justify-center items-center text-sm text-[#444444]", children: "\u6682\u65E0\u7ED3\u679C" }) }) })
+  ] });
+}
+function SearchResultCard({ result, serviceReady, onOpen, onExplore }) {
+  const [isExploreHovered, setIsExploreHovered] = (0, import_react4.useState)(false);
+  const exploreButtonOpacity = serviceReady ? isExploreHovered ? 1 : 0.5 : 0.3;
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(
+    Card,
+    {
+      className: "relative hover:bg-[#f5f5f5] cursor-pointer",
+      onClick: () => {
+        if (result.path) {
+          onOpen(result.path);
+        }
+      },
+      children: [
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+          "button",
+          {
+            type: "button",
+            title: "\u7EE7\u7EED\u63A2\u7D22",
+            "aria-label": "\u7EE7\u7EED\u63A2\u7D22",
+            disabled: !serviceReady,
+            style: {
+              WebkitAppearance: "none",
+              alignItems: "center",
+              backgroundColor: "#ffffff",
+              border: "1px solid #e5e5e5",
+              borderRadius: "50%",
+              boxSizing: "border-box",
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.14)",
+              color: "#222222",
+              cursor: serviceReady ? "pointer" : "not-allowed",
+              display: "inline-flex",
+              flex: "0 0 24px",
+              height: "24px",
+              justifyContent: "center",
+              lineHeight: 0,
+              margin: 0,
+              maxHeight: "24px",
+              maxWidth: "24px",
+              minHeight: "24px",
+              minWidth: "24px",
+              opacity: exploreButtonOpacity,
+              outline: "none",
+              padding: 0,
+              position: "absolute",
+              right: "8px",
+              top: "8px",
+              transform: "none",
+              transition: "opacity 120ms ease, background-color 120ms ease, box-shadow 120ms ease",
+              width: "24px",
+              zIndex: 10
+            },
+            onFocus: () => setIsExploreHovered(true),
+            onBlur: () => setIsExploreHovered(false),
+            onMouseEnter: () => setIsExploreHovered(true),
+            onMouseLeave: () => setIsExploreHovered(false),
+            onPointerEnter: () => setIsExploreHovered(true),
+            onPointerLeave: () => setIsExploreHovered(false),
+            onMouseDown: (event) => {
+              event.stopPropagation();
+            },
+            onPointerDown: (event) => {
+              event.stopPropagation();
+            },
+            onClick: (event) => {
+              event.stopPropagation();
+              onExplore(result);
+            },
+            children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(Shuffle, { style: { display: "block", width: "13px", height: "13px", flexShrink: 0 } })
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CardHeader, { className: "py-2.5 pl-3", style: { paddingRight: "40px" }, children: /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)(CardTitle, { className: "text-sm truncate m-0 flex items-center gap-1.5", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(FileText, { className: "w-4 h-4 shrink-0 text-[#444444]" }),
+          /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("span", { className: "truncate", children: result.title })
+        ] }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(CardContent, { className: "px-3 pb-2.5 pt-0", children: /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "text-[#444444] card-content-clamp whitespace-pre-wrap break-all text-sm leading-5", children: result.content }) })
+      ]
+    }
+  );
+}
+var SmartConnection = ({ activeFile }) => {
+  const [tabs, setTabs] = (0, import_react4.useState)(() => [createDefaultSearchTab(createTabId())]);
+  const [activeTabId, setActiveTabId] = (0, import_react4.useState)(() => "");
+  const [serviceState, setServiceState] = (0, import_react4.useState)({ ...searchInstance.state });
+  const [, setLocaleVersion] = (0, import_react4.useState)(0);
+  const { workspace } = useApp();
+  const serviceReady = serviceState.status === "ready";
+  const activeTab = tabs.find((tab) => tab.id === activeTabId) || tabs[0];
+  (0, import_react4.useEffect)(() => {
+    setActiveTabId((current) => current || tabs[0]?.id || "");
+  }, [tabs]);
+  const updateTab = (tabId, updater) => {
+    setTabs((currentTabs) => currentTabs.map((tab) => tab.id === tabId ? updater(tab) : tab));
+  };
+  const getSearchCacheKey = (query, topK, excludePaths) => {
+    const trimmedQuery = query.trim();
+    if (trimmedQuery === "" && activeFile) {
+      return {
+        mode: "document",
+        path: activeFile.path,
+        mtime: activeFile.stat?.mtime,
+        topK,
+        model: serviceState.activeModel,
+        excludePaths
+      };
+    }
+    if (trimmedQuery !== "") {
+      return {
+        mode: "query",
+        query: trimmedQuery,
+        activePath: activeFile?.path,
+        mtime: activeFile?.stat?.mtime,
+        topK,
+        model: serviceState.activeModel,
+        excludePaths
+      };
+    }
+    return null;
+  };
+  const performSearchForTab = async (tabId, query, excludePaths, titleText) => {
+    if (!searchInstance.localSearch) {
+      console.error(`${SEARCH_LOG_PREFIX} failed`, {
+        mode: "unavailable",
+        reason: "Local search not initialized"
+      });
+      new import_obsidian.Notice("Local search not initialized yet.");
+      return;
+    }
+    const trimmedQuery = query.trim();
+    const mode = trimmedQuery === "" && activeFile ? "document" : "query";
+    if (trimmedQuery === "" && !activeFile) {
+      updateTab(tabId, (tab) => ({
+        ...tab,
+        results: [],
+        documentQueryText: "",
+        isLoading: false
+      }));
+      console.log(`${SEARCH_LOG_PREFIX} skipped`, {
+        mode: "empty-query",
+        reason: "No active file and no query text"
+      });
+      return;
+    }
+    const cacheKey = getSearchCacheKey(query, DEFAULT_TOP_K, excludePaths);
+    const cachedEntry = cacheKey ? searchResultCache.get(cacheKey) : null;
+    if (cachedEntry) {
+      updateTab(tabId, (tab) => ({
+        ...tab,
+        title: mode === "document" ? createTabTitle(titleText || activeFile?.basename || activeFile?.name || activeFile?.path || "", tab.title) : createTabTitle(trimmedQuery, tab.title),
+        query,
+        results: cachedEntry.results,
+        documentQueryText: mode === "document" ? cachedEntry.queryText || "" : "",
+        isLoading: false,
+        excludedPaths: excludePaths,
+        source: mode === "document" ? { type: "document", sourcePath: activeFile?.path } : tab.source
+      }));
+      console.log(
+        `${SEARCH_LOG_PREFIX} cache-hit`,
+        mode === "document" ? { mode, path: activeFile.path, resultCount: cachedEntry.results.length } : { mode, query: compactSearchText(trimmedQuery), resultCount: cachedEntry.results.length }
+      );
+      return;
+    }
+    console.log(
+      `${SEARCH_LOG_PREFIX} start`,
+      mode === "document" ? { mode, path: activeFile.path, excludeCount: excludePaths.length } : { mode, query: compactSearchText(trimmedQuery), excludeCount: excludePaths.length }
+    );
+    updateTab(tabId, (tab) => ({
+      ...tab,
+      query,
+      isLoading: true,
+      excludedPaths: excludePaths,
+      title: mode === "document" ? createTabTitle(titleText || activeFile?.basename || activeFile?.name || activeFile?.path || "", tab.title) : createTabTitle(trimmedQuery, tab.title),
+      source: mode === "document" ? { type: "document", sourcePath: activeFile?.path } : tab.source
+    }));
+    try {
+      let results;
+      let queryText = "";
+      if (mode === "document" && activeFile) {
+        const response = await searchInstance.localSearch.searchByDocumentWithQueryText(
+          activeFile,
+          DEFAULT_TOP_K,
+          { excludePaths }
+        );
+        results = response.results;
+        queryText = response.queryText || "";
+      } else {
+        results = await searchInstance.localSearch.searchByQuery(
+          trimmedQuery,
+          DEFAULT_TOP_K,
+          { excludePaths }
+        );
+      }
+      if (activeFile) {
+        results = results.filter((result) => result.path !== activeFile.path);
+      }
+      if (cacheKey) {
+        searchResultCache.set(cacheKey, { results, queryText });
+      }
+      updateTab(tabId, (tab) => ({
+        ...tab,
+        documentQueryText: mode === "document" ? queryText : "",
+        results,
+        isLoading: false
+      }));
+      console.log(`${SEARCH_LOG_PREFIX} success`, {
+        mode,
+        resultCount: results.length,
+        paths: results.slice(0, 5).map((result) => result.path).filter(Boolean)
+      });
+    } catch (err) {
+      console.error(`${SEARCH_LOG_PREFIX} failed`, {
+        mode,
+        error: err.message || String(err)
+      });
+      updateTab(tabId, (tab) => ({ ...tab, isLoading: false }));
+      new import_obsidian.Notice("Local search failed. Ensure ChromaDB is running.");
+    }
+  };
+  const createManualTab = () => {
+    if (!canCreateSearchTab(tabs)) {
+      new import_obsidian.Notice(`\u6700\u591A\u53EA\u80FD\u6253\u5F00 ${MAX_SEARCH_TABS} \u4E2A\u6807\u7B7E\u9875`);
+      return;
+    }
+    const nextTab = createEmptySearchTab(createTabId());
+    setTabs((currentTabs) => [...currentTabs, nextTab]);
+    setActiveTabId(nextTab.id);
+  };
+  const closeTab = (tabId) => {
+    const fallbackTabId = createTabId();
+    const nextState = closeSearchTab(
+      tabs,
+      tabId,
+      activeTab?.id || activeTabId,
+      createDefaultSearchTab,
+      fallbackTabId
+    );
+    setTabs(nextState.tabs);
+    setActiveTabId(nextState.activeTabId);
+  };
+  const exploreResult = (result) => {
+    if (!serviceReady) {
+      new import_obsidian.Notice("\u672C\u5730\u641C\u7D22\u4E0D\u53EF\u7528");
+      return;
+    }
+    if (!activeTab)
+      return;
+    if (!canCreateSearchTab(tabs)) {
+      new import_obsidian.Notice(`\u6700\u591A\u53EA\u80FD\u6253\u5F00 ${MAX_SEARCH_TABS} \u4E2A\u6807\u7B7E\u9875`);
+      return;
+    }
+    const nextTab = createDerivedSearchTab(createTabId(), activeTab, result);
+    setTabs((currentTabs) => [...currentTabs, nextTab]);
+    setActiveTabId(nextTab.id);
+    performSearchForTab(nextTab.id, nextTab.query, nextTab.excludedPaths);
+  };
+  (0, import_react4.useEffect)(() => {
+    return subscribeServiceState((state) => {
+      setServiceState(state);
+    });
+  }, []);
+  (0, import_react4.useEffect)(() => {
+    return onLocaleChange(() => {
+      setLocaleVersion((version) => version + 1);
+    });
+  }, []);
+  const statusMsg = getServiceStatusMessage(serviceState);
+  return /* @__PURE__ */ (0, import_jsx_runtime6.jsxs)("div", { className: "px-2 animate-fade-in-up", children: [
+    statusMsg && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)("div", { className: "mb-2 text-xs text-[#e74c3c] bg-[#fff5f5] p-2 rounded-md", children: statusMsg }),
+    /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      SearchTabBar,
+      {
+        tabs,
+        activeTabId: activeTab?.id || "",
+        onSelectTab: setActiveTabId,
+        onCreateTab: createManualTab,
+        onCloseTab: closeTab
+      }
+    ),
+    activeTab && /* @__PURE__ */ (0, import_jsx_runtime6.jsx)(
+      SearchPanel,
+      {
+        tab: activeTab,
+        activeFile,
+        serviceReady,
+        onQueryChange: (value) => updateTab(activeTab.id, (tab) => ({ ...tab, query: value })),
+        onSearch: (query) => performSearchForTab(activeTab.id, query, activeTab.excludedPaths),
+        onOpenResult: (path) => workspace.openLinkText(path, "", true),
+        onExploreResult: exploreResult
+      }
+    )
   ] });
 };
 
@@ -28588,7 +28625,7 @@ var EMBEDDING_MODELS = {
 var DEFAULT_MODEL_KEY = "bge-small-en-v1.5";
 function withTimeout(promise, timeoutMs, label) {
   let timer = null;
-  const timeout = new Promise((_2, reject) => {
+  const timeout = new Promise((_, reject) => {
     timer = setTimeout(() => {
       reject(new Error(`${label} timed out after ${timeoutMs}ms`));
     }, timeoutMs);
@@ -28635,15 +28672,19 @@ var LocalEmbeddingService = class {
       env.allowLocalModels = true;
       env.allowRemoteModels = true;
       const modelConfig = this.options.modelConfig;
-      this.embedder = await pipeline("feature-extraction", modelConfig.id, {
-        dtype: modelConfig.dtype,
-        progress_callback: (progressInfo) => {
-          if (typeof progressInfo === "object" && progressInfo.status === "progress") {
-            const pct = Math.round(progressInfo.loaded / progressInfo.total * 100);
-            onProgress?.(pct);
+      this.embedder = await withTimeout(
+        pipeline("feature-extraction", modelConfig.id, {
+          dtype: modelConfig.dtype,
+          progress_callback: (progressInfo) => {
+            if (typeof progressInfo === "object" && progressInfo.status === "progress") {
+              const pct = Math.round(progressInfo.loaded / progressInfo.total * 100);
+              onProgress?.(pct);
+            }
           }
-        }
-      });
+        }),
+        EMBEDDING_TIMEOUT_MS,
+        `Embedding model ${modelConfig.shortName} initialization`
+      );
       this.ready = true;
       this.inferenceCount = 0;
       onProgress?.(100);
@@ -28738,21 +28779,21 @@ var LocalEmbeddingService = class {
       }
       const results = [];
       try {
-        for (let i2 = 0; i2 < texts.length; ) {
+        for (let i = 0; i < texts.length; ) {
           const batch = [];
           let batchChars = 0;
-          while (i2 < texts.length && batch.length < MAX_EMBED_BATCH_SIZE) {
-            const text = this.truncate(this.formatDocumentInput(texts[i2]));
+          while (i < texts.length && batch.length < MAX_EMBED_BATCH_SIZE) {
+            const text = this.truncate(this.formatDocumentInput(texts[i]));
             const wouldExceedBudget = batch.length > 0 && batchChars + text.length > MAX_EMBED_BATCH_CHARS;
             if (wouldExceedBudget)
               break;
             batch.push(text);
             batchChars += text.length;
-            i2++;
+            i++;
           }
           if (batch.length === 0) {
-            batch.push(this.truncate(this.formatDocumentInput(texts[i2])));
-            i2++;
+            batch.push(this.truncate(this.formatDocumentInput(texts[i])));
+            i++;
           }
           const output = await withTimeout(
             this.embedder(batch, { pooling: "mean", normalize: true }),
@@ -28764,12 +28805,12 @@ var LocalEmbeddingService = class {
             throw new Error(`Unexpected embedding output shape: [${output.dims}], expected [${batch.length}, dim]`);
           }
           const dim = output.dims[1];
-          for (let j2 = 0; j2 < batch.length; j2++) {
-            const start = j2 * dim;
+          for (let j = 0; j < batch.length; j++) {
+            const start = j * dim;
             results.push(Array.from(output.data.slice(start, start + dim)));
           }
-          if (i2 < texts.length)
-            await new Promise((r3) => setTimeout(r3, 100));
+          if (i < texts.length)
+            await new Promise((r2) => setTimeout(r2, 100));
         }
       } catch (err) {
         if (isEmbeddingTimeout(err) || isDisposedSessionError(err)) {
@@ -28783,7 +28824,7 @@ var LocalEmbeddingService = class {
               "Embedding inference"
             )
           );
-          await new Promise((r3) => setTimeout(r3, 10));
+          await new Promise((r2) => setTimeout(r2, 10));
         }
       }
       return results;
@@ -28829,7 +28870,7 @@ async function loadTransformers(pluginDir) {
 }
 var EMBEDDING_RUNTIME_PACKAGE = {
   name: "analogy-rag-runtime",
-  version: "1.1.0",
+  version: "1.0.8",
   private: true,
   scripts: {
     "setup:local": "npm install --omit=dev"
@@ -29618,8 +29659,8 @@ function getOrCreateDeviceId() {
 function getVaultId(app) {
   const basePath = app.vault.adapter.basePath || "";
   let hash = 0;
-  for (let i2 = 0; i2 < basePath.length; i2++) {
-    hash = (hash << 5) - hash + basePath.charCodeAt(i2) | 0;
+  for (let i = 0; i < basePath.length; i++) {
+    hash = (hash << 5) - hash + basePath.charCodeAt(i) | 0;
   }
   return `vault-${Math.abs(hash).toString(36)}`;
 }
@@ -29719,7 +29760,7 @@ function SettingDetail({ plugin, setting }) {
   const [runtimeInstallLog, setRuntimeInstallLog] = (0, import_react7.useState)("");
   (0, import_react7.useEffect)(() => {
     setLocale(plugin.settings.uiLanguage || "en");
-    const unsub = onLocaleChange((l2) => setLanguage(l2));
+    const unsub = onLocaleChange((l) => setLanguage(l));
     return () => {
       unsub();
     };
@@ -29813,8 +29854,8 @@ function SettingDetail({ plugin, setting }) {
   const statusCounts = (0, import_react7.useMemo)(() => {
     if (fileStatuses.length > 0) {
       const counts = { indexed: 0, outdated: 0, unindexed: 0, total: fileStatuses.length };
-      for (const f2 of fileStatuses) {
-        counts[f2.status]++;
+      for (const f of fileStatuses) {
+        counts[f.status]++;
       }
       return counts;
     }
@@ -29824,11 +29865,11 @@ function SettingDetail({ plugin, setting }) {
   const filteredFiles = (0, import_react7.useMemo)(() => {
     let list = fileStatuses;
     if (statusFilter !== "all") {
-      list = list.filter((f2) => f2.status === statusFilter);
+      list = list.filter((f) => f.status === statusFilter);
     }
     if (searchQuery.trim()) {
-      const q2 = searchQuery.toLowerCase();
-      list = list.filter((f2) => f2.path.toLowerCase().includes(q2) || f2.name.toLowerCase().includes(q2));
+      const q = searchQuery.toLowerCase();
+      list = list.filter((f) => f.path.toLowerCase().includes(q) || f.name.toLowerCase().includes(q));
     }
     return list;
   }, [fileStatuses, statusFilter, searchQuery]);
@@ -29851,9 +29892,9 @@ function SettingDetail({ plugin, setting }) {
     try {
       await searchInstance.documentIndexer.rebuildIndex(files, {
         force: true,
-        onProgress: (p2) => {
-          setRebuildProgress(p2);
-          updateServiceState({ rebuildProgress: p2 });
+        onProgress: (p) => {
+          setRebuildProgress(p);
+          updateServiceState({ rebuildProgress: p });
         }
       });
       if (!stopRequestedRef.current) {
@@ -29908,9 +29949,9 @@ function SettingDetail({ plugin, setting }) {
     setRebuildProgress(null);
     try {
       await searchInstance.documentIndexer.continueIndex(allowedFiles, {
-        onProgress: (p2) => {
-          setRebuildProgress(p2);
-          updateServiceState({ rebuildProgress: p2 });
+        onProgress: (p) => {
+          setRebuildProgress(p);
+          updateServiceState({ rebuildProgress: p });
         }
       });
       if (!stopRequestedRef.current) {
@@ -29942,7 +29983,7 @@ function SettingDetail({ plugin, setting }) {
       await Promise.all(indexers.map((indexer) => indexer.stop()));
       await refreshServiceStatus();
       refreshFileStatuses();
-      new import_obsidian3.Notice(t2("settings.actions.indexStopped"));
+      new import_obsidian3.Notice(t("settings.actions.indexStopped"));
     } catch (err) {
       console.error("[Analogy] Stop index error:", err);
       new import_obsidian3.Notice("Stop index failed: " + err.message);
@@ -30024,7 +30065,7 @@ function SettingDetail({ plugin, setting }) {
       await refreshServiceStatus();
       refreshFileStatuses();
       if (searchInstance.state.status === "ready") {
-        new import_obsidian3.Notice(t2("settings.chroma.startDone"));
+        new import_obsidian3.Notice(t("settings.chroma.startDone"));
       } else if (searchInstance.state.lastError) {
         new import_obsidian3.Notice(searchInstance.state.lastError);
       }
@@ -30062,9 +30103,9 @@ function SettingDetail({ plugin, setting }) {
           sizes[model.name] = formatModelBytes(model.size);
       }
       setInstalledSummarySizes(sizes);
-      const installed = models.some((m2) => m2.name === activeSummaryConfig.ollamaName);
+      const installed = models.some((m) => m.name === activeSummaryConfig.ollamaName);
       setOllamaStatus(installed ? "ready" : "error");
-      setOllamaMessage(installed ? t2("settings.summary.modelInstalled") : t2("settings.summary.modelMissing"));
+      setOllamaMessage(installed ? t("settings.summary.modelInstalled") : t("settings.summary.modelMissing"));
     } catch (err) {
       setOllamaStatus("error");
       setOllamaMessage(err.message);
@@ -30091,7 +30132,7 @@ function SettingDetail({ plugin, setting }) {
       searchInstance.localSearch.setDocumentSummarizer(summarizer);
     }
     refreshFileStatuses();
-    new import_obsidian3.Notice(t2("settings.summary.applyHint"));
+    new import_obsidian3.Notice(t("settings.summary.applyHint"));
   }
   async function pullSummaryModel() {
     setIsPullingSummaryModel(true);
@@ -30108,7 +30149,7 @@ function SettingDetail({ plugin, setting }) {
           setSummaryPullProgress(progress.status);
         }
       });
-      new import_obsidian3.Notice(t2("settings.summary.pullDone"));
+      new import_obsidian3.Notice(t("settings.summary.pullDone"));
       await checkOllama();
     } catch (err) {
       new import_obsidian3.Notice(err.message);
@@ -30215,7 +30256,7 @@ function SettingDetail({ plugin, setting }) {
     new import_obsidian3.Notice(`Added to no-index: ${pathToAdd}`);
   }
   async function removeExcludedPath(pathToRemove) {
-    const updated = excludedPaths.filter((p2) => p2 !== pathToRemove);
+    const updated = excludedPaths.filter((p) => p !== pathToRemove);
     await syncExcludedPaths(updated);
     new import_obsidian3.Notice(`Removed from no-index: ${pathToRemove}`);
   }
@@ -30244,7 +30285,7 @@ function SettingDetail({ plugin, setting }) {
     }
   }
   async function installRuntime() {
-    if (!confirm(t2("settings.runtime.confirm"))) {
+    if (!confirm(t("settings.runtime.confirm"))) {
       return;
     }
     setIsInstallingRuntime(true);
@@ -30259,56 +30300,56 @@ function SettingDetail({ plugin, setting }) {
       if (!nextStatus.ready) {
         throw new Error(nextStatus.message);
       }
-      new import_obsidian3.Notice(t2("settings.runtime.installDone"));
+      new import_obsidian3.Notice(t("settings.runtime.installDone"));
       await plugin.initLocalServices();
       await refreshServiceStatus();
       refreshFileStatuses();
     } catch (err) {
       const message = err.message;
       setRuntimeInstallLog((prev) => `${prev}${prev ? "\n" : ""}${message}`);
-      new import_obsidian3.Notice(`${t2("settings.runtime.installFailed")}: ${message}`);
+      new import_obsidian3.Notice(`${t("settings.runtime.installFailed")}: ${message}`);
     } finally {
       setIsInstallingRuntime(false);
     }
   }
   return /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "space-y-4 py-4", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("h2", { className: "font-serif text-xl font-bold text-[#0a0a0a] mb-4", children: t2("settings.localVectorStatus") }),
+    /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("h2", { className: "font-serif text-xl font-bold text-[#0a0a0a] mb-4", children: t("settings.localVectorStatus") }),
     /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(Card, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardTitle, { className: "text-base", children: t2("settings.runtime.title") }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardTitle, { className: "text-base", children: t("settings.runtime.title") }) }),
       /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(CardContent, { children: [
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-start justify-between gap-3", children: [
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "min-w-0", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-sm text-[#444444]", children: t2("settings.runtime.desc") }),
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-sm text-[#444444]", children: t("settings.runtime.desc") }),
             /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-xs text-[#888888] mt-1 break-all", children: pluginDir })
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: runtimeStatus.ready ? "bg-[#0a0a0a] text-white" : "bg-[#e74c3c] text-white", children: runtimeStatus.ready ? t2("settings.runtime.ready") : t2("settings.runtime.missing") })
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: runtimeStatus.ready ? "bg-[#0a0a0a] text-white" : "bg-[#e74c3c] text-white", children: runtimeStatus.ready ? t("settings.runtime.ready") : t("settings.runtime.missing") })
         ] }),
         !runtimeStatus.ready && /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "mt-3 bg-[#fff8f2] border border-[#f2d6c1] rounded-md px-3 py-2", children: [
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "text-sm text-[#7a3e16]", children: [
-            t2("settings.runtime.missingPackages"),
+            t("settings.runtime.missingPackages"),
             ": ",
             runtimeStatus.missing.join(", ")
           ] }),
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-xs text-[#7a3e16] mt-1 leading-relaxed", children: t2("settings.runtime.installHint") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-xs text-[#7a3e16] mt-1 leading-relaxed", children: t("settings.runtime.installHint") }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center gap-2 mt-3", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: installRuntime, disabled: isInstallingRuntime, children: isInstallingRuntime ? t2("settings.runtime.installing") : t2("settings.runtime.install") }),
-            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", variant: "secondary", onClick: refreshRuntimeAndServices, disabled: isInstallingRuntime || isRefreshingRuntime, children: isRefreshingRuntime ? t2("settings.runtime.refreshing") : t2("common.refresh") })
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: installRuntime, disabled: isInstallingRuntime, children: isInstallingRuntime ? t("settings.runtime.installing") : t("settings.runtime.install") }),
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", variant: "secondary", onClick: refreshRuntimeAndServices, disabled: isInstallingRuntime || isRefreshingRuntime, children: isRefreshingRuntime ? t("settings.runtime.refreshing") : t("common.refresh") })
           ] })
         ] }),
         runtimeInstallLog && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("pre", { className: "mt-3 max-h-[180px] overflow-auto whitespace-pre-wrap text-xs bg-[#0f172a] text-[#e5e7eb] rounded-md px-3 py-2 font-mono", children: runtimeInstallLog })
       ] })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(Card, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardTitle, { className: "text-base", children: t2("settings.language.title") }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardTitle, { className: "text-base", children: t("settings.language.title") }) }),
       /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardContent, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.language.hint") }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t("settings.language.hint") }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
           "select",
           {
             className: "text-sm border border-[#e5e5e5] rounded-md px-2 py-1",
             value: language,
-            onChange: async (e2) => {
-              const next = e2.target.value;
+            onChange: async (e) => {
+              const next = e.target.value;
               if (!SUPPORTED_LOCALES.includes(next))
                 return;
               plugin.settings.uiLanguage = next;
@@ -30317,30 +30358,30 @@ function SettingDetail({ plugin, setting }) {
               setLanguage(next);
             },
             children: [
-              /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("option", { value: "en", children: t2("settings.language.english") }),
-              /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("option", { value: "zh", children: t2("settings.language.chinese") })
+              /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("option", { value: "en", children: t("settings.language.english") }),
+              /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("option", { value: "zh", children: t("settings.language.chinese") })
             ]
           }
         )
       ] }) })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(Card, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardTitle, { className: "text-base", children: t2("settings.license.title") }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardTitle, { className: "text-base", children: t("settings.license.title") }) }),
       /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(CardContent, { children: [
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.license.plan") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t("settings.license.plan") }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: licenseState.status === "active" ? "bg-[#0a0a0a] text-white" : "bg-[#f5f5f5] text-[#444444]", children: licenseState.status === "active" ? licenseState.plan || "Personal" : "Free" })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between mt-2", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.license.pageLimit") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t("settings.license.pageLimit") }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm font-medium", children: formatPageLimit(getCurrentPageLimit(licenseState)) })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between mt-2", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.license.freeLimit") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t("settings.license.freeLimit") }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm font-medium", children: FREE_PAGE_LIMIT })
         ] }),
         licenseState.licenseKeyMasked && /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between mt-2", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.license.key") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t("settings.license.key") }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm font-medium", children: licenseState.licenseKeyMasked })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center gap-2 mt-3 pt-3", style: { borderTop: "1px solid #f5f5f5" }, children: [
@@ -30349,29 +30390,29 @@ function SettingDetail({ plugin, setting }) {
             {
               type: "password",
               className: "flex-1 text-sm border border-[#e5e5e5] rounded-md px-3 py-1.5",
-              placeholder: t2("settings.license.keyPlaceholder"),
+              placeholder: t("settings.license.keyPlaceholder"),
               value: licenseKeyInput,
-              onChange: (e2) => setLicenseKeyInput(e2.target.value),
-              onKeyDown: (e2) => {
-                if (e2.key === "Enter")
+              onChange: (e) => setLicenseKeyInput(e.target.value),
+              onKeyDown: (e) => {
+                if (e.key === "Enter")
                   activateLicense();
               }
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: activateLicense, disabled: isActivatingLicense, children: isActivatingLicense ? t2("settings.license.activating") : t2("settings.license.activate") }),
-          licenseState.licenseKeyMasked && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", variant: "secondary", onClick: deactivateCurrentLicense, disabled: isDeactivatingLicense, children: isDeactivatingLicense ? t2("settings.license.deactivating") : t2("settings.license.deactivate") })
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: activateLicense, disabled: isActivatingLicense, children: isActivatingLicense ? t("settings.license.activating") : t("settings.license.activate") }),
+          licenseState.licenseKeyMasked && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", variant: "secondary", onClick: deactivateCurrentLicense, disabled: isDeactivatingLicense, children: isDeactivatingLicense ? t("settings.license.deactivating") : t("settings.license.deactivate") })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("details", { className: "mt-3", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("summary", { className: "text-xs text-[#888888] cursor-pointer hover:text-[#444444]", children: t2("settings.license.links") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("summary", { className: "text-xs text-[#888888] cursor-pointer hover:text-[#444444]", children: t("settings.license.links") }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "space-y-2 mt-2", children: [
             /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
               "input",
               {
                 type: "text",
                 className: "w-full text-sm border border-[#e5e5e5] rounded-md px-3 py-1.5",
-                placeholder: t2("settings.license.serverUrl"),
+                placeholder: t("settings.license.serverUrl"),
                 value: licenseServerInput,
-                onChange: (e2) => setLicenseServerInput(e2.target.value)
+                onChange: (e) => setLicenseServerInput(e.target.value)
               }
             ),
             /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
@@ -30379,9 +30420,9 @@ function SettingDetail({ plugin, setting }) {
               {
                 type: "text",
                 className: "w-full text-sm border border-[#e5e5e5] rounded-md px-3 py-1.5",
-                placeholder: t2("settings.license.buyUrl"),
+                placeholder: t("settings.license.buyUrl"),
                 value: buyLicenseInput,
-                onChange: (e2) => setBuyLicenseInput(e2.target.value)
+                onChange: (e) => setBuyLicenseInput(e.target.value)
               }
             ),
             /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
@@ -30389,37 +30430,37 @@ function SettingDetail({ plugin, setting }) {
               {
                 type: "text",
                 className: "w-full text-sm border border-[#e5e5e5] rounded-md px-3 py-1.5",
-                placeholder: t2("settings.license.manageUrl"),
+                placeholder: t("settings.license.manageUrl"),
                 value: manageLicenseInput,
-                onChange: (e2) => setManageLicenseInput(e2.target.value)
+                onChange: (e) => setManageLicenseInput(e.target.value)
               }
             ),
             /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex gap-2", children: [
-              /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: saveLicenseSettings, children: t2("common.save") }),
-              plugin.settings.buyLicenseUrl && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", variant: "secondary", onClick: () => window.open(plugin.settings.buyLicenseUrl, "_blank"), children: t2("settings.license.buy") }),
-              plugin.settings.manageLicenseUrl && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", variant: "secondary", onClick: () => window.open(plugin.settings.manageLicenseUrl, "_blank"), children: t2("settings.license.manage") })
+              /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: saveLicenseSettings, children: t("common.save") }),
+              plugin.settings.buyLicenseUrl && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", variant: "secondary", onClick: () => window.open(plugin.settings.buyLicenseUrl, "_blank"), children: t("settings.license.buy") }),
+              plugin.settings.manageLicenseUrl && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", variant: "secondary", onClick: () => window.open(plugin.settings.manageLicenseUrl, "_blank"), children: t("settings.license.manage") })
             ] })
           ] })
         ] })
       ] })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(Card, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardTitle, { className: "text-base", children: t2("settings.chroma.title") }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardTitle, { className: "text-base", children: t("settings.chroma.title") }) }),
       /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(CardContent, { children: [
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.chroma.status") }),
-          chromaHealthy ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: "bg-[#0a0a0a] text-white", children: t2("settings.chroma.running") }) : /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: "bg-[#e74c3c] text-white", children: t2("settings.chroma.stopped") })
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t("settings.chroma.status") }),
+          chromaHealthy ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: "bg-[#0a0a0a] text-white", children: t("settings.chroma.running") }) : /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: "bg-[#e74c3c] text-white", children: t("settings.chroma.stopped") })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between mt-2", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.chroma.serviceStatus") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t("settings.chroma.serviceStatus") }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: serviceStatus === "ready" ? "bg-[#0a0a0a] text-white" : serviceStatus === "error" ? "bg-[#e74c3c] text-white" : "bg-[#f5f5f5] text-[#444444]", children: serviceStatus })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between mt-2", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.chroma.indexedChunks") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t("settings.chroma.indexedChunks") }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm font-medium", children: docCount })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between mt-2", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.chroma.indexedFiles") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t("settings.chroma.indexedFiles") }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("span", { className: "text-sm font-medium", children: [
             statusCounts.indexed,
             " / ",
@@ -30427,16 +30468,16 @@ function SettingDetail({ plugin, setting }) {
           ] })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between mt-2", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.chroma.storagePath") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t("settings.chroma.storagePath") }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm font-medium truncate max-w-[200px]", title: dbPath, children: dbPath })
         ] }),
         !chromaHealthy && /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "mt-3 text-xs text-[#666666] bg-[#fafafa] border border-[#f0f0f0] rounded-md px-3 py-2", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "mb-2", children: t2("settings.chroma.manualStart") }),
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: startChromaFromSettings, disabled: isStartingChroma, className: "mb-2", children: isStartingChroma ? t2("settings.chroma.starting") : t2("settings.chroma.start") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "mb-2", children: t("settings.chroma.manualStart") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: startChromaFromSettings, disabled: isStartingChroma, className: "mb-2", children: isStartingChroma ? t("settings.chroma.starting") : t("settings.chroma.start") }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("code", { className: "block whitespace-pre-wrap break-all font-mono text-[#333333]", children: manualChromaCommand })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between mt-3 pt-3", style: { borderTop: "1px solid #f5f5f5" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.chroma.port") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t("settings.chroma.port") }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center gap-2", children: [
             /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
               "input",
@@ -30446,21 +30487,21 @@ function SettingDetail({ plugin, setting }) {
                 value: portInput,
                 min: 1,
                 max: 65535,
-                onChange: (e2) => setPortInput(e2.target.value)
+                onChange: (e) => setPortInput(e.target.value)
               }
             ),
-            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: savePort, children: t2("common.save") })
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: savePort, children: t("common.save") })
           ] })
         ] })
       ] })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(Card, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardTitle, { className: "text-base", children: t2("settings.embedding.title") }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardTitle, { className: "text-base", children: t("settings.embedding.title") }) }),
       /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(CardContent, { children: [
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-start justify-between gap-3", children: [
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex-1 min-w-0", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.embedding.model") }),
-            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-xs text-[#888888] mt-0.5", children: t2("settings.embedding.runHint") })
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t("settings.embedding.model") }),
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-xs text-[#888888] mt-0.5", children: t("settings.embedding.runHint") })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center gap-2 shrink-0", children: [
             /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
@@ -30468,7 +30509,7 @@ function SettingDetail({ plugin, setting }) {
               {
                 className: "text-sm border border-[#e5e5e5] rounded-md px-2 py-1 max-w-[260px]",
                 value: selectedModel,
-                onChange: (e2) => setSelectedModel(e2.target.value),
+                onChange: (e) => setSelectedModel(e.target.value),
                 children: Object.entries(EMBEDDING_MODELS).map(([key, config]) => /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("option", { value: key, children: config.displayName }, key))
               }
             ),
@@ -30480,28 +30521,28 @@ function SettingDetail({ plugin, setting }) {
               await plugin.saveSettings();
               new import_obsidian3.Notice("Embedding model changed. Reloading plugin...");
               await plugin.reload(plugin.manifest.id);
-            }, children: t2("common.apply") })
+            }, children: t("common.apply") })
           ] })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-sm text-[#444444] mt-2 leading-relaxed bg-[#fafafa] border border-[#f0f0f0] rounded-md px-3 py-2", children: modelDescription }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("details", { className: "mt-2", children: [
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("summary", { className: "text-xs text-[#888888] cursor-pointer hover:text-[#444444]", children: language === "zh" ? "\u5982\u4F55\u9009\u62E9\uFF1F" : "How to choose?" }),
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("pre", { className: "whitespace-pre-wrap text-xs text-[#666666] mt-2 bg-[#fafafa] border border-[#f0f0f0] rounded-md px-3 py-2 font-mono", children: t2("settings.embedding.pickerHelp") })
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("pre", { className: "whitespace-pre-wrap text-xs text-[#666666] mt-2 bg-[#fafafa] border border-[#f0f0f0] rounded-md px-3 py-2 font-mono", children: t("settings.embedding.pickerHelp") })
         ] }),
-        selectedModel !== (plugin.settings.embeddingModel || DEFAULT_MODEL_KEY) && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-sm text-[#f59e0b] mt-2", children: t2("settings.embedding.switchWarning") }),
+        selectedModel !== (plugin.settings.embeddingModel || DEFAULT_MODEL_KEY) && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-sm text-[#f59e0b] mt-2", children: t("settings.embedding.switchWarning") }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between mt-2", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.embedding.statusLabel") }),
-          modelReady ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: "bg-[#0a0a0a] text-white", children: t2("settings.embedding.ready") }) : searchInstance.state.embeddingStatus === "downloading" ? /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(Badge, { className: "bg-[#f5f5f5] text-[#444444]", children: [
-            t2("settings.embedding.downloading"),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t("settings.embedding.statusLabel") }),
+          modelReady ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: "bg-[#0a0a0a] text-white", children: t("settings.embedding.ready") }) : searchInstance.state.embeddingStatus === "downloading" ? /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(Badge, { className: "bg-[#f5f5f5] text-[#444444]", children: [
+            t("settings.embedding.downloading"),
             " ",
             modelProgress,
             "%"
           ] }) : searchInstance.state.embeddingStatus === "loading" ? /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(Badge, { className: "bg-[#f5f5f5] text-[#444444]", children: [
-            t2("settings.embedding.loading"),
+            t("settings.embedding.loading"),
             " ",
             modelProgress,
             "%"
-          ] }) : searchInstance.state.embeddingStatus === "error" ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: "bg-[#e74c3c] text-white", children: t2("settings.embedding.error") }) : /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: "bg-[#f5f5f5] text-[#444444]", children: t2("settings.embedding.initializing") })
+          ] }) : searchInstance.state.embeddingStatus === "error" ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: "bg-[#e74c3c] text-white", children: t("settings.embedding.error") }) : /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: "bg-[#f5f5f5] text-[#444444]", children: t("settings.embedding.initializing") })
         ] }),
         (searchInstance.state.embeddingStatus === "downloading" || searchInstance.state.embeddingStatus === "loading") && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "w-full bg-[#f5f5f5] rounded-full h-1.5 mt-2", children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
           "div",
@@ -30510,21 +30551,21 @@ function SettingDetail({ plugin, setting }) {
             style: { width: `${modelProgress}%` }
           }
         ) }),
-        modelReady && serviceStatus === "ready" && statusCounts.indexed === 0 && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-sm text-[#f59e0b] mt-2 bg-[#fffbeb] border border-[#fcd34d] rounded-md px-3 py-2", children: t2("settings.embedding.emptyIndexWarning") })
+        modelReady && serviceStatus === "ready" && statusCounts.indexed === 0 && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-sm text-[#f59e0b] mt-2 bg-[#fffbeb] border border-[#fcd34d] rounded-md px-3 py-2", children: t("settings.embedding.emptyIndexWarning") })
       ] })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(Card, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardTitle, { className: "text-base", children: t2("settings.summary.title") }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardTitle, { className: "text-base", children: t("settings.summary.title") }) }),
       /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(CardContent, { children: [
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("label", { className: "flex items-center justify-between gap-3", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.summary.enable") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t("settings.summary.enable") }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             "input",
             {
               type: "checkbox",
               checked: plugin.settings.summarizeBeforeEmbedding,
-              onChange: async (e2) => {
-                plugin.settings.summarizeBeforeEmbedding = e2.target.checked;
+              onChange: async (e) => {
+                plugin.settings.summarizeBeforeEmbedding = e.target.checked;
                 await plugin.saveSettings();
                 await applySummarySettings();
               }
@@ -30533,16 +30574,16 @@ function SettingDetail({ plugin, setting }) {
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-start justify-between gap-3 mt-3", children: [
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex-1 min-w-0", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.summary.model") }),
-            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-xs text-[#888888] mt-0.5", children: t2("settings.summary.modelHint") })
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t("settings.summary.model") }),
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-xs text-[#888888] mt-0.5", children: t("settings.summary.modelHint") })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             "select",
             {
               className: "text-sm border border-[#e5e5e5] rounded-md px-2 py-1 max-w-[260px]",
               value: selectedSummaryModel,
-              onChange: async (e2) => {
-                const next = e2.target.value;
+              onChange: async (e) => {
+                const next = e.target.value;
                 setSelectedSummaryModel(next);
                 plugin.settings.summaryModel = next;
                 await plugin.saveSettings();
@@ -30559,20 +30600,20 @@ function SettingDetail({ plugin, setting }) {
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "text-sm text-[#444444] mt-2 leading-relaxed bg-[#fafafa] border border-[#f0f0f0] rounded-md px-3 py-2", children: [
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { children: summaryModelNote }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "text-xs text-[#888888] mt-1", children: [
-            t2("settings.summary.size"),
+            t("settings.summary.size"),
             ": ",
             activeSummarySize
           ] })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between gap-3 mt-3", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t2("settings.summary.ollamaHost") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm text-[#444444]", children: t("settings.summary.ollamaHost") }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             "input",
             {
               type: "text",
               className: "text-sm border border-[#e5e5e5] rounded-md px-2 py-1 w-[260px] max-w-full",
               value: summaryHostInput,
-              onChange: (e2) => setSummaryHostInput(e2.target.value),
+              onChange: (e) => setSummaryHostInput(e.target.value),
               onBlur: async () => {
                 const next = summaryHostInput.trim() || DEFAULT_SETTINGS.summaryOllamaHost;
                 plugin.settings.summaryOllamaHost = next.replace(/\/+$/, "");
@@ -30585,7 +30626,7 @@ function SettingDetail({ plugin, setting }) {
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "grid grid-cols-2 gap-2 mt-3", children: [
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("label", { className: "text-sm text-[#444444]", children: [
-            t2("settings.summary.timeout"),
+            t("settings.summary.timeout"),
             /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
               "input",
               {
@@ -30593,7 +30634,7 @@ function SettingDetail({ plugin, setting }) {
                 className: "mt-1 w-full text-sm border border-[#e5e5e5] rounded-md px-2 py-1",
                 min: 1e3,
                 value: summaryTimeoutInput,
-                onChange: (e2) => setSummaryTimeoutInput(e2.target.value),
+                onChange: (e) => setSummaryTimeoutInput(e.target.value),
                 onBlur: async () => {
                   plugin.settings.summaryTimeoutMs = Number(summaryTimeoutInput) || DEFAULT_SETTINGS.summaryTimeoutMs;
                   setSummaryTimeoutInput(String(plugin.settings.summaryTimeoutMs));
@@ -30604,7 +30645,7 @@ function SettingDetail({ plugin, setting }) {
             )
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("label", { className: "text-sm text-[#444444]", children: [
-            t2("settings.summary.maxInput"),
+            t("settings.summary.maxInput"),
             /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
               "input",
               {
@@ -30612,7 +30653,7 @@ function SettingDetail({ plugin, setting }) {
                 className: "mt-1 w-full text-sm border border-[#e5e5e5] rounded-md px-2 py-1",
                 min: 1e3,
                 value: summaryMaxInputChars,
-                onChange: (e2) => setSummaryMaxInputChars(e2.target.value),
+                onChange: (e) => setSummaryMaxInputChars(e.target.value),
                 onBlur: async () => {
                   plugin.settings.summaryMaxInputChars = Number(summaryMaxInputChars) || DEFAULT_SETTINGS.summaryMaxInputChars;
                   setSummaryMaxInputChars(String(plugin.settings.summaryMaxInputChars));
@@ -30624,13 +30665,13 @@ function SettingDetail({ plugin, setting }) {
           ] })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("label", { className: "block mt-3 text-sm text-[#444444]", children: [
-          t2("settings.summary.prompt"),
+          t("settings.summary.prompt"),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             "textarea",
             {
               className: "mt-1 w-full min-h-[160px] text-sm border border-[#e5e5e5] rounded-md px-2 py-2 font-mono leading-relaxed",
               value: summaryPromptInput,
-              onChange: (e2) => setSummaryPromptInput(e2.target.value),
+              onChange: (e) => setSummaryPromptInput(e.target.value),
               onBlur: async () => {
                 const next = summaryPromptInput.trim() || DEFAULT_SETTINGS.summaryPrompt;
                 plugin.settings.summaryPrompt = next;
@@ -30640,7 +30681,7 @@ function SettingDetail({ plugin, setting }) {
               }
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-xs text-[#888888] mt-1 leading-relaxed", children: t2("settings.summary.promptHint") })
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-xs text-[#888888] mt-1 leading-relaxed", children: t("settings.summary.promptHint") })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between gap-3 mt-3", children: [
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("label", { className: "flex items-center gap-2 text-sm text-[#444444]", children: [
@@ -30649,14 +30690,14 @@ function SettingDetail({ plugin, setting }) {
               {
                 type: "checkbox",
                 checked: plugin.settings.summaryAutoPullModel,
-                onChange: async (e2) => {
-                  plugin.settings.summaryAutoPullModel = e2.target.checked;
+                onChange: async (e) => {
+                  plugin.settings.summaryAutoPullModel = e.target.checked;
                   await plugin.saveSettings();
                   await applySummarySettings();
                 }
               }
             ),
-            t2("settings.summary.autoPull")
+            t("settings.summary.autoPull")
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("label", { className: "flex items-center gap-2 text-sm text-[#444444]", children: [
             /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
@@ -30664,19 +30705,19 @@ function SettingDetail({ plugin, setting }) {
               {
                 type: "checkbox",
                 checked: plugin.settings.summaryFallbackToOriginal !== false,
-                onChange: async (e2) => {
-                  plugin.settings.summaryFallbackToOriginal = e2.target.checked;
+                onChange: async (e) => {
+                  plugin.settings.summaryFallbackToOriginal = e.target.checked;
                   await plugin.saveSettings();
                   await applySummarySettings();
                 }
               }
             ),
-            t2("settings.summary.fallback")
+            t("settings.summary.fallback")
           ] })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex flex-wrap items-center gap-2 mt-3 pt-3", style: { borderTop: "1px solid #f5f5f5" }, children: [
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: checkOllama, disabled: isCheckingOllama, children: isCheckingOllama ? t2("settings.summary.checking") : t2("settings.summary.check") }),
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", variant: "secondary", onClick: pullSummaryModel, disabled: isPullingSummaryModel, children: isPullingSummaryModel ? t2("settings.summary.pulling") : t2("settings.summary.pull") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: checkOllama, disabled: isCheckingOllama, children: isCheckingOllama ? t("settings.summary.checking") : t("settings.summary.check") }),
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", variant: "secondary", onClick: pullSummaryModel, disabled: isPullingSummaryModel, children: isPullingSummaryModel ? t("settings.summary.pulling") : t("settings.summary.pull") }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: ollamaStatus === "ready" ? "bg-[#0a0a0a] text-white" : ollamaStatus === "error" ? "bg-[#e74c3c] text-white" : "bg-[#f5f5f5] text-[#444444]", children: ollamaStatus }),
           (ollamaMessage || summaryPullProgress) && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-xs text-[#666666] truncate max-w-[260px]", title: ollamaMessage || summaryPullProgress, children: summaryPullProgress || ollamaMessage })
         ] })
@@ -30686,56 +30727,56 @@ function SettingDetail({ plugin, setting }) {
     upgradePrompt && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Card, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(CardContent, { className: "pt-4", children: [
       /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "whitespace-pre-line text-sm text-[#0a0a0a]", children: upgradePrompt.message }),
       /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "mt-3 flex items-center gap-2", children: [
-        upgradePrompt.canOpenBuyUrl && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: () => window.open(upgradePrompt.buyUrl, "_blank"), children: t2("settings.license.buy") }),
+        upgradePrompt.canOpenBuyUrl && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: () => window.open(upgradePrompt.buyUrl, "_blank"), children: t("settings.license.buy") }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", variant: "secondary", onClick: () => setUpgradePrompt(null), children: "Dismiss" })
       ] })
     ] }) }),
     /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(Card, { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardTitle, { className: "text-base", children: t2("settings.exclude.title") }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardTitle, { className: "text-base", children: t("settings.exclude.title") }) }),
       /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(CardContent, { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-sm text-[#444444] mb-2", children: t2("settings.exclude.hint") }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-sm text-[#444444] mb-2", children: t("settings.exclude.hint") }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center gap-2 mb-3", children: [
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             "input",
             {
               type: "text",
               className: "flex-1 text-sm border border-[#e5e5e5] rounded-md px-3 py-1.5",
-              placeholder: t2("settings.exclude.placeholder"),
+              placeholder: t("settings.exclude.placeholder"),
               value: newPathInput,
-              onChange: (e2) => setNewPathInput(e2.target.value),
-              onKeyDown: (e2) => {
-                if (e2.key === "Enter")
+              onChange: (e) => setNewPathInput(e.target.value),
+              onKeyDown: (e) => {
+                if (e.key === "Enter")
                   addExcludedPath();
               }
             }
           ),
-          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: addExcludedPath, children: t2("common.add") })
+          /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", onClick: addExcludedPath, children: t("common.add") })
         ] }),
-        excludedPaths.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-sm text-[#888888] text-center py-4", children: t2("settings.exclude.empty") }) : /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "border border-[#e5e5e5] rounded-md divide-y divide-[#f0f0f0]", children: excludedPaths.map((p2) => /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between px-3 py-2 text-sm hover:bg-[#fafafa]", children: [
+        excludedPaths.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-sm text-[#888888] text-center py-4", children: t("settings.exclude.empty") }) : /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "border border-[#e5e5e5] rounded-md divide-y divide-[#f0f0f0]", children: excludedPaths.map((p) => /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between px-3 py-2 text-sm hover:bg-[#fafafa]", children: [
           /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center gap-2 min-w-0", children: [
-            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "shrink-0 text-[#888888]", children: p2.endsWith(".md") ? "\u{1F4C4}" : "\u{1F4C1}" }),
-            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "truncate", title: p2, children: p2 })
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "shrink-0 text-[#888888]", children: p.endsWith(".md") ? "\u{1F4C4}" : "\u{1F4C1}" }),
+            /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "truncate", title: p, children: p })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
             "button",
             {
-              onClick: () => removeExcludedPath(p2),
+              onClick: () => removeExcludedPath(p),
               className: "shrink-0 ml-2 text-[#888888] hover:text-[#e74c3c] text-base leading-none px-1",
               title: "Remove",
               children: "\xD7"
             }
           )
-        ] }, p2)) }),
+        ] }, p)) }),
         excludedPaths.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "text-xs text-[#888888] mt-2", children: [
           excludedPaths.length,
           " ",
-          t2("settings.exclude.pathsCount")
+          t("settings.exclude.pathsCount")
         ] })
       ] })
     ] }),
     isRebuilding && rebuildProgress && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Card, { children: /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(CardContent, { className: "pt-4", children: [
       /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex items-center justify-between mb-2", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm font-medium", children: t2("settings.rebuild.progress") }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("span", { className: "text-sm font-medium", children: t("settings.rebuild.progress") }),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("span", { className: "text-sm text-[#444444]", children: [
           rebuildProgress.current,
           " / ",
@@ -30752,14 +30793,14 @@ function SettingDetail({ plugin, setting }) {
       /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-xs text-[#888888] mt-1 truncate", title: rebuildProgress.currentFile, children: rebuildProgress.currentFile })
     ] }) }),
     /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex gap-2 pt-2", children: [
-      isRebuilding ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { onClick: stopIndexing, disabled: isStoppingIndex, variant: "destructive", className: "flex-1", children: isStoppingIndex ? t2("settings.actions.stoppingIndex") : t2("settings.actions.stopIndex") }) : /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { onClick: continueIndex, className: "flex-1", children: t2("settings.actions.continueIndex") }),
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { onClick: rebuildIndex, disabled: isRebuilding, className: "flex-1", children: isRebuilding ? rebuildProgress ? `${t2("settings.actions.indexing").replace("...", "")} ${Math.round(rebuildProgress.current / rebuildProgress.total * 100)}%` : t2("settings.actions.indexing") : t2("settings.actions.rebuildIndex") }),
-      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { onClick: clearIndex, variant: "destructive", className: "flex-1", children: t2("settings.actions.clearIndex") })
+      isRebuilding ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { onClick: stopIndexing, disabled: isStoppingIndex, variant: "destructive", className: "flex-1", children: isStoppingIndex ? t("settings.actions.stoppingIndex") : t("settings.actions.stopIndex") }) : /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { onClick: continueIndex, className: "flex-1", children: t("settings.actions.continueIndex") }),
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { onClick: rebuildIndex, disabled: isRebuilding, className: "flex-1", children: isRebuilding ? rebuildProgress ? `${t("settings.actions.indexing").replace("...", "")} ${Math.round(rebuildProgress.current / rebuildProgress.total * 100)}%` : t("settings.actions.indexing") : t("settings.actions.rebuildIndex") }),
+      /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { onClick: clearIndex, variant: "destructive", className: "flex-1", children: t("settings.actions.clearIndex") })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(Card, { className: "mt-4", children: [
       /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(CardHeader, { className: "flex flex-row items-center justify-between", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardTitle, { className: "text-base", children: t2("settings.docs.title") }),
-        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", variant: "secondary", onClick: () => refreshFileStatuses(), children: t2("common.refresh") })
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(CardTitle, { className: "text-base", children: t("settings.docs.title") }),
+        /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Button, { size: "sm", variant: "secondary", onClick: () => refreshFileStatuses(), children: t("common.refresh") })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(CardContent, { children: [
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "flex flex-wrap gap-3 mb-3", children: [
@@ -30769,7 +30810,7 @@ function SettingDetail({ plugin, setting }) {
               onClick: () => setStatusFilter("all"),
               className: `text-xs px-2.5 py-1 rounded-full border transition-colors ${statusFilter === "all" ? "bg-[#0a0a0a] text-white border-[#0a0a0a]" : "bg-white text-[#444444] border-[#e5e5e5] hover:border-[#aaa]"}`,
               children: [
-                t2("settings.docs.filter.all"),
+                t("settings.docs.filter.all"),
                 " (",
                 statusCounts.total,
                 ")"
@@ -30782,7 +30823,7 @@ function SettingDetail({ plugin, setting }) {
               onClick: () => setStatusFilter("indexed"),
               className: `text-xs px-2.5 py-1 rounded-full border transition-colors ${statusFilter === "indexed" ? "bg-[#0a0a0a] text-white border-[#0a0a0a]" : "bg-white text-[#444444] border-[#e5e5e5] hover:border-[#aaa]"}`,
               children: [
-                t2("settings.docs.filter.indexed"),
+                t("settings.docs.filter.indexed"),
                 " (",
                 statusCounts.indexed,
                 ")"
@@ -30795,7 +30836,7 @@ function SettingDetail({ plugin, setting }) {
               onClick: () => setStatusFilter("outdated"),
               className: `text-xs px-2.5 py-1 rounded-full border transition-colors ${statusFilter === "outdated" ? "bg-[#f59e0b] text-white border-[#f59e0b]" : "bg-white text-[#444444] border-[#e5e5e5] hover:border-[#aaa]"}`,
               children: [
-                t2("settings.docs.filter.outdated"),
+                t("settings.docs.filter.outdated"),
                 " (",
                 statusCounts.outdated,
                 ")"
@@ -30808,7 +30849,7 @@ function SettingDetail({ plugin, setting }) {
               onClick: () => setStatusFilter("unindexed"),
               className: `text-xs px-2.5 py-1 rounded-full border transition-colors ${statusFilter === "unindexed" ? "bg-[#e74c3c] text-white border-[#e74c3c]" : "bg-white text-[#444444] border-[#e5e5e5] hover:border-[#aaa]"}`,
               children: [
-                t2("settings.docs.filter.unindexed"),
+                t("settings.docs.filter.unindexed"),
                 " (",
                 statusCounts.unindexed,
                 ")"
@@ -30820,14 +30861,14 @@ function SettingDetail({ plugin, setting }) {
           "input",
           {
             type: "text",
-            placeholder: t2("settings.docs.searchPlaceholder"),
+            placeholder: t("settings.docs.searchPlaceholder"),
             className: "w-full text-sm border border-[#e5e5e5] rounded-md px-3 py-1.5 mb-3",
             value: searchQuery,
-            onChange: (e2) => setSearchQuery(e2.target.value)
+            onChange: (e) => setSearchQuery(e.target.value)
           }
         ),
         /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "max-h-[400px] overflow-y-auto border border-[#e5e5e5] rounded-md", children: [
-          filteredFiles.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-sm text-[#888888] text-center py-6", children: t2("settings.docs.noFiles") }) : filteredFiles.slice(0, displayLimit).map((file) => /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
+          filteredFiles.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime10.jsx)("div", { className: "text-sm text-[#888888] text-center py-6", children: t("settings.docs.noFiles") }) : filteredFiles.slice(0, displayLimit).map((file) => /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(
             "div",
             {
               className: "flex items-center justify-between px-3 py-2 text-sm hover:bg-[#fafafa]",
@@ -30841,17 +30882,17 @@ function SettingDetail({ plugin, setting }) {
                   file.status === "indexed" && !file.muted && /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)(Badge, { className: "bg-[#0a0a0a] text-white text-xs", children: [
                     file.chunkCount,
                     " ",
-                    t2("settings.docs.chunks")
+                    t("settings.docs.chunks")
                   ] }),
-                  file.status === "indexed" && file.muted && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: "bg-[#aaa] text-white text-xs", children: t2("settings.docs.muted") }),
-                  file.status === "outdated" && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: "bg-[#f59e0b] text-white text-xs", children: t2("settings.docs.filter.outdated") }),
-                  file.status === "unindexed" && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: "bg-[#e5e5e5] text-[#666] text-xs", children: t2("settings.docs.filter.unindexed") }),
+                  file.status === "indexed" && file.muted && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: "bg-[#aaa] text-white text-xs", children: t("settings.docs.muted") }),
+                  file.status === "outdated" && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: "bg-[#f59e0b] text-white text-xs", children: t("settings.docs.filter.outdated") }),
+                  file.status === "unindexed" && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(Badge, { className: "bg-[#e5e5e5] text-[#666] text-xs", children: t("settings.docs.filter.unindexed") }),
                   file.status === "indexed" && /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
                     "button",
                     {
                       onClick: () => toggleMuted(file.path, file.muted),
                       className: `text-xs px-2 py-0.5 rounded border transition-colors ${file.muted ? "border-[#0a0a0a] bg-[#0a0a0a] text-white hover:bg-[#333]" : "border-[#e5e5e5] hover:bg-[#f5f5f5]"}`,
-                      children: file.muted ? t2("settings.docs.unmute") : t2("settings.docs.mute")
+                      children: file.muted ? t("settings.docs.unmute") : t("settings.docs.mute")
                     }
                   ),
                   /* @__PURE__ */ (0, import_jsx_runtime10.jsx)(
@@ -30860,7 +30901,7 @@ function SettingDetail({ plugin, setting }) {
                       onClick: () => indexSingleFile(file.path),
                       disabled: indexingFile === file.path || isRebuilding,
                       className: "text-xs px-2 py-0.5 rounded border border-[#e5e5e5] hover:bg-[#f5f5f5] disabled:opacity-40 disabled:cursor-not-allowed",
-                      children: indexingFile === file.path ? "..." : file.status === "indexed" ? t2("settings.docs.reindex") : t2("settings.docs.index")
+                      children: indexingFile === file.path ? "..." : file.status === "indexed" ? t("settings.docs.reindex") : t("settings.docs.index")
                     }
                   )
                 ] })
@@ -30874,7 +30915,7 @@ function SettingDetail({ plugin, setting }) {
               onClick: () => setDisplayLimit((prev) => prev + 100),
               className: "text-xs text-[#444444] hover:text-[#0a0a0a]",
               children: [
-                t2("settings.docs.showMore"),
+                t("settings.docs.showMore"),
                 " (",
                 filteredFiles.length - displayLimit,
                 ")"
@@ -30883,15 +30924,15 @@ function SettingDetail({ plugin, setting }) {
           ) })
         ] }),
         filteredFiles.length > 0 && /* @__PURE__ */ (0, import_jsx_runtime10.jsxs)("div", { className: "text-xs text-[#888888] mt-2", children: [
-          t2("settings.docs.showing"),
+          t("settings.docs.showing"),
           " ",
           Math.min(displayLimit, filteredFiles.length),
           " ",
-          t2("settings.docs.of"),
+          t("settings.docs.of"),
           " ",
           filteredFiles.length,
           " ",
-          t2("settings.docs.files"),
+          t("settings.docs.files"),
           statusFilter !== "all" || searchQuery ? ` (${statusCounts.total} total)` : ""
         ] })
       ] })
@@ -31087,9 +31128,9 @@ var LocalVectorStore = class {
     if (chunks.length === 0)
       return;
     await this.requestJson("POST", this.collectionPath("/upsert"), {
-      ids: chunks.map((c2) => c2.chunkId),
-      documents: chunks.map((c2) => c2.content),
-      embeddings: chunks.map((c2) => c2.embedding),
+      ids: chunks.map((c) => c.chunkId),
+      documents: chunks.map((c) => c.content),
+      embeddings: chunks.map((c) => c.embedding),
       metadatas: chunks.map(() => ({ ...metadata, doc_id: docId }))
     });
   }
@@ -31472,23 +31513,53 @@ var DocumentIndexer = class {
     return recovered;
   }
   splitIntoSentences(text) {
-    const raw = text.split(
-      /(?<=[。！？!?\.\n])\s*/
-    );
-    return raw.map((s2) => s2.trim()).filter((s2) => s2.length > 0);
+    const sentences = [];
+    const regex = /([\s\S]*?[。！？!?\.\n])(\s*)/g;
+    let match;
+    let cursor = 0;
+    let leadingSeparator = "";
+    while ((match = regex.exec(text)) !== null) {
+      let sentence = match[1];
+      let separator = match[2] || "";
+      const trailingWhitespace = sentence.match(/\s+$/)?.[0] || "";
+      if (trailingWhitespace) {
+        sentence = sentence.slice(0, -trailingWhitespace.length);
+        separator = trailingWhitespace + separator;
+      }
+      const trimmed = sentence.trim();
+      if (trimmed) {
+        sentences.push({ text: trimmed, leadingSeparator });
+      }
+      leadingSeparator = separator;
+      cursor = regex.lastIndex;
+    }
+    const tail = text.slice(cursor).trim();
+    if (tail) {
+      sentences.push({ text: tail, leadingSeparator });
+    }
+    return sentences;
   }
-  cosineSimilarity(a2, b2) {
+  sentenceJoiner(separator) {
+    if (/\n\s*\n/.test(separator)) {
+      return "\n\n";
+    }
+    if (/\n/.test(separator)) {
+      return "\n";
+    }
+    return " ";
+  }
+  cosineSimilarity(a, b) {
     let dot = 0, normA = 0, normB = 0;
-    for (let i2 = 0; i2 < a2.length; i2++) {
-      dot += a2[i2] * b2[i2];
-      normA += a2[i2] * a2[i2];
-      normB += b2[i2] * b2[i2];
+    for (let i = 0; i < a.length; i++) {
+      dot += a[i] * b[i];
+      normA += a[i] * a[i];
+      normB += b[i] * b[i];
     }
     const denom = Math.sqrt(normA) * Math.sqrt(normB);
     return denom === 0 ? 0 : dot / denom;
   }
   percentile(values, pct) {
-    const sorted = [...values].sort((a2, b2) => a2 - b2);
+    const sorted = [...values].sort((a, b) => a - b);
     const idx = pct / 100 * (sorted.length - 1);
     const lower = Math.floor(idx);
     const upper = Math.ceil(idx);
@@ -31517,8 +31588,8 @@ var DocumentIndexer = class {
       }
     }
     const parts = [];
-    for (let i2 = 0; i2 < text.length; i2 += limit) {
-      const part = text.slice(i2, i2 + limit).trim();
+    for (let i = 0; i < text.length; i += limit) {
+      const part = text.slice(i, i + limit).trim();
       if (part)
         parts.push(part);
     }
@@ -31568,22 +31639,25 @@ ${pending}`.trim();
     if (sentences.length > MAX_SENTENCES_PER_CHUNK_PASS) {
       return this.splitOversizedText(text, MAX_CHUNK_CHARS);
     }
-    const embeddings = await this.embedding.embedBatch(sentences);
+    const sentenceTexts = sentences.map((sentence) => sentence.text);
+    const embeddings = await this.embedding.embedBatch(sentenceTexts);
     const distances = [];
-    for (let i2 = 0; i2 < embeddings.length - 1; i2++) {
-      const sim = this.cosineSimilarity(embeddings[i2], embeddings[i2 + 1]);
+    for (let i = 0; i < embeddings.length - 1; i++) {
+      const sim = this.cosineSimilarity(embeddings[i], embeddings[i + 1]);
       distances.push(1 - sim);
     }
     const threshold = this.percentile(distances, BREAKPOINT_PERCENTILE);
     const chunks = [];
-    let current = sentences[0];
-    for (let i2 = 0; i2 < distances.length; i2++) {
-      const next = sentences[i2 + 1];
-      if (distances[i2] >= threshold || current.length + next.length > MAX_CHUNK_CHARS) {
+    let current = sentences[0].text;
+    for (let i = 0; i < distances.length; i++) {
+      const next = sentences[i + 1];
+      const joiner = this.sentenceJoiner(next.leadingSeparator);
+      const nextText = next.text;
+      if (distances[i] >= threshold || current.length + joiner.length + nextText.length > MAX_CHUNK_CHARS) {
         chunks.push(current.trim());
-        current = next;
+        current = nextText;
       } else {
-        current += " " + next;
+        current += joiner + nextText;
       }
     }
     if (current.trim()) {
@@ -31658,7 +31732,7 @@ ${section.content}` : section.content;
         this.markDocumentProcessed(file, 0, "no chunks generated");
         return;
       }
-      const chunks = allChunks.filter((c2) => c2.length >= 10);
+      const chunks = allChunks.filter((c) => c.length >= 10);
       if (chunks.length === 0) {
         if (existing) {
           await this.vectorStore.deleteDocument(docId);
@@ -31682,21 +31756,21 @@ ${section.content}` : section.content;
         path: file.path,
         mtime: file.stat.mtime
       };
-      for (let i2 = 0; i2 < chunks.length; i2 += UPSERT_BATCH) {
+      for (let i = 0; i < chunks.length; i += UPSERT_BATCH) {
         if (this.stopped)
           return;
-        const batch = chunks.slice(i2, i2 + UPSERT_BATCH);
+        const batch = chunks.slice(i, i + UPSERT_BATCH);
         const embeddings = await this.embedding.embedBatch(batch);
         if (this.stopped)
           return;
-        const chunkData = batch.map((c2, j2) => ({
-          chunkId: `${docId}::chunk-${i2 + j2}`,
-          content: c2,
-          embedding: embeddings[j2]
+        const chunkData = batch.map((c, j) => ({
+          chunkId: `${docId}::chunk-${i + j}`,
+          content: c,
+          embedding: embeddings[j]
         }));
         await this.vectorStore.upsertDocument(docId, chunkData, metadata);
-        if (i2 + UPSERT_BATCH < chunks.length) {
-          await new Promise((r3) => setTimeout(r3, 50));
+        if (i + UPSERT_BATCH < chunks.length) {
+          await new Promise((r2) => setTimeout(r2, 50));
         }
       }
     } catch (err) {
@@ -31789,9 +31863,9 @@ ${section.content}` : section.content;
         if (this.embedding.getInferenceCount() >= ONNX_RESET_INTERVAL) {
           await this.flushState();
           await this.embedding.resetSession();
-          await new Promise((r3) => setTimeout(r3, 1e3));
+          await new Promise((r2) => setTimeout(r2, 1e3));
         } else {
-          await new Promise((r3) => setTimeout(r3, 200));
+          await new Promise((r2) => setTimeout(r2, 200));
         }
       }
     } finally {
@@ -31800,13 +31874,13 @@ ${section.content}` : section.content;
   }
   async rebuildIndex(files, options) {
     this.beginIndexing();
-    const mdFiles = files.filter((f2) => f2.extension === "md" && !this.isExcluded(f2));
+    const mdFiles = files.filter((f) => f.extension === "md" && !this.isExcluded(f));
     try {
       const promises = [];
-      for (let i2 = 0; i2 < mdFiles.length; i2++) {
+      for (let i = 0; i < mdFiles.length; i++) {
         if (this.stopped)
           break;
-        const file = mdFiles[i2];
+        const file = mdFiles[i];
         if (options?.force) {
           const docId = this.buildDocId(file);
           if (this.indexState[docId]) {
@@ -31814,7 +31888,7 @@ ${section.content}` : section.content;
             delete this.indexState[docId];
           }
         }
-        const p2 = (async () => {
+        const p = (async () => {
           await this.enqueue(file);
           if (this.stopped)
             return;
@@ -31824,7 +31898,7 @@ ${section.content}` : section.content;
             currentFile: file.path
           });
         })();
-        promises.push(p2);
+        promises.push(p);
       }
       await Promise.all(promises);
       if (!this.stopped) {
@@ -31971,19 +32045,19 @@ ${section.content}` : section.content;
   }
   async continueIndex(files, options) {
     this.beginIndexing();
-    const pending = files.filter((f2) => {
-      if (f2.extension !== "md" || this.isExcluded(f2))
+    const pending = files.filter((f) => {
+      if (f.extension !== "md" || this.isExcluded(f))
         return false;
-      const docId = this.buildDocId(f2);
+      const docId = this.buildDocId(f);
       const entry = this.indexState[docId];
-      return !entry || this.isEntryOutdated(entry, f2);
+      return !entry || this.isEntryOutdated(entry, f);
     });
     try {
       const promises = [];
       for (const file of pending) {
         if (this.stopped)
           break;
-        const p2 = (async () => {
+        const p = (async () => {
           await this.enqueue(file);
           if (this.stopped)
             return;
@@ -31993,7 +32067,7 @@ ${section.content}` : section.content;
             currentFile: file.path
           });
         })();
-        promises.push(p2);
+        promises.push(p);
       }
       await Promise.all(promises);
       if (!this.stopped) {
@@ -32006,7 +32080,7 @@ ${section.content}` : section.content;
     }
   }
   getAllFileStatuses(files) {
-    const mdFiles = files.filter((f2) => f2.extension === "md" && !this.isExcluded(f2));
+    const mdFiles = files.filter((f) => f.extension === "md" && !this.isExcluded(f));
     return mdFiles.map((file) => {
       const docId = this.buildDocId(file);
       const entry = this.indexState[docId];
@@ -32064,6 +32138,7 @@ var Analogy = class extends import_obsidian5.Plugin {
     this.embeddingService = null;
     this.vectorStore = null;
     this.documentIndexer = null;
+    this.initLocalServicesPromise = null;
   }
   async onload() {
     await this.loadSettings();
@@ -32107,6 +32182,15 @@ var Analogy = class extends import_obsidian5.Plugin {
     }
   }
   async initLocalServices() {
+    if (this.initLocalServicesPromise) {
+      return this.initLocalServicesPromise;
+    }
+    this.initLocalServicesPromise = this.doInitLocalServices().finally(() => {
+      this.initLocalServicesPromise = null;
+    });
+    return this.initLocalServicesPromise;
+  }
+  async doInitLocalServices() {
     const basePath = this.app.vault.adapter.basePath;
     const manifestDir = this.manifest.dir;
     const pluginDir = manifestDir ? require("path").resolve(basePath, manifestDir) : require("path").join(basePath, this.app.vault.configDir || ".obsidian", "plugins", this.manifest.id);
@@ -32232,7 +32316,7 @@ var Analogy = class extends import_obsidian5.Plugin {
     if (this.settings.summarizeBeforeEmbedding) {
       try {
         const models = await ollamaClient.listModels();
-        const installed = models.some((m2) => m2.name === summaryConfig.ollamaName);
+        const installed = models.some((m) => m.name === summaryConfig.ollamaName);
         if (!installed && this.settings.summaryAutoPullModel) {
           await ollamaClient.pullModel(summaryConfig.ollamaName);
         }
@@ -32278,6 +32362,7 @@ var Analogy = class extends import_obsidian5.Plugin {
     });
   }
   async onunload() {
+    this.initLocalServicesPromise = null;
     if (this.documentIndexer) {
       await this.documentIndexer.stop();
       this.documentIndexer.shutdown();
@@ -32456,6 +32541,22 @@ lucide-react/dist/esm/icons/copy.js:
    *)
 
 lucide-react/dist/esm/icons/file-text.js:
+  (**
+   * @license lucide-react v0.468.0 - ISC
+   *
+   * This source code is licensed under the ISC license.
+   * See the LICENSE file in the root directory of this source tree.
+   *)
+
+lucide-react/dist/esm/icons/plus.js:
+  (**
+   * @license lucide-react v0.468.0 - ISC
+   *
+   * This source code is licensed under the ISC license.
+   * See the LICENSE file in the root directory of this source tree.
+   *)
+
+lucide-react/dist/esm/icons/shuffle.js:
   (**
    * @license lucide-react v0.468.0 - ISC
    *

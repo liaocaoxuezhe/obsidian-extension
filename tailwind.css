@@ -105,13 +105,10 @@
 	.card-content-clamp h3,
 	.card-content-clamp h4,
 	.card-content-clamp h5,
-	.card-content-clamp h6 {
-		font-size: inherit;
-		font-weight: inherit;
-		line-height: inherit;
-		margin: 0;
+		.card-content-clamp h6 {
+			font-size: inherit;
+			font-weight: inherit;
+			line-height: inherit;
+			margin: 0;
+		}
 	}
-	.card-content-clamp br {
-		display: none;
-	}
-}
