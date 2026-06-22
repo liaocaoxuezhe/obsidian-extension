@@ -561,6 +561,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     if (searchInstance.localSearch) {
       searchInstance.localSearch.setDocumentSummarizer(summarizer);
     }
+    updateServiceState({ summarySearchEnabled: Boolean(plugin.settings.summarizeBeforeEmbedding) });
     refreshFileStatuses();
     new Notice(t("settings.summary.applyHint"));
   }

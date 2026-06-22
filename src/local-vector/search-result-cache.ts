@@ -1,6 +1,6 @@
 import type { LocalSearchResult } from "./search";
 
-export type SearchResultCacheMode = "document" | "query";
+export type SearchResultCacheMode = "document" | "document-summary" | "query";
 
 export interface SearchResultCacheKey {
   mode: SearchResultCacheMode;

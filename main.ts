@@ -115,6 +115,7 @@ export default class Analogy extends Plugin {
 			modelDownloadProgress: 0,
 			lastError: "",
 			activeModel: modelConfig.shortName,
+			summarySearchEnabled: Boolean(this.settings.summarizeBeforeEmbedding),
 		});
 
 		if (!runtimeStatus.ready) {
@@ -131,6 +132,7 @@ export default class Analogy extends Plugin {
 				embeddingStatus: "error",
 				vectorStoreStatus: "idle",
 				lastError,
+				summarySearchEnabled: Boolean(this.settings.summarizeBeforeEmbedding),
 			});
 			initLocalVectorServices(null, null, null, null, {
 				status: "error",
@@ -139,6 +141,7 @@ export default class Analogy extends Plugin {
 				embeddingStatus: "error",
 				vectorStoreStatus: "idle",
 				lastError,
+				summarySearchEnabled: Boolean(this.settings.summarizeBeforeEmbedding),
 			});
 			return;
 		}
@@ -155,6 +158,7 @@ export default class Analogy extends Plugin {
 				dbPath,
 				port,
 				lastError,
+				summarySearchEnabled: Boolean(this.settings.summarizeBeforeEmbedding),
 			});
 			initLocalVectorServices(null, null, null, this.chromaManager, { dbPath, port });
 			return;
@@ -175,6 +179,7 @@ export default class Analogy extends Plugin {
 				dbPath,
 				port,
 				lastError,
+				summarySearchEnabled: Boolean(this.settings.summarizeBeforeEmbedding),
 			});
 			return;
 		}
@@ -202,6 +207,7 @@ export default class Analogy extends Plugin {
 				dbPath,
 				port,
 				lastError,
+				summarySearchEnabled: Boolean(this.settings.summarizeBeforeEmbedding),
 			});
 			return;
 		}
@@ -259,6 +265,7 @@ export default class Analogy extends Plugin {
 				activeModel: modelConfig.shortName,
 				modelDownloadProgress: 100,
 				lastError: "",
+				summarySearchEnabled: Boolean(this.settings.summarizeBeforeEmbedding),
 			},
 			modelConfig.maxInputChars,
 			summarizer
@@ -301,6 +308,7 @@ export default class Analogy extends Plugin {
 			lastError: "",
 			rebuildProgress: null,
 			activeModel: "",
+			summarySearchEnabled: false,
 		});
 	}
 
