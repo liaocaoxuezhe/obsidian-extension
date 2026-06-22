@@ -22,6 +22,7 @@ export interface LocalDocumentSearchResponse {
 
 export interface LocalSearchOptions {
   excludePaths?: string[];
+  useSummary?: boolean;
 }
 
 const SEARCH_RESULT_EXPANSION_LIMIT = 200;
@@ -81,7 +82,7 @@ export class LocalSemanticSearch {
     const firstChunk = createDocumentSearchInput(content, this.maxInputChars);
     if (!firstChunk) return { results: [] };
 
-    const summaryResult = this.summarizer
+    const summaryResult = options.useSummary && this.summarizer
       ? await this.summarizer.summarize(firstChunk, file.path)
       : null;
     const textForMatching = summaryResult?.text || firstChunk;

@@ -165,8 +165,10 @@ type SearchPanelProps = {
 	tab: SearchTab;
 	activeFile: any;
 	serviceReady: boolean;
+	summarySearchEnabled: boolean;
 	onQueryChange: (value: string) => void;
 	onSearch: (query: string) => void;
+	onSummarySearch: () => void;
 	onOpenResult: (path: string) => void;
 	onExploreResult: (result: LocalSearchResult) => void;
 };
@@ -175,8 +177,10 @@ function SearchPanel({
 	tab,
 	activeFile,
 	serviceReady,
+	summarySearchEnabled,
 	onQueryChange,
 	onSearch,
+	onSummarySearch,
 	onOpenResult,
 	onExploreResult,
 }: SearchPanelProps) {
@@ -227,15 +231,28 @@ function SearchPanel({
 			</div>
 			{activeFile && serviceReady && (
 				<div className="mt-2">
-					<Button
-						variant="secondary"
-						size="sm"
-						className="w-full text-xs"
-						disabled={tab.isLoading}
-						onClick={() => onSearch("")}
-					>
-						基于文章内容搜索
-					</Button>
+					<div className="grid grid-cols-1 gap-2" style={{ gridTemplateColumns: summarySearchEnabled ? "minmax(0, 1fr) minmax(0, 1fr)" : "minmax(0, 1fr)" }}>
+						<Button
+							variant="secondary"
+							size="sm"
+							className="w-full min-w-0 px-2 text-[11px]"
+							disabled={tab.isLoading}
+							onClick={() => onSearch("")}
+						>
+							基于文章内容搜索
+						</Button>
+						{summarySearchEnabled && (
+							<Button
+								variant="secondary"
+								size="sm"
+								className="w-full min-w-0 px-2 text-[11px]"
+								disabled={tab.isLoading}
+								onClick={onSummarySearch}
+							>
+								基于文章摘要检索
+							</Button>
+						)}
+					</div>
 					{tab.documentQueryText && (
 						<Card
 							className="relative mt-2 overflow-hidden"
@@ -429,12 +446,13 @@ export const SmartConnection = ({ activeFile }) => {
 	const getSearchCacheKey = (
 		query: string,
 		topK: number,
-		excludePaths: string[]
+		excludePaths: string[],
+		useSummary: boolean = false
 	): SearchResultCacheKey | null => {
 		const trimmedQuery = query.trim();
 		if (trimmedQuery === "" && activeFile) {
 			return {
-				mode: "document",
+				mode: useSummary ? "document-summary" : "document",
 				path: activeFile.path,
 				mtime: activeFile.stat?.mtime,
 				topK,
@@ -460,7 +478,8 @@ export const SmartConnection = ({ activeFile }) => {
 		tabId: string,
 		query: string,
 		excludePaths: string[],
-		titleText?: string
+		titleText?: string,
+		useSummary: boolean = false
 	) => {
 		if (!searchInstance.localSearch) {
 			console.error(`${SEARCH_LOG_PREFIX} failed`, {
@@ -487,7 +506,7 @@ export const SmartConnection = ({ activeFile }) => {
 			return;
 		}
 
-		const cacheKey = getSearchCacheKey(query, DEFAULT_TOP_K, excludePaths);
+		const cacheKey = getSearchCacheKey(query, DEFAULT_TOP_K, excludePaths, useSummary);
 		const cachedEntry = cacheKey ? searchResultCache.get(cacheKey) : null;
 		if (cachedEntry) {
 			updateTab(tabId, (tab) => ({
@@ -532,7 +551,7 @@ export const SmartConnection = ({ activeFile }) => {
 				const response = await searchInstance.localSearch.searchByDocumentWithQueryText(
 					activeFile,
 					DEFAULT_TOP_K,
-					{ excludePaths }
+					{ excludePaths, useSummary }
 				);
 				results = response.results;
 				queryText = response.queryText || "";
@@ -642,8 +661,10 @@ export const SmartConnection = ({ activeFile }) => {
 					tab={activeTab}
 					activeFile={activeFile}
 					serviceReady={serviceReady}
+					summarySearchEnabled={serviceState.summarySearchEnabled}
 					onQueryChange={(value) => updateTab(activeTab.id, (tab) => ({ ...tab, query: value }))}
 					onSearch={(query) => performSearchForTab(activeTab.id, query, activeTab.excludedPaths)}
+					onSummarySearch={() => performSearchForTab(activeTab.id, "", activeTab.excludedPaths, undefined, true)}
 					onOpenResult={(path) => workspace.openLinkText(path, "", true)}
 					onExploreResult={exploreResult}
 				/>

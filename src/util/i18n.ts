@@ -120,8 +120,8 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
   },
 
   // --- Summary preprocessing ---
-  "settings.summary.title": { en: "Summarize Before Embedding", zh: "先总结再嵌入" },
-  "settings.summary.enable": { en: "Enable summary preprocessing", zh: "启用摘要预处理" },
+  "settings.summary.title": { en: "Article Summary Matching", zh: "文章摘要检索" },
+  "settings.summary.enable": { en: "Show summary matching button", zh: "显示摘要检索按钮" },
   "settings.summary.model": { en: "Summary model", zh: "摘要模型" },
   "settings.summary.modelHint": {
     en: "Used only when matching from the current article; it does not rewrite the Chroma index.",

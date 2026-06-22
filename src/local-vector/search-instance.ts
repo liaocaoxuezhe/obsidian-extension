@@ -22,6 +22,7 @@ export interface ServiceState {
   lastError: string;
   rebuildProgress: { current: number; total: number; currentFile: string } | null;
   activeModel: string;
+  summarySearchEnabled: boolean;
 }
 
 export const searchInstance = {
@@ -42,6 +43,7 @@ export const searchInstance = {
     lastError: "",
     rebuildProgress: null,
     activeModel: "",
+    summarySearchEnabled: false,
   } as ServiceState,
 };
 
