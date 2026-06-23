@@ -149,6 +149,14 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
   "settings.summary.modelMissing": { en: "Selected model is not installed.", zh: "所选模型尚未安装。" },
 
   // --- Search view ---
+  "search.articleContentButton": {
+    en: "Search by article content",
+    zh: "基于文章内容搜索",
+  },
+  "search.articleSummaryButton": {
+    en: "Search by article summary",
+    zh: "基于文章摘要检索",
+  },
   "search.articleSummaryQueryTitle": {
     en: "Query based on the following text",
     zh: "基于以下文章摘要匹配",

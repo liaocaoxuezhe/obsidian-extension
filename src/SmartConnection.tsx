@@ -239,7 +239,7 @@ function SearchPanel({
 							disabled={tab.isLoading}
 							onClick={() => onSearch("")}
 						>
-							基于文章内容搜索
+							{t("search.articleContentButton")}
 						</Button>
 						{summarySearchEnabled && (
 							<Button
@@ -249,7 +249,7 @@ function SearchPanel({
 								disabled={tab.isLoading}
 								onClick={onSummarySearch}
 							>
-								基于文章摘要检索
+								{t("search.articleSummaryButton")}
 							</Button>
 						)}
 					</div>
