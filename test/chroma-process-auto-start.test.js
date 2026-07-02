@@ -27,6 +27,7 @@ async function loadModule() {
       healthChecks += 1;
       return healthChecks > 1;
     },
+    isCompatible: async () => true,
     spawn: (command, args, options) => {
       starts.push({ command, args, cwd: options.cwd });
       return {
@@ -48,7 +49,7 @@ async function loadModule() {
   assert.strictEqual(starts[0].command, "/bin/zsh");
   assert.deepStrictEqual(starts[0].args, [
     "-lc",
-    `PY_USER_BIN="$(python3 - <<'PY'\nimport site\nprint(site.USER_BASE + '/bin')\nPY\n)" && export PATH="$PY_USER_BIN:$HOME/.local/bin:$PATH" && (command -v chroma >/dev/null 2>&1 || python3 -m pip install --user chromadb) && chroma run --path ${JSON.stringify(dbPath)} --host 127.0.0.1 --port 18000`,
+    `PYTHON_BIN="$(command -v python3.9 || command -v /opt/homebrew/bin/python3.9 || command -v /usr/local/bin/python3.9 || command -v python3 || command -v python)" && VENV_DIR=${JSON.stringify(path.join(__dirname, "..", "chroma-venv"))} && ([ -x "$VENV_DIR/bin/python" ] || "$PYTHON_BIN" -m venv "$VENV_DIR") && ("$VENV_DIR/bin/python" -c 'import importlib.metadata as m, sys; v=tuple(int(p) for p in m.version("chromadb").split(".")[:3]); sys.exit(0 if v >= (0, 5, 23) else 1)' || "$VENV_DIR/bin/python" -m pip install "chromadb>=0.5.23,<0.6") && "$VENV_DIR/bin/chroma" run --path ${JSON.stringify(dbPath)} --host 127.0.0.1 --port 18000`,
   ]);
   assert.strictEqual(starts[0].cwd, dbPath);
 

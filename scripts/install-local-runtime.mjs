@@ -7,6 +7,7 @@ import process from "process";
 
 const root = process.cwd();
 const MIN_PYTHON = [3, 9];
+const CHROMADB_PIP_SPEC = "chromadb>=0.5.23,<0.6";
 
 function run(command, args, options = {}) {
 	const result = spawnSync(command, args, {
@@ -81,7 +82,11 @@ function main() {
 	run("npm", ["install", "--omit=dev"]);
 
 	console.log("\nInstalling ChromaDB for the local vector store...");
-	run(python.command, ["-m", "pip", "install", "chromadb"]);
+	const chromaVenv = path.join(root, "chroma-venv");
+	if (!fs.existsSync(path.join(chromaVenv, "bin", "python"))) {
+		run(python.command, ["-m", "venv", chromaVenv]);
+	}
+	run(path.join(chromaVenv, "bin", "python"), ["-m", "pip", "install", CHROMADB_PIP_SPEC]);
 
 	const modelScript = path.join(root, "scripts", "download-jina-model.py");
 	if (fs.existsSync(modelScript)) {

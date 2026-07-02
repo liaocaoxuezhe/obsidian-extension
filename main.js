@@ -22824,10 +22824,10 @@ var require_react_dom_development = __commonJS({
         var setErrorHandler = null;
         var setSuspenseHandler = null;
         {
-          var copyWithDeleteImpl = function(obj, path, index2) {
-            var key = path[index2];
+          var copyWithDeleteImpl = function(obj, path2, index2) {
+            var key = path2[index2];
             var updated = isArray(obj) ? obj.slice() : assign({}, obj);
-            if (index2 + 1 === path.length) {
+            if (index2 + 1 === path2.length) {
               if (isArray(updated)) {
                 updated.splice(key, 1);
               } else {
@@ -22835,11 +22835,11 @@ var require_react_dom_development = __commonJS({
               }
               return updated;
             }
-            updated[key] = copyWithDeleteImpl(obj[key], path, index2 + 1);
+            updated[key] = copyWithDeleteImpl(obj[key], path2, index2 + 1);
             return updated;
           };
-          var copyWithDelete = function(obj, path) {
-            return copyWithDeleteImpl(obj, path, 0);
+          var copyWithDelete = function(obj, path2) {
+            return copyWithDeleteImpl(obj, path2, 0);
           };
           var copyWithRenameImpl = function(obj, oldPath, newPath, index2) {
             var oldKey = oldPath[index2];
@@ -22877,17 +22877,17 @@ var require_react_dom_development = __commonJS({
             }
             return copyWithRenameImpl(obj, oldPath, newPath, 0);
           };
-          var copyWithSetImpl = function(obj, path, index2, value) {
-            if (index2 >= path.length) {
+          var copyWithSetImpl = function(obj, path2, index2, value) {
+            if (index2 >= path2.length) {
               return value;
             }
-            var key = path[index2];
+            var key = path2[index2];
             var updated = isArray(obj) ? obj.slice() : assign({}, obj);
-            updated[key] = copyWithSetImpl(obj[key], path, index2 + 1, value);
+            updated[key] = copyWithSetImpl(obj[key], path2, index2 + 1, value);
             return updated;
           };
-          var copyWithSet = function(obj, path, value) {
-            return copyWithSetImpl(obj, path, 0, value);
+          var copyWithSet = function(obj, path2, value) {
+            return copyWithSetImpl(obj, path2, 0, value);
           };
           var findHook = function(fiber, id) {
             var currentHook2 = fiber.memoizedState;
@@ -22897,10 +22897,10 @@ var require_react_dom_development = __commonJS({
             }
             return currentHook2;
           };
-          overrideHookState = function(fiber, id, path, value) {
+          overrideHookState = function(fiber, id, path2, value) {
             var hook = findHook(fiber, id);
             if (hook !== null) {
-              var newState = copyWithSet(hook.memoizedState, path, value);
+              var newState = copyWithSet(hook.memoizedState, path2, value);
               hook.memoizedState = newState;
               hook.baseState = newState;
               fiber.memoizedProps = assign({}, fiber.memoizedProps);
@@ -22910,10 +22910,10 @@ var require_react_dom_development = __commonJS({
               }
             }
           };
-          overrideHookStateDeletePath = function(fiber, id, path) {
+          overrideHookStateDeletePath = function(fiber, id, path2) {
             var hook = findHook(fiber, id);
             if (hook !== null) {
-              var newState = copyWithDelete(hook.memoizedState, path);
+              var newState = copyWithDelete(hook.memoizedState, path2);
               hook.memoizedState = newState;
               hook.baseState = newState;
               fiber.memoizedProps = assign({}, fiber.memoizedProps);
@@ -22936,8 +22936,8 @@ var require_react_dom_development = __commonJS({
               }
             }
           };
-          overrideProps = function(fiber, path, value) {
-            fiber.pendingProps = copyWithSet(fiber.memoizedProps, path, value);
+          overrideProps = function(fiber, path2, value) {
+            fiber.pendingProps = copyWithSet(fiber.memoizedProps, path2, value);
             if (fiber.alternate) {
               fiber.alternate.pendingProps = fiber.pendingProps;
             }
@@ -22946,8 +22946,8 @@ var require_react_dom_development = __commonJS({
               scheduleUpdateOnFiber(root2, fiber, SyncLane, NoTimestamp);
             }
           };
-          overridePropsDeletePath = function(fiber, path) {
-            fiber.pendingProps = copyWithDelete(fiber.memoizedProps, path);
+          overridePropsDeletePath = function(fiber, path2) {
+            fiber.pendingProps = copyWithDelete(fiber.memoizedProps, path2);
             if (fiber.alternate) {
               fiber.alternate.pendingProps = fiber.pendingProps;
             }
@@ -24710,9 +24710,9 @@ var processClassesRecursively = (classGroup, classPartObject, classGroupId, them
     });
   });
 };
-var getPart = (classPartObject, path) => {
+var getPart = (classPartObject, path2) => {
   let currentClassPartObject = classPartObject;
-  path.split(CLASS_PART_SEPARATOR).forEach((pathPart) => {
+  path2.split(CLASS_PART_SEPARATOR).forEach((pathPart) => {
     if (!currentClassPartObject.nextPart.has(pathPart)) {
       currentClassPartObject.nextPart.set(pathPart, {
         nextPart: /* @__PURE__ */ new Map(),
@@ -27502,8 +27502,8 @@ var LocalSemanticSearch = class {
     const mutedPaths = this.documentIndexer?.getMutedPaths() ?? /* @__PURE__ */ new Set();
     const excluded = new Set(excludePaths);
     const filtered = results.filter((r2) => {
-      const path = r2.metadata?.path;
-      return !mutedPaths.has(path) && !excluded.has(path);
+      const path2 = r2.metadata?.path;
+      return !mutedPaths.has(path2) && !excluded.has(path2);
     });
     return filtered.slice(0, topK).map((r2) => ({
       title: r2.metadata?.title || "Untitled",
@@ -27646,11 +27646,11 @@ function canCreateSearchTab(tabs) {
 function uniquePaths(paths) {
   const seen = /* @__PURE__ */ new Set();
   const unique = [];
-  paths.forEach((path) => {
-    if (!path || seen.has(path))
+  paths.forEach((path2) => {
+    if (!path2 || seen.has(path2))
       return;
-    seen.add(path);
-    unique.push(path);
+    seen.add(path2);
+    unique.push(path2);
   });
   return unique;
 }
@@ -28462,7 +28462,7 @@ var SmartConnection = ({ activeFile }) => {
         onQueryChange: (value) => updateTab(activeTab.id, (tab) => ({ ...tab, query: value })),
         onSearch: (query) => performSearchForTab(activeTab.id, query, activeTab.excludedPaths),
         onSummarySearch: () => performSearchForTab(activeTab.id, "", activeTab.excludedPaths, void 0, true),
-        onOpenResult: (path) => workspace.openLinkText(path, "", true),
+        onOpenResult: (path2) => workspace.openLinkText(path2, "", true),
         onExploreResult: exploreResult
       }
     )
@@ -28567,11 +28567,11 @@ function normalizeExcludedIndexPaths(paths) {
   const seen = /* @__PURE__ */ new Set();
   const normalized = [];
   for (const rawPath of paths) {
-    const path = rawPath.trim().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
-    if (!path || seen.has(path))
+    const path2 = rawPath.trim().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+    if (!path2 || seen.has(path2))
       continue;
-    seen.add(path);
-    normalized.push(path);
+    seen.add(path2);
+    normalized.push(path2);
   }
   return normalized;
 }
@@ -28874,9 +28874,9 @@ var LocalEmbeddingService = class {
   }
 };
 async function loadTransformers(pluginDir) {
-  const path = require("path");
+  const path2 = require("path");
   const Module = require("module");
-  const pluginRequire = Module.createRequire(path.join(pluginDir, "main.js"));
+  const pluginRequire = Module.createRequire(path2.join(pluginDir, "main.js"));
   let transformers;
   try {
     transformers = pluginRequire("@huggingface/transformers");
@@ -28918,9 +28918,9 @@ function ensureEmbeddingRuntime(pluginDir, hooks = {}) {
   }
 }
 function canLoadEmbeddingRuntime(pluginDir) {
-  const path = require("path");
+  const path2 = require("path");
   const Module = require("module");
-  const pluginRequire = Module.createRequire(path.join(pluginDir, "main.js"));
+  const pluginRequire = Module.createRequire(path2.join(pluginDir, "main.js"));
   try {
     pluginRequire("@huggingface/transformers");
     return true;
@@ -28930,8 +28930,8 @@ function canLoadEmbeddingRuntime(pluginDir) {
 }
 function writeEmbeddingRuntimePackage(pluginDir) {
   const fs2 = require("fs");
-  const path = require("path");
-  const packagePath = path.join(pluginDir, "package.json");
+  const path2 = require("path");
+  const packagePath = path2.join(pluginDir, "package.json");
   let pkg = { ...EMBEDDING_RUNTIME_PACKAGE };
   if (fs2.existsSync(packagePath)) {
     try {
@@ -29135,22 +29135,22 @@ var OllamaClient = class {
     });
     return String(json.response || "").trim();
   }
-  async requestJson(method, path, body) {
-    const response = await this.request(method, path, body);
+  async requestJson(method, path2, body) {
+    const response = await this.request(method, path2, body);
     return response.json();
   }
-  async request(method, path, body) {
+  async request(method, path2, body) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
-      const response = await fetch(`${this.host}${path}`, {
+      const response = await fetch(`${this.host}${path2}`, {
         method,
         signal: controller.signal,
         headers: body ? { "content-type": "application/json" } : void 0,
         body: body ? JSON.stringify(body) : void 0
       });
       if (!response.ok) {
-        throw new Error(`Ollama ${method} ${path} failed: HTTP ${response.status}`);
+        throw new Error(`Ollama ${method} ${path2} failed: HTTP ${response.status}`);
       }
       return response;
     } finally {
@@ -29294,9 +29294,9 @@ function formatModelBytes(bytes) {
 var REQUIRED_RUNTIME_MODULES = ["@huggingface/transformers", "onnxruntime-node"];
 var LOCAL_RUNTIME_PACKAGES = ["@huggingface/transformers@^4.2.0", "onnxruntime-node@^1.26.0"];
 function getLocalRuntimeStatus(pluginDir) {
-  const path = require("path");
+  const path2 = require("path");
   const Module = require("module");
-  const pluginRequire = Module.createRequire(path.join(pluginDir, "main.js"));
+  const pluginRequire = Module.createRequire(path2.join(pluginDir, "main.js"));
   const missing = [];
   for (const moduleName of REQUIRED_RUNTIME_MODULES) {
     try {
@@ -29364,7 +29364,7 @@ function installLocalRuntimeDependencies(pluginDir, onLog) {
 function resolveNpmCommand() {
   const { spawnSync } = require("child_process");
   const fs2 = require("fs");
-  const path = require("path");
+  const path2 = require("path");
   const pathEnv = buildNpmPathEnv();
   const directCandidates = getNpmExecutableCandidates();
   for (const candidate of directCandidates) {
@@ -29391,7 +29391,7 @@ function resolveNpmCommand() {
 }
 function getNpmExecutableCandidates() {
   const fs2 = require("fs");
-  const path = require("path");
+  const path2 = require("path");
   const home = process.env.HOME || "";
   const candidates = [
     process.env.npm_execpath || "",
@@ -29399,34 +29399,34 @@ function getNpmExecutableCandidates() {
     "/usr/local/bin/npm",
     "/usr/bin/npm"
   ];
-  const nvmVersionsDir = home ? path.join(home, ".nvm", "versions", "node") : "";
+  const nvmVersionsDir = home ? path2.join(home, ".nvm", "versions", "node") : "";
   if (nvmVersionsDir && fs2.existsSync(nvmVersionsDir)) {
-    const nvmCandidates = fs2.readdirSync(nvmVersionsDir).filter((name) => /^v\d+\./.test(name)).sort().reverse().map((name) => path.join(nvmVersionsDir, name, "bin", "npm"));
+    const nvmCandidates = fs2.readdirSync(nvmVersionsDir).filter((name) => /^v\d+\./.test(name)).sort().reverse().map((name) => path2.join(nvmVersionsDir, name, "bin", "npm"));
     candidates.push(...nvmCandidates);
   }
   return candidates;
 }
 function buildNpmPathEnv() {
   const fs2 = require("fs");
-  const path = require("path");
+  const path2 = require("path");
   const home = process.env.HOME || "";
   const paths = /* @__PURE__ */ new Set();
-  for (const part of (process.env.PATH || "").split(path.delimiter)) {
+  for (const part of (process.env.PATH || "").split(path2.delimiter)) {
     if (part)
       paths.add(part);
   }
   for (const part of ["/opt/homebrew/bin", "/opt/homebrew/sbin", "/usr/local/bin", "/usr/bin", "/bin", "/usr/sbin", "/sbin"]) {
     paths.add(part);
   }
-  const nvmVersionsDir = home ? path.join(home, ".nvm", "versions", "node") : "";
+  const nvmVersionsDir = home ? path2.join(home, ".nvm", "versions", "node") : "";
   if (nvmVersionsDir && fs2.existsSync(nvmVersionsDir)) {
     for (const name of fs2.readdirSync(nvmVersionsDir)) {
       if (/^v\d+\./.test(name)) {
-        paths.add(path.join(nvmVersionsDir, name, "bin"));
+        paths.add(path2.join(nvmVersionsDir, name, "bin"));
       }
     }
   }
-  return Array.from(paths).join(path.delimiter);
+  return Array.from(paths).join(path2.delimiter);
 }
 
 // src/license/license-api.ts
@@ -29733,14 +29733,14 @@ function formatPageLimit(limit) {
   return limit >= Number.MAX_SAFE_INTEGER ? "Unlimited" : String(limit);
 }
 function getPluginDir(plugin) {
-  const path = require("path");
+  const path2 = require("path");
   const basePath = plugin.app.vault.adapter.basePath;
   const manifestDir = plugin.manifest.dir;
   if (manifestDir) {
-    return path.resolve(basePath, manifestDir);
+    return path2.resolve(basePath, manifestDir);
   }
   const configDir = plugin.app.vault.configDir || ".obsidian";
-  return path.join(basePath, configDir, "plugins", plugin.manifest.id);
+  return path2.join(basePath, configDir, "plugins", plugin.manifest.id);
 }
 function SettingDetail({ plugin, setting }) {
   const pluginDir = (0, import_react7.useMemo)(() => getPluginDir(plugin), [plugin]);
@@ -29796,7 +29796,8 @@ function SettingDetail({ plugin, setting }) {
   const modelDescription = language === "zh" ? activeModelConfig.descriptionZh : activeModelConfig.description;
   const summaryModelNote = language === "zh" ? activeSummaryConfig.noteZh : activeSummaryConfig.noteEn;
   const activeSummarySize = installedSummarySizes[activeSummaryConfig.ollamaName] || activeSummaryConfig.estimatedSize;
-  const manualChromaCommand = `chroma run --path "${dbPath || "<plugin-data-dir>/chroma_data/<vault-id>"}" --host 127.0.0.1 --port ${portInput || "8000"}`;
+  const chromaBin = dbPath ? `${dbPath.replace(/\/chroma_data\/[^/]+$/, "")}/chroma-venv/bin/chroma` : "<plugin-data-dir>/chroma-venv/bin/chroma";
+  const manualChromaCommand = `"${chromaBin}" run --path "${dbPath || "<plugin-data-dir>/chroma_data/<vault-id>"}" --host 127.0.0.1 --port ${portInput || "8000"}`;
   const [fileStatuses, setFileStatuses] = (0, import_react7.useState)([]);
   const [searchQuery, setSearchQuery] = (0, import_react7.useState)("");
   const [statusFilter, setStatusFilter] = (0, import_react7.useState)("all");
@@ -30970,10 +30971,13 @@ function SettingDetail({ plugin, setting }) {
 // src/local-vector/chroma-process.ts
 var import_http = require("http");
 var import_fs = __toESM(require("fs"));
+var import_path = __toESM(require("path"));
 var import_child_process = require("child_process");
 var LOG_PREFIX = "[Analogy][Chroma]";
-var START_TIMEOUT_MS = 15e3;
+var START_TIMEOUT_MS = 12e4;
 var START_POLL_MS = 500;
+var CHROMADB_PIP_SPEC = "chromadb>=0.5.23,<0.6";
+var MIN_CHROMA_VERSION = [0, 5, 23];
 var ChromaProcessManager = class {
   constructor(hooks = {}) {
     this.dbPath = "";
@@ -30986,6 +30990,14 @@ var ChromaProcessManager = class {
     this.dbPath = dbPath;
     this.port = port;
     if (await this.checkHealthy()) {
+      if (!await this.checkCompatible()) {
+        this.lastError = [
+          `ChromaDB on 127.0.0.1:${port} is running but is older than ${this.formatVersion(MIN_CHROMA_VERSION)}.`,
+          `Install a compatible version in the plugin virtualenv, or remove the old process on this port.`,
+          "Then stop the old ChromaDB process and restart Obsidian."
+        ].join("\n");
+        return false;
+      }
       this.lastError = "";
       return true;
     }
@@ -31004,7 +31016,7 @@ var ChromaProcessManager = class {
     const deadline = Date.now() + START_TIMEOUT_MS;
     while (Date.now() < deadline) {
       await this.wait(START_POLL_MS);
-      if (await this.checkHealthy()) {
+      if (await this.checkHealthy() && await this.checkCompatible()) {
         this.lastError = "";
         console.log(`${LOG_PREFIX} started`, { dbPath, port, pid: this.process?.pid });
         return true;
@@ -31029,13 +31041,13 @@ var ChromaProcessManager = class {
       return true;
     return this.isEndpointHealthy("/api/v1/heartbeat");
   }
-  async isEndpointHealthy(path) {
+  async isEndpointHealthy(path2) {
     return new Promise((resolve) => {
       const req = (0, import_http.request)(
         {
           hostname: "127.0.0.1",
           port: this.port,
-          path,
+          path: path2,
           method: "GET",
           timeout: 1e3
         },
@@ -31054,15 +31066,13 @@ var ChromaProcessManager = class {
   }
   startProcess(dbPath, port) {
     const spawnProcess = this.hooks.spawn || import_child_process.spawn;
+    const venvDir = this.getVenvDir(dbPath);
     const command = [
-      `PY_USER_BIN="$(python3 - <<'PY'
-import site
-print(site.USER_BASE + '/bin')
-PY
-)"`,
-      'export PATH="$PY_USER_BIN:$HOME/.local/bin:$PATH"',
-      "(command -v chroma >/dev/null 2>&1 || python3 -m pip install --user chromadb)",
-      `chroma run --path ${JSON.stringify(dbPath)} --host 127.0.0.1 --port ${port}`
+      'PYTHON_BIN="$(command -v python3.9 || command -v /opt/homebrew/bin/python3.9 || command -v /usr/local/bin/python3.9 || command -v python3 || command -v python)"',
+      `VENV_DIR=${JSON.stringify(venvDir)}`,
+      '([ -x "$VENV_DIR/bin/python" ] || "$PYTHON_BIN" -m venv "$VENV_DIR")',
+      `("$VENV_DIR/bin/python" -c 'import importlib.metadata as m, sys; v=tuple(int(p) for p in m.version("chromadb").split(".")[:3]); sys.exit(0 if v >= (0, 5, 23) else 1)' || "$VENV_DIR/bin/python" -m pip install ${JSON.stringify(CHROMADB_PIP_SPEC)})`,
+      `"$VENV_DIR/bin/chroma" run --path ${JSON.stringify(dbPath)} --host 127.0.0.1 --port ${port}`
     ].join(" && ");
     const child = spawnProcess("/bin/zsh", ["-lc", command], {
       cwd: dbPath,
@@ -31092,6 +31102,73 @@ PY
   checkHealthy() {
     return this.hooks.isHealthy ? this.hooks.isHealthy() : this.isHealthy();
   }
+  checkCompatible() {
+    return this.hooks.isCompatible ? this.hooks.isCompatible() : this.isCompatible();
+  }
+  async isCompatible() {
+    try {
+      const version = await this.requestText("/api/v1/version");
+      const parsed = this.parseVersion(version.replace(/^"|"$/g, ""));
+      return this.compareVersions(parsed, MIN_CHROMA_VERSION) >= 0;
+    } catch {
+      return false;
+    }
+  }
+  requestText(path2) {
+    return new Promise((resolve, reject) => {
+      const req = (0, import_http.request)(
+        {
+          hostname: "127.0.0.1",
+          port: this.port,
+          path: path2,
+          method: "GET",
+          timeout: 1e3
+        },
+        (res) => {
+          let body = "";
+          res.setEncoding("utf8");
+          res.on("data", (chunk) => {
+            body += chunk;
+          });
+          res.on("end", () => {
+            const statusCode = res.statusCode ?? 0;
+            if (statusCode >= 200 && statusCode < 300) {
+              resolve(body.trim());
+            } else {
+              reject(new Error(`HTTP ${statusCode}`));
+            }
+          });
+        }
+      );
+      req.on("error", (err) => reject(err));
+      req.on("timeout", () => {
+        req.destroy();
+        reject(new Error("timeout"));
+      });
+      req.end();
+    });
+  }
+  parseVersion(version) {
+    const parts = version.split(".").slice(0, 3).map((part) => Number(part.replace(/\D+.*$/, "")) || 0);
+    while (parts.length < 3)
+      parts.push(0);
+    return [parts[0], parts[1], parts[2]];
+  }
+  compareVersions(left, right) {
+    for (let i = 0; i < Math.max(left.length, right.length); i++) {
+      const diff = (left[i] || 0) - (right[i] || 0);
+      if (diff !== 0)
+        return diff;
+    }
+    return 0;
+  }
+  formatVersion(version) {
+    return version.join(".");
+  }
+  getVenvDir(dbPath) {
+    const pluginDir = import_path.default.dirname(import_path.default.dirname(dbPath));
+    return import_path.default.join(pluginDir, "chroma-venv");
+  }
   wait(ms) {
     return this.hooks.waitMs ? this.hooks.waitMs(ms) : new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -31099,7 +31176,8 @@ PY
     return this.lastError;
   }
   getManualStartCommand() {
-    return `chroma run --path "${this.dbPath}" --host 127.0.0.1 --port ${this.port}`;
+    const chromaBin = this.dbPath ? import_path.default.join(this.getVenvDir(this.dbPath), "bin", "chroma") : "chroma";
+    return `"${chromaBin}" run --path "${this.dbPath}" --host 127.0.0.1 --port ${this.port}`;
   }
   getPort() {
     return this.port;
@@ -31129,7 +31207,7 @@ var LocalVectorStore = class {
   }
   async ensureCollection(name) {
     try {
-      const path = this.apiVersion === "v2" ? `/api/v2/tenants/${TENANT}/databases/${DATABASE}/collections` : "/api/v1/collections";
+      const path2 = this.apiVersion === "v2" ? `/api/v2/tenants/${TENANT}/databases/${DATABASE}/collections` : "/api/v1/collections";
       const body = this.apiVersion === "v2" ? {
         name,
         configuration: null,
@@ -31142,7 +31220,7 @@ var LocalVectorStore = class {
       };
       const collection = await this.requestJson(
         "POST",
-        path,
+        path2,
         body
       );
       this.collectionId = collection.id;
@@ -31206,18 +31284,18 @@ var LocalVectorStore = class {
       if (!docId)
         continue;
       const existing = entries.get(docId);
-      const path = typeof meta?.path === "string" && meta.path ? meta.path : docId;
+      const path2 = typeof meta?.path === "string" && meta.path ? meta.path : docId;
       const mtime = this.normalizeMtime(meta?.mtime);
       if (existing) {
         existing.chunkCount++;
         if (mtime > existing.mtime)
           existing.mtime = mtime;
-        if (!existing.path && path)
-          existing.path = path;
+        if (!existing.path && path2)
+          existing.path = path2;
       } else {
         entries.set(docId, {
           docId,
-          path,
+          path: path2,
           mtime,
           chunkCount: 1
         });
@@ -31256,14 +31334,14 @@ var LocalVectorStore = class {
     }
     return 0;
   }
-  async requestJson(method, path, body) {
+  async requestJson(method, path2, body) {
     return new Promise((resolve, reject) => {
       const payload = body === void 0 ? void 0 : JSON.stringify(body);
       const req = (0, import_http2.request)(
         {
           hostname: "127.0.0.1",
           port: this.port,
-          path,
+          path: path2,
           method,
           timeout: 1e4,
           headers: payload ? {
@@ -31280,7 +31358,7 @@ var LocalVectorStore = class {
           res.on("end", () => {
             const statusCode = res.statusCode ?? 0;
             if (statusCode < 200 || statusCode >= 300) {
-              reject(new Error(`ChromaDB ${method} ${path} failed with HTTP ${statusCode}: ${responseBody}`));
+              reject(new Error(`ChromaDB ${method} ${path2} failed with HTTP ${statusCode}: ${responseBody}`));
               return;
             }
             if (!responseBody) {
@@ -31290,7 +31368,7 @@ var LocalVectorStore = class {
             try {
               resolve(JSON.parse(responseBody));
             } catch (err) {
-              reject(new Error(`ChromaDB returned invalid JSON for ${method} ${path}: ${err.message}`));
+              reject(new Error(`ChromaDB returned invalid JSON for ${method} ${path2}: ${err.message}`));
             }
           });
         }
@@ -31298,7 +31376,7 @@ var LocalVectorStore = class {
       req.on("error", (err) => reject(err));
       req.on("timeout", () => {
         req.destroy();
-        reject(new Error(`ChromaDB ${method} ${path} timed out`));
+        reject(new Error(`ChromaDB ${method} ${path2} timed out`));
       });
       if (payload)
         req.write(payload);
@@ -31312,9 +31390,9 @@ var LocalVectorStore = class {
       return "v1";
     throw new Error("ChromaDB heartbeat failed on both /api/v2/heartbeat and /api/v1/heartbeat");
   }
-  async isEndpointHealthy(path) {
+  async isEndpointHealthy(path2) {
     try {
-      await this.requestJson("GET", path);
+      await this.requestJson("GET", path2);
       return true;
     } catch {
       return false;

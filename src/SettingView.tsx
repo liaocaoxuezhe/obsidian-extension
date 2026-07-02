@@ -180,7 +180,10 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     : activeModelConfig.description;
   const summaryModelNote = language === "zh" ? activeSummaryConfig.noteZh : activeSummaryConfig.noteEn;
   const activeSummarySize = installedSummarySizes[activeSummaryConfig.ollamaName] || activeSummaryConfig.estimatedSize;
-  const manualChromaCommand = `chroma run --path "${dbPath || "<plugin-data-dir>/chroma_data/<vault-id>"}" --host 127.0.0.1 --port ${portInput || "8000"}`;
+  const chromaBin = dbPath
+    ? `${dbPath.replace(/\/chroma_data\/[^/]+$/, "")}/chroma-venv/bin/chroma`
+    : "<plugin-data-dir>/chroma-venv/bin/chroma";
+  const manualChromaCommand = `"${chromaBin}" run --path "${dbPath || "<plugin-data-dir>/chroma_data/<vault-id>"}" --host 127.0.0.1 --port ${portInput || "8000"}`;
 
   const [fileStatuses, setFileStatuses] = useState<FileIndexStatus[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
