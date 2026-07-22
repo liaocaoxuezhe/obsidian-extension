@@ -204,6 +204,25 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
   "settings.docs.of": { en: "of", zh: "/" },
   "settings.docs.files": { en: "files", zh: "个文件" },
 
+  // --- User feedback ---
+  "settings.feedback.title": { en: "User Feedback", zh: "用户反馈" },
+  "settings.feedback.description": {
+    en: "Questions or suggestions? Contact us by email.",
+    zh: "如有问题或建议，欢迎通过邮箱联系我们。",
+  },
+  "settings.feedback.copyLabel": {
+    en: "Copy support email address",
+    zh: "复制客服邮箱地址",
+  },
+  "settings.feedback.copySuccess": {
+    en: "Support email copied",
+    zh: "客服邮箱已复制",
+  },
+  "settings.feedback.copyFailed": {
+    en: "Failed to copy. Please copy the email address manually.",
+    zh: "复制失败，请手动复制邮箱地址。",
+  },
+
   "settings.rebuild.progress": { en: "Rebuild Progress", zh: "重建进度" },
 };
 

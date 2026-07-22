@@ -40,6 +40,8 @@ import type {LicenseState} from "./license/license-types";
 import {getOrCreateDeviceId, getVaultId} from "./license/license-device";
 import {appVersion} from "./model/Consts";
 
+const SUPPORT_EMAIL = "analogypkm@gmail.com";
+
 export interface AnalogySettings {
   chromaPort: number;
   embeddingModelHost: string;
@@ -751,6 +753,16 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
       new Notice(`${t("settings.runtime.installFailed")}: ${message}`);
     } finally {
       setIsInstallingRuntime(false);
+    }
+  }
+
+  async function copySupportEmail() {
+    try {
+      await navigator.clipboard.writeText(SUPPORT_EMAIL);
+      new Notice(t("settings.feedback.copySuccess"));
+    } catch (error) {
+      console.error("[Analogy] Failed to copy support email:", error);
+      new Notice(t("settings.feedback.copyFailed"));
     }
   }
 
@@ -1470,6 +1482,31 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
               {statusFilter !== "all" || searchQuery ? ` (${statusCounts.total} total)` : ""}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-4">
+        <CardHeader>
+          <CardTitle className="text-base">{t("settings.feedback.title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-[#444444] mb-3">
+            {t("settings.feedback.description")}
+          </div>
+          <button
+            type="button"
+            onClick={copySupportEmail}
+            className="group flex w-full items-center justify-between gap-3 rounded-md border border-[#e5e5e5] px-3 py-2 text-left transition-colors hover:border-[#aaa] hover:bg-[#fafafa] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#0a0a0a]"
+            aria-label={t("settings.feedback.copyLabel")}
+            title={t("settings.feedback.copyLabel")}
+          >
+            <span className="min-w-0 truncate text-sm font-medium text-[#0a0a0a]">
+              {SUPPORT_EMAIL}
+            </span>
+            <span className="shrink-0 text-xs text-[#888888] transition-colors group-hover:text-[#0a0a0a]">
+              {t("common.copy")}
+            </span>
+          </button>
         </CardContent>
       </Card>
     </div>
