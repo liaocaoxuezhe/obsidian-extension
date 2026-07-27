@@ -61,7 +61,6 @@ const runtimeFiles = [
 	"package-lock.json",
 	"scripts/download-jina-model.py",
 	"scripts/install-local-runtime.mjs",
-	"embedding-worker.js",
 ];
 
 for (const file of runtimeFiles) {

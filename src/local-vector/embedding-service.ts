@@ -1,5 +1,3 @@
-import * as fs from "fs";
-import * as path from "path";
 import type { DiagnosticRecorder } from "../diagnostics/diagnostic-recorder";
 import { EmbeddingServiceOptions, LocalEmbeddingService } from "./embedding";
 import { EmbeddingWorkerClient } from "./embedding-worker-client";
@@ -8,6 +6,7 @@ import { SafeModeManager } from "./safe-mode";
 export interface UnifiedEmbeddingServiceOptions extends EmbeddingServiceOptions {
   pluginVersion?: string;
   buildId?: string;
+  workerBundleSource: string;
   recorder?: DiagnosticRecorder | null;
   safeModeManager?: SafeModeManager | null;
   allowInProcessFallback?: boolean;
@@ -43,8 +42,7 @@ export class EmbeddingService {
   private shouldTryWorker(): boolean {
     if (this.workerInitFailed) return false;
     if (!this.options.buildId) return false;
-    const workerPath = path.join(this.options.pluginDir, "embedding-worker.js");
-    return fs.existsSync(workerPath);
+    return Boolean(this.options.workerBundleSource.trim());
   }
 
   private getInProcessService(): LocalEmbeddingService {
@@ -101,11 +99,10 @@ export class EmbeddingService {
   }
 
   private async initializeWorker(onProgress?: (progress: number) => void): Promise<void> {
-    const workerPath = path.join(this.options.pluginDir, "embedding-worker.js");
     this.worker = new EmbeddingWorkerClient({
       pluginDir: this.options.pluginDir,
       buildId: this.options.buildId || `${this.options.pluginVersion || "unknown"}+dev`,
-      workerBundlePath: workerPath,
+      workerBundleSource: this.options.workerBundleSource,
       execPath: process.execPath,
       recorder: this.options.recorder,
       onUnexpectedExit: (info) => {

@@ -2,6 +2,7 @@ import {
   decodeMessage,
   encodeMessage,
   type WorkerEmbedRequest,
+  type WorkerDisposeRequest,
   type WorkerHealthRequest,
   type WorkerInitializeRequest,
   type WorkerRequest,
@@ -78,7 +79,7 @@ async function handleEmbed(req: WorkerEmbedRequest): Promise<WorkerResponse> {
   }
 }
 
-async function handleDispose(req: WorkerInitializeRequest | WorkerEmbedRequest | WorkerHealthRequest): Promise<WorkerResponse> {
+async function handleDispose(req: WorkerDisposeRequest): Promise<WorkerResponse> {
   try {
     if (extractor && typeof (extractor as any).dispose === "function") {
       await (extractor as any).dispose();
@@ -88,7 +89,7 @@ async function handleDispose(req: WorkerInitializeRequest | WorkerEmbedRequest |
   }
   extractor = null;
   currentModelId = "";
-  return { id: (req as any).id, ok: true };
+  return { id: req.id, ok: true };
 }
 
 function handleHealth(req: WorkerHealthRequest): WorkerResponse {

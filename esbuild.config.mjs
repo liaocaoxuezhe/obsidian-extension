@@ -14,6 +14,27 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = (process.argv[2] === "production");
+const externalModules = [
+	"obsidian",
+	"electron",
+	"@codemirror/autocomplete",
+	"@codemirror/collab",
+	"@codemirror/commands",
+	"@codemirror/language",
+	"@codemirror/lint",
+	"@codemirror/search",
+	"@codemirror/state",
+	"@codemirror/view",
+	"@lezer/common",
+	"@lezer/highlight",
+	"@lezer/lr",
+	"@huggingface/transformers",
+	"cohere-ai",
+	"onnxruntime-common",
+	"onnxruntime-node",
+	"ollama",
+	...builtins,
+];
 
 function computeBuildId() {
   const pkg = JSON.parse(fs.readFileSync("package.json", "utf-8"));
@@ -39,6 +60,26 @@ function computeBuildId() {
 }
 
 const buildId = computeBuildId();
+const workerBuild = await esbuild.build({
+	entryPoints: ["src/local-vector/embedding-worker.ts"],
+	bundle: true,
+	external: externalModules,
+	format: "cjs",
+	platform: "node",
+	target: "es2020",
+	logLevel: "info",
+	sourcemap: false,
+	treeShaking: true,
+	write: false,
+});
+const workerSource = workerBuild.outputFiles[0]?.text || "";
+if (!workerSource.trim()) {
+	throw new Error("Embedding worker build produced no output");
+}
+
+for (const staleWorkerFile of ["embedding-worker.js", "embedding-worker.js.map"]) {
+	fs.rmSync(staleWorkerFile, { force: true });
+}
 
 const context = await esbuild.context({
 	banner: {
@@ -46,35 +87,16 @@ const context = await esbuild.context({
 	},
 	entryPoints: {
 		main: "main.ts",
-		"embedding-worker": "src/local-vector/embedding-worker.ts",
 	},
 	bundle: true,
-	external: [
-		"obsidian",
-		"electron",
-		"@codemirror/autocomplete",
-		"@codemirror/collab",
-		"@codemirror/commands",
-		"@codemirror/language",
-		"@codemirror/lint",
-		"@codemirror/search",
-		"@codemirror/state",
-		"@codemirror/view",
-		"@lezer/common",
-		"@lezer/highlight",
-		"@lezer/lr",
-		"@huggingface/transformers",
-		"cohere-ai",
-		"onnxruntime-common",
-		"onnxruntime-node",
-		"ollama",
-		...builtins],
+	external: externalModules,
 	format: "cjs",
 	target: "es2020",
 	logLevel: "info",
 	sourcemap: prod ? "external" : "inline",
 	define: {
 		__ANALOGY_BUILD_ID__: JSON.stringify(buildId),
+		__ANALOGY_EMBEDDING_WORKER_SOURCE__: JSON.stringify(workerSource),
 	},
 	treeShaking: true,
 	outdir: ".",
@@ -91,6 +113,12 @@ if (prod) {
 		return hash.digest("hex");
 	}
 
+	function sha256Value(value) {
+		const hash = crypto.createHash("sha256");
+		hash.update(value);
+		return hash.digest("hex");
+	}
+
 	const artifactsDir = path.join("artifacts", buildId);
 	fs.mkdirSync(artifactsDir, { recursive: true });
 	const buildInfo = {
@@ -103,17 +131,12 @@ if (prod) {
 		buildTime: new Date().toISOString(),
 		mainJsSha256: sha256File("main.js"),
 		mainJsMapSha256: fs.existsSync("main.js.map") ? sha256File("main.js.map") : null,
-		workerJsSha256: fs.existsSync("embedding-worker.js") ? sha256File("embedding-worker.js") : null,
-		workerJsMapSha256: fs.existsSync("embedding-worker.js.map") ? sha256File("embedding-worker.js.map") : null,
+		embeddedWorkerSha256: sha256Value(workerSource),
 	};
 	fs.writeFileSync(path.join(artifactsDir, "build-info.json"), JSON.stringify(buildInfo, null, 2));
 	fs.copyFileSync("main.js", path.join(artifactsDir, "main.js"));
 	if (fs.existsSync("main.js.map")) {
 		fs.copyFileSync("main.js.map", path.join(artifactsDir, "main.js.map"));
-	}
-	fs.copyFileSync("embedding-worker.js", path.join(artifactsDir, "embedding-worker.js"));
-	if (fs.existsSync("embedding-worker.js.map")) {
-		fs.copyFileSync("embedding-worker.js.map", path.join(artifactsDir, "embedding-worker.js.map"));
 	}
 	fs.copyFileSync("manifest.json", path.join(artifactsDir, "manifest.json"));
 	fs.copyFileSync("package-lock.json", path.join(artifactsDir, "package-lock.json"));
@@ -124,10 +147,6 @@ if (prod) {
 		fs.copyFileSync("main.js", path.join(installedPluginDir, "main.js"));
 		if (fs.existsSync("main.js.map")) {
 			fs.copyFileSync("main.js.map", path.join(installedPluginDir, "main.js.map"));
-		}
-		fs.copyFileSync("embedding-worker.js", path.join(installedPluginDir, "embedding-worker.js"));
-		if (fs.existsSync("embedding-worker.js.map")) {
-			fs.copyFileSync("embedding-worker.js.map", path.join(installedPluginDir, "embedding-worker.js.map"));
 		}
 	}
 	process.exit(0);

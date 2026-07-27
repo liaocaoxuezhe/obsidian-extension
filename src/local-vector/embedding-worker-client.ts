@@ -19,7 +19,7 @@ import {
 export interface EmbeddingWorkerClientOptions {
   pluginDir: string;
   buildId: string;
-  workerBundlePath?: string;
+  workerBundleSource: string;
   execPath?: string;
   env?: NodeJS.ProcessEnv;
   timeoutMs?: number;
@@ -167,31 +167,52 @@ export class EmbeddingWorkerClient {
   }
 
   async ensureMaterialized(): Promise<string> {
+    const source = this.options.workerBundleSource;
+    if (!source?.trim()) {
+      throw new Error("Embedded worker bundle is unavailable");
+    }
+
+    const expectedHash = this.computeSha256(source);
+    const safeBuildId = this.options.buildId.replace(/[^a-zA-Z0-9._+-]/g, "_");
     const workerDir = path.join(this.options.pluginDir, "worker");
-    const targetName = `embedding-worker-${this.options.buildId}.cjs`;
+    const targetName = `embedding-worker-${safeBuildId}-${expectedHash.slice(0, 12)}.cjs`;
     const targetPath = path.join(workerDir, targetName);
-    if (fs.existsSync(targetPath)) {
+    if (
+      fs.existsSync(targetPath) &&
+      this.computeSha256(fs.readFileSync(targetPath)) === expectedHash
+    ) {
       return targetPath;
     }
-    const source = this.options.workerBundlePath;
-    if (!source || !fs.existsSync(source)) {
-      throw new Error(`Worker bundle not found: ${source}`);
-    }
+
     fs.mkdirSync(workerDir, { recursive: true });
-    const expectedHash = this.computeSha256(source);
-    fs.copyFileSync(source, targetPath);
-    const actualHash = this.computeSha256(targetPath);
-    if (actualHash !== expectedHash) {
-      throw new Error("Worker bundle SHA-256 mismatch after copy");
+    const tempPath = `${targetPath}.${process.pid}.${Date.now()}.tmp`;
+    try {
+      fs.writeFileSync(tempPath, source, { encoding: "utf8" });
+      const actualHash = this.computeSha256(fs.readFileSync(tempPath));
+      if (actualHash !== expectedHash) {
+        throw new Error("Worker bundle SHA-256 mismatch after materialization");
+      }
+      if (fs.existsSync(targetPath)) {
+        fs.unlinkSync(targetPath);
+      }
+      fs.renameSync(tempPath, targetPath);
+    } catch (error) {
+      try {
+        fs.unlinkSync(tempPath);
+      } catch {
+        // A missing or locked temporary file must not hide the original error.
+      }
+      throw error;
     }
+
     // Keep only current and previous worker bundles.
     this.cleanupOldWorkers(workerDir, targetName);
     return targetPath;
   }
 
-  private computeSha256(filePath: string): string {
+  private computeSha256(value: string | Buffer): string {
     const hash = crypto.createHash("sha256");
-    hash.update(fs.readFileSync(filePath));
+    hash.update(value);
     return hash.digest("hex");
   }
 

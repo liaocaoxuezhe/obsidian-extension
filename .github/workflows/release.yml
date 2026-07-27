@@ -1,0 +1,100 @@
+name: Build and attest release
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing bare semantic-version tag to build
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+  artifact-metadata: write
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Validate, build, attest, and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify release metadata
+        run: node scripts/verify-release-version.mjs "$RELEASE_TAG"
+
+      - name: Run official Obsidian lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Run public regression tests
+        run: npm run test:public
+
+      - name: Prepare release directory
+        run: npm run release:prepare
+
+      - name: Assemble release assets
+        run: |
+          mkdir -p release-assets
+          cp main.js manifest.json styles.css release-assets/
+          (
+            cd "release/$RELEASE_TAG"
+            zip -r "../../release-assets/analogy-$RELEASE_TAG-full-runtime.zip" .
+          )
+
+      - name: Generate build provenance
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6 # v4.2.0
+        with:
+          subject-path: |
+            release-assets/main.js
+            release-assets/manifest.json
+            release-assets/styles.css
+            release-assets/analogy-${{ env.RELEASE_TAG }}-full-runtime.zip
+
+      - name: Preserve workflow artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: analogy-${{ env.RELEASE_TAG }}
+          path: release-assets/
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" release-assets/* --clobber
+          else
+            gh release create "$RELEASE_TAG" release-assets/* \
+              --verify-tag \
+              --generate-notes \
+              --title "Analogy $RELEASE_TAG"
+          fi
