@@ -74,6 +74,20 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
   "common.refresh": { en: "Refresh", zh: "刷新" },
   "common.copy": { en: "Copy", zh: "复制" },
   "common.copiedToClipboard": { en: "Copied to clipboard", zh: "已复制到剪贴板" },
+  "common.dismiss": { en: "Dismiss", zh: "关闭" },
+  "common.remove": { en: "Remove", zh: "移除" },
+  "common.yes": { en: "Yes", zh: "是" },
+  "common.no": { en: "No", zh: "否" },
+  "common.unknown": { en: "Unknown", zh: "未知" },
+  "common.development": { en: "Development", zh: "开发版" },
+  "common.sending": { en: "Sending...", zh: "发送中..." },
+  "common.idle": { en: "Idle", zh: "空闲" },
+
+  // --- Local service status ---
+  "settings.service.ready": { en: "Ready", zh: "就绪" },
+  "settings.service.initializing": { en: "Initializing", zh: "初始化中" },
+  "settings.service.degraded": { en: "Degraded", zh: "部分可用" },
+  "settings.service.error": { en: "Error", zh: "错误" },
 
   // --- License ---
   "settings.license.title": { en: "License", zh: "许可证" },
@@ -92,6 +106,48 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
   "settings.license.manageUrl": { en: "Manage license URL", zh: "管理链接 URL" },
   "settings.license.buy": { en: "Buy License", zh: "购买许可证" },
   "settings.license.manage": { en: "Manage License", zh: "管理许可证" },
+  "settings.license.planFree": { en: "Free", zh: "免费版" },
+  "settings.license.planPersonalLifetime": { en: "Personal Lifetime", zh: "个人终身版" },
+  "settings.license.planTeam": { en: "Team", zh: "团队版" },
+  "settings.license.planPro": { en: "Pro", zh: "专业版" },
+  "settings.license.unlimited": { en: "Unlimited", zh: "无限制" },
+  "settings.license.vaultLimitExceeded": {
+    en: "Free plan supports indexing up to {limit} Markdown pages. This vault has {count} pages.",
+    zh: "免费版最多可索引 {limit} 个 Markdown 页面。当前仓库共有 {count} 个页面。",
+  },
+  "settings.license.upgradeToContinue": {
+    en: "Free plan supports indexing up to {limit} Markdown pages. Upgrade to continue indexing this vault.",
+    zh: "免费版最多可索引 {limit} 个 Markdown 页面。升级后可继续索引此仓库。",
+  },
+  "settings.license.upgradeToIndexMore": {
+    en: "Free plan supports indexing up to {limit} Markdown pages. Upgrade to index more pages.",
+    zh: "免费版最多可索引 {limit} 个 Markdown 页面。升级后可索引更多页面。",
+  },
+  "settings.license.upgradePrompt": {
+    en: "Free plan supports indexing up to {limit} Markdown pages.\nYou selected {selectedCount} pages. Upgrade Analogy Personal to index larger vaults.",
+    zh: "免费版最多可索引 {limit} 个 Markdown 页面。\n你选择了 {selectedCount} 个页面。升级到 Analogy 个人版即可索引更大的仓库。",
+  },
+  "settings.license.indexedToFreeLimit": {
+    en: "Indexed up to the free page limit. Upgrade to index the remaining pages.",
+    zh: "已索引至免费版页面上限。升级后可索引剩余页面。",
+  },
+  "settings.license.serverUrlInvalid": {
+    en: "License server URL must start with http:// or https://",
+    zh: "许可证服务 URL 必须以 http:// 或 https:// 开头",
+  },
+  "settings.license.linksInvalid": {
+    en: "License links must start with http:// or https://",
+    zh: "许可证链接必须以 http:// 或 https:// 开头",
+  },
+  "settings.license.settingsSaved": { en: "License settings saved", zh: "许可证设置已保存" },
+  "settings.license.enterKey": { en: "Enter a license key first", zh: "请先输入许可证密钥" },
+  "settings.license.activated": { en: "License activated", zh: "许可证已激活" },
+  "settings.license.invalid": { en: "License is invalid or inactive", zh: "许可证无效或未激活" },
+  "settings.license.localCleared": { en: "Local license cleared", zh: "本地许可证已清除" },
+  "settings.license.deactivated": {
+    en: "License deactivated on this device",
+    zh: "此设备上的许可证已停用",
+  },
 
   // --- Embedding model card ---
   "settings.embedding.title": { en: "Embedding Model", zh: "嵌入模型" },
@@ -117,6 +173,19 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
   "settings.embedding.emptyIndexWarning": {
     en: "This model has no indexed documents yet. Click \"Rebuild Index\" below to build the vector index for this model.",
     zh: "当前模型还没有索引数据。点击下方「重建索引」按钮为该模型构建向量索引。",
+  },
+  "settings.embedding.howToChoose": { en: "How to choose?", zh: "如何选择？" },
+  "settings.embedding.modelChanged": {
+    en: "Embedding model changed. Reloading plugin...",
+    zh: "嵌入模型已更改，正在重新加载插件...",
+  },
+  "settings.embedding.hostInvalid": {
+    en: "Model host must start with http:// or https://",
+    zh: "模型地址必须以 http:// 或 https:// 开头",
+  },
+  "settings.embedding.hostSaved": {
+    en: "Embedding model host saved. Reload plugin to apply.",
+    zh: "嵌入模型地址已保存，重新加载插件后生效。",
   },
 
   // --- Summary preprocessing ---
@@ -177,6 +246,9 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
     en: "paths excluded",
     zh: "条路径已排除",
   },
+  "settings.exclude.exists": { en: "Path already in no-index list", zh: "该路径已在不索引列表中" },
+  "settings.exclude.added": { en: "Added to no-index: {path}", zh: "已添加到不索引列表：{path}" },
+  "settings.exclude.removed": { en: "Removed from no-index: {path}", zh: "已从不索引列表移除：{path}" },
 
   "settings.actions.continueIndex": { en: "Continue Index", zh: "继续索引" },
   "settings.actions.indexing": { en: "Indexing...", zh: "索引中..." },
@@ -185,6 +257,46 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
   "settings.actions.indexStopped": { en: "Indexing stopped", zh: "索引已停止" },
   "settings.actions.rebuildIndex": { en: "Rebuild Index", zh: "重建索引" },
   "settings.actions.clearIndex": { en: "Clear Index", zh: "清空索引" },
+  "settings.actions.indexerUnavailable": {
+    en: "Local indexer not initialized",
+    zh: "本地索引器尚未初始化",
+  },
+  "settings.actions.rebuildDone": { en: "Index rebuilt", zh: "索引重建完成" },
+  "settings.actions.rebuildFailed": {
+    en: "Rebuild failed: {message}",
+    zh: "重建索引失败：{message}",
+  },
+  "settings.actions.noPending": {
+    en: "No pending Markdown pages to index.",
+    zh: "没有待索引的 Markdown 页面。",
+  },
+  "settings.actions.continueDone": { en: "Continue index done", zh: "继续索引完成" },
+  "settings.actions.continueFailed": {
+    en: "Continue index failed: {message}",
+    zh: "继续索引失败：{message}",
+  },
+  "settings.actions.stopFailed": {
+    en: "Stop index failed: {message}",
+    zh: "停止索引失败：{message}",
+  },
+  "settings.actions.fileNotFound": { en: "File not found: {path}", zh: "未找到文件：{path}" },
+  "settings.actions.indexed": { en: "Indexed: {name}", zh: "已索引：{name}" },
+  "settings.actions.indexFailed": { en: "Index failed: {message}", zh: "索引失败：{message}" },
+  "settings.actions.muted": { en: "Muted: {path}", zh: "已静音：{path}" },
+  "settings.actions.unmuted": { en: "Unmuted: {path}", zh: "已取消静音：{path}" },
+  "settings.actions.vectorStoreUnavailable": {
+    en: "Local vector store not initialized",
+    zh: "本地向量存储尚未初始化",
+  },
+  "settings.actions.clearConfirm": {
+    en: "Are you sure you want to clear the local index? This cannot be undone.",
+    zh: "确定要清空本地索引吗？此操作无法撤销。",
+  },
+  "settings.actions.clearDone": { en: "Local index cleared", zh: "本地索引已清空" },
+  "settings.actions.clearFailed": {
+    en: "Clear failed: {message}",
+    zh: "清空失败：{message}",
+  },
 
   "settings.docs.title": { en: "Document Index Management", zh: "文档索引管理" },
   "settings.docs.searchPlaceholder": { en: "Search files...", zh: "搜索文件..." },
@@ -203,6 +315,7 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
   "settings.docs.showing": { en: "Showing", zh: "显示" },
   "settings.docs.of": { en: "of", zh: "/" },
   "settings.docs.files": { en: "files", zh: "个文件" },
+  "settings.docs.totalCount": { en: "{count} total", zh: "总计 {count}" },
 
   // --- User feedback ---
   "settings.feedback.title": { en: "User Feedback", zh: "用户反馈" },
@@ -221,6 +334,117 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
   "settings.feedback.copyFailed": {
     en: "Failed to copy. Please copy the email address manually.",
     zh: "复制失败，请手动复制邮箱地址。",
+  },
+
+  // --- Diagnostics & crash reports ---
+  "settings.diagnostics.title": { en: "Diagnostics & Crash Reports", zh: "诊断与问题报告" },
+  "settings.diagnostics.description": {
+    en: "Preview and voluntarily send diagnostic reports. No notes, paths, searches, or license keys are included.",
+    zh: "预览并主动发送诊断报告。报告中不会包含笔记、路径、搜索词或许可证密钥。",
+  },
+  "settings.diagnostics.lastRun": { en: "Last run", zh: "上一次运行" },
+  "settings.diagnostics.lastStage": { en: "Last stage", zh: "最后阶段" },
+  "settings.diagnostics.eventCount": { en: "Local diagnostic events", zh: "本地诊断事件" },
+  "settings.diagnostics.suspectedUncleanExit": { en: "Suspected unclean exit", zh: "疑似异常退出" },
+  "settings.diagnostics.cleanExit": { en: "Clean exit", zh: "正常退出" },
+  "settings.diagnostics.preview": { en: "Preview Report", zh: "预览诊断报告" },
+  "settings.diagnostics.copy": { en: "Copy Report", zh: "复制诊断报告" },
+  "settings.diagnostics.save": { en: "Save as JSON", zh: "保存为 JSON" },
+  "settings.diagnostics.send": { en: "Send to Developer", zh: "发送给开发者" },
+  "settings.diagnostics.clear": { en: "Clear Local Diagnostics", zh: "清除本地诊断数据" },
+  "settings.diagnostics.clearConfirm": {
+    en: "Clear all local diagnostic events and reset reporter ID? This does not affect settings or index.",
+    zh: "清除所有本地诊断事件并重置报告者 ID？这不会影响设置和索引。",
+  },
+  "settings.diagnostics.noReport": { en: "No diagnostic report available.", zh: "暂无诊断报告。" },
+  "settings.diagnostics.sendSuccess": { en: "Report sent. ID:", zh: "报告已发送，编号：" },
+  "settings.diagnostics.sendFailed": { en: "Failed to send report:", zh: "发送报告失败：" },
+  "settings.diagnostics.previewTitle": { en: "Diagnostic Report Preview", zh: "诊断报告预览" },
+  "settings.diagnostics.dataDisclaimer": {
+    en: "This report contains plugin version, runtime stage, sanitized error stacks, and recent events. It does NOT contain note content, file paths, search queries, embeddings, or license keys.",
+    zh: "此报告包含插件版本、运行阶段、脱敏错误堆栈和最近事件。不包含笔记内容、文件路径、搜索词、embedding 或许可证密钥。",
+  },
+  "settings.diagnostics.close": { en: "Close", zh: "关闭" },
+  "settings.diagnostics.finalPayload": {
+    en: "Final payload to copy, save, or send",
+    zh: "将被复制、保存或发送的最终内容",
+  },
+  "settings.diagnostics.fieldPlugin": { en: "Plugin", zh: "插件" },
+  "settings.diagnostics.fieldBuild": { en: "Build", zh: "构建版本" },
+  "settings.diagnostics.fieldObsidian": { en: "Obsidian", zh: "Obsidian" },
+  "settings.diagnostics.fieldPlatform": { en: "Platform", zh: "平台" },
+  "settings.diagnostics.fieldLocale": { en: "Locale", zh: "语言区域" },
+  "settings.diagnostics.fieldModel": { en: "Model", zh: "模型" },
+  "settings.diagnostics.fieldLastStage": { en: "Last stage", zh: "最后阶段" },
+  "settings.diagnostics.fieldUncleanExit": { en: "Unclean exit", zh: "异常退出" },
+  "settings.diagnostics.optionalNote": {
+    en: "Optional note (do not include note content or paths)",
+    zh: "可选备注（请勿包含笔记内容或路径）",
+  },
+  "settings.diagnostics.copyFailed": { en: "Copy failed", zh: "复制失败" },
+  "settings.diagnostics.saved": { en: "Saved {fileName}", zh: "已保存 {fileName}" },
+  "settings.diagnostics.saveFailed": { en: "Save failed", zh: "保存失败" },
+  "settings.diagnostics.endpointMissing": {
+    en: "Diagnostic endpoint not configured. Copy or save the report instead.",
+    zh: "尚未配置诊断报告接口，请改为复制或保存报告。",
+  },
+  "settings.diagnostics.cleared": { en: "Local diagnostics cleared", zh: "本地诊断数据已清除" },
+  "settings.diagnostics.safeModeTitle": {
+    en: "Safe mode is active",
+    zh: "安全模式已启用",
+  },
+  "settings.diagnostics.safeModeDescription": {
+    en: "Embedding and automatic indexing are paused. Diagnostics and settings remain available.",
+    zh: "Embedding 和自动索引已暂停，诊断与设置仍可使用。",
+  },
+  "settings.diagnostics.safeModeReason": {
+    en: "Reason",
+    zh: "进入原因",
+  },
+  "settings.diagnostics.safeModeRetry": {
+    en: "Clear crash counters and retry",
+    zh: "清除崩溃计数并重试",
+  },
+  "settings.diagnostics.safeModeSwitchModel": {
+    en: "Use recommended small model and recover",
+    zh: "切换推荐小模型并恢复",
+  },
+  "settings.diagnostics.safeModeKeep": {
+    en: "Keep safe mode",
+    zh: "保持安全模式",
+  },
+  "settings.diagnostics.safeModeKept": {
+    en: "Safe mode remains active. Embedding and automatic indexing stay paused.",
+    zh: "已保持安全模式，Embedding 与自动索引继续暂停。",
+  },
+  "settings.diagnostics.safeModeRetrying": {
+    en: "Retrying…",
+    zh: "正在重试…",
+  },
+  "settings.diagnostics.safeModeRecovered": {
+    en: "Safe mode counters cleared and embedding retry completed.",
+    zh: "安全模式计数已清除，Embedding 重试完成。",
+  },
+  "settings.diagnostics.safeModeRetryFailed": {
+    en: "Embedding retry failed:",
+    zh: "Embedding 重试失败：",
+  },
+  "settings.diagnostics.safeModeRecentUncleanExits": {
+    en: "Recent unclean exits in embedding stages: {stages}",
+    zh: "近期在 Embedding 阶段发生异常退出：{stages}",
+  },
+  "settings.diagnostics.safeModeWorkerExited": {
+    en: "Worker exited unexpectedly multiple times",
+    zh: "Worker 多次意外退出",
+  },
+
+  "settings.chroma.portInvalid": {
+    en: "Port must be between 1 and 65535",
+    zh: "端口必须在 1 到 65535 之间",
+  },
+  "settings.chroma.portSaved": {
+    en: "ChromaDB port saved: {port}. Reload plugin to apply.",
+    zh: "ChromaDB 端口已保存为 {port}，重新加载插件后生效。",
   },
 
   "settings.rebuild.progress": { en: "Rebuild Progress", zh: "重建进度" },
@@ -244,8 +468,15 @@ export function onLocaleChange(cb: (l: Locale) => void): () => void {
   return () => listeners.delete(cb);
 }
 
-export function t(key: string): string {
+export type TranslationParams = Record<string, string | number>;
+
+export function t(key: string, params?: TranslationParams): string {
   const entry = TRANSLATIONS[key];
   if (!entry) return key;
-  return entry[currentLocale] ?? entry.en ?? key;
+  const template = entry[currentLocale] ?? entry.en ?? key;
+  if (!params) return template;
+  return template.replace(/\{(\w+)\}/g, (placeholder, name: string) => {
+    const value = params[name];
+    return value === undefined ? placeholder : String(value);
+  });
 }

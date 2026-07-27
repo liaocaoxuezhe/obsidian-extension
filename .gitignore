@@ -4,6 +4,8 @@ mcp-server/node_modules/
 mcp-server/dist/
 .obsidian/
 dist/
+artifacts/
+*.js.map
 *.log
 chroma.log
 .env
