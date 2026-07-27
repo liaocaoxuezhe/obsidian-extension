@@ -25,7 +25,6 @@ export class DiagnosticStorage {
         fs.mkdirSync(this.diagnosticsDir, { recursive: true });
       }
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error("[Analogy][Diagnostics] failed to create diagnostics dir", err);
     }
   }
@@ -57,7 +56,6 @@ export class DiagnosticStorage {
     try {
       fs.rmSync(this.diagnosticsDir, { recursive: true, force: true });
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error("[Analogy][Diagnostics] failed to clear diagnostics dir", err);
     }
   }
@@ -71,7 +69,6 @@ export class DiagnosticStorage {
       const raw = fs.readFileSync(fullPath, { encoding: "utf-8" });
       return JSON.parse(raw) as T;
     } catch (err) {
-      // eslint-disable-next-line no-console
       console.error(`[Analogy][Diagnostics] failed to read ${name}`, err);
       return null;
     }
@@ -91,7 +88,6 @@ export class DiagnosticStorage {
           fs.writeFileSync(tempPath, raw, { encoding: "utf-8" });
           fs.renameSync(tempPath, fullPath);
         } catch (err) {
-          // eslint-disable-next-line no-console
           console.error(`[Analogy][Diagnostics] failed to write ${name}`, err);
           try {
             fs.unlinkSync(tempPath);

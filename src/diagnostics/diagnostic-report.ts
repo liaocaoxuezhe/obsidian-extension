@@ -1,4 +1,4 @@
-import { requestUrl } from "obsidian";
+import { requestUrl, type RequestUrlResponse } from "obsidian";
 import type { DiagnosticReport, DiagnosticReportResponse } from "./diagnostic-types";
 
 export interface SendReportOptions {
@@ -12,17 +12,31 @@ export async function sendDiagnosticReport(
   options: SendReportOptions
 ): Promise<DiagnosticReportResponse> {
   const timeoutMs = options.timeoutMs ?? 30000;
-  const response = await requestUrl({
-    url: options.endpoint,
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Accept": "application/json",
-    },
-    body: options.serializedReport ?? JSON.stringify(report),
-    throw: false,
-    timeout: timeoutMs,
-  });
+  let timeoutHandle: number | null = null;
+  let response: RequestUrlResponse;
+  try {
+    response = await Promise.race([
+      requestUrl({
+        url: options.endpoint,
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Accept": "application/json",
+        },
+        body: options.serializedReport ?? JSON.stringify(report),
+        throw: false,
+      }),
+      new Promise<never>((_, reject) => {
+        timeoutHandle = window.setTimeout(() => {
+          reject(new Error(`Diagnostic report request timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle !== null) {
+      window.clearTimeout(timeoutHandle);
+    }
+  }
 
   if (response.status >= 400) {
     let detail = `HTTP ${response.status}`;

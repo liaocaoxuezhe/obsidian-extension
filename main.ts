@@ -24,6 +24,7 @@ import type {DiagnosticStage} from "./src/diagnostics/diagnostic-types";
 import * as crypto from "crypto";
 
 declare const __ANALOGY_BUILD_ID__: string | undefined;
+declare const __ANALOGY_EMBEDDING_WORKER_SOURCE__: string | undefined;
 
 const INIT_LOG_PREFIX = "[Analogy][Init]";
 
@@ -71,7 +72,9 @@ export default class Analogy extends Plugin {
 		}
 		this.initLocalServicesPromise = null;
 		await this.initLocalServices();
-		if (!this.embeddingService?.isReady()) {
+		const recoveredEmbeddingService =
+			this.embeddingService as EmbeddingService | null;
+		if (!recoveredEmbeddingService?.isReady()) {
 			const reason = "Manual recovery could not initialize the isolated embedding worker.";
 			this.safeModeManager.enterSafeMode(reason);
 			await this.handleSafeModeEntered();
@@ -251,13 +254,6 @@ export default class Analogy extends Plugin {
 
 		this.diagnosticRecorder?.updateStage("runtime.check", "runtime.check.start");
 
-		console.log(`${INIT_LOG_PREFIX} start`, {
-			pluginDir,
-			dbPath,
-			port,
-			model: modelConfig.shortName,
-		});
-
 		updateServiceState({
 			status: "initializing",
 			dbPath,
@@ -360,6 +356,10 @@ export default class Analogy extends Plugin {
 			buildId: (typeof __ANALOGY_BUILD_ID__ !== "undefined" && __ANALOGY_BUILD_ID__)
 				? __ANALOGY_BUILD_ID__
 				: `${this.manifest.version}+dev`,
+			workerBundleSource:
+				typeof __ANALOGY_EMBEDDING_WORKER_SOURCE__ !== "undefined"
+					? __ANALOGY_EMBEDDING_WORKER_SOURCE__
+					: "",
 			recorder: this.diagnosticRecorder,
 			safeModeManager: this.safeModeManager,
 			onSafeModeEntered: () => this.handleSafeModeEntered(),
@@ -457,11 +457,6 @@ export default class Analogy extends Plugin {
 			"Local services initialized successfully",
 			{ model: modelConfig.shortName }
 		);
-		console.log(`${INIT_LOG_PREFIX} success`, {
-			dbPath,
-			port,
-			model: modelConfig.shortName,
-		});
 	}
 
 	async onunload() {

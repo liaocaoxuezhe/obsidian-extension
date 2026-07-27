@@ -12,7 +12,7 @@ export interface EmbeddingModelConfig {
   displayName: string;
   queryPrefix: string;
   documentPrefix?: string;
-  dtype: string;
+  dtype: EmbeddingDType;
   localModelDir?: string;
   maxInputChars: number;
   /** Approximate parameter count, e.g. "33M". Shown in UI. */
@@ -21,6 +21,33 @@ export interface EmbeddingModelConfig {
   description: string;
   /** Short marketing description (Chinese). */
   descriptionZh: string;
+}
+
+type EmbeddingDType =
+  | "auto"
+  | "uint8"
+  | "int8"
+  | "fp32"
+  | "fp16"
+  | "q8"
+  | "q4"
+  | "bnb4"
+  | "q4f16"
+  | "q2"
+  | "q2f16"
+  | "q1"
+  | "q1f16";
+
+interface EmbeddingOutput {
+  data: Float32Array | number[];
+  dims: number[];
+}
+
+interface FeatureExtractionPipeline {
+  (
+    inputs: string | string[],
+    options: { pooling: "mean"; normalize: true },
+  ): Promise<EmbeddingOutput>;
 }
 
 export const EMBEDDING_MODELS: Record<string, EmbeddingModelConfig> = {
@@ -126,7 +153,7 @@ export interface EmbeddingServiceOptions {
 }
 
 export class LocalEmbeddingService {
-  private embedder: any = null;
+  private embedder: FeatureExtractionPipeline | null = null;
   private ready = false;
   private options: EmbeddingServiceOptions;
   private inferenceCount = 0;
@@ -138,7 +165,7 @@ export class LocalEmbeddingService {
     this.options = options;
   }
 
-  private async loadPipeline(): Promise<any> {
+  private async loadPipeline(): Promise<FeatureExtractionPipeline> {
     const { env, pipeline } = await loadTransformers(this.options.pluginDir);
     env.cacheDir = this.options.cacheDir;
     env.remoteHost = normalizeRemoteHost(this.options.remoteHost || DEFAULT_MODEL_HOST);
@@ -149,7 +176,7 @@ export class LocalEmbeddingService {
 
     return await pipeline("feature-extraction", modelConfig.id, {
       dtype: modelConfig.dtype,
-    });
+    }) as unknown as FeatureExtractionPipeline;
   }
 
   async initialize(onProgress?: (progress: number) => void): Promise<void> {
@@ -176,7 +203,7 @@ export class LocalEmbeddingService {
         }),
         EMBEDDING_TIMEOUT_MS,
         `Embedding model ${modelConfig.shortName} initialization`,
-      );
+      ) as unknown as FeatureExtractionPipeline;
       this.ready = true;
       this.inferenceCount = 0;
       onProgress?.(100);
@@ -305,7 +332,9 @@ export class LocalEmbeddingService {
           );
           this.inferenceCount++;
           if (output.dims.length !== 2 || output.dims[0] !== batch.length) {
-            throw new Error(`Unexpected embedding output shape: [${output.dims}], expected [${batch.length}, dim]`);
+            throw new Error(
+              `Unexpected embedding output shape: [${output.dims.join(", ")}], expected [${batch.length}, dim]`,
+            );
           }
           const dim = output.dims[1];
           for (let j = 0; j < batch.length; j++) {
@@ -607,7 +636,9 @@ function fetchWithNode(url: string, init?: RequestInit, redirects = 0): Promise<
 }
 
 function sliceArrayBuffer(buffer: Buffer): ArrayBuffer {
-  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+  const copy = new Uint8Array(buffer.byteLength);
+  copy.set(buffer);
+  return copy.buffer;
 }
 
 function responseHeadersToRecord(headers: http.IncomingHttpHeaders): Record<string, string> {

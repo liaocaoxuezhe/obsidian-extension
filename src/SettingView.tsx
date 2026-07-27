@@ -252,9 +252,7 @@ function readRuntimeVersions(pluginDir: string): {
 }
 
 function getBuildId(): string {
-  // eslint-disable-next-line no-undef
   if (typeof __ANALOGY_BUILD_ID__ !== "undefined") {
-    // eslint-disable-next-line no-undef
     return __ANALOGY_BUILD_ID__;
   }
   return "";

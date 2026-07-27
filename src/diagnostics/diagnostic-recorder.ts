@@ -317,7 +317,6 @@ export class DiagnosticRecorder {
       await this.storage.saveRingBuffer(persisted);
     } catch (err) {
       // Persistence must never block business logic.
-      // eslint-disable-next-line no-console
       console.error("[Analogy][Diagnostics] persist failed", err);
     }
   }
