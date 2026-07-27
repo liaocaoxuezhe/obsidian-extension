@@ -7,7 +7,21 @@ import * as React from "react";
 import {Button} from "./components/button";
 import {Badge} from "./components/badge";
 import {Card, CardContent, CardHeader, CardTitle} from "./components/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "./components/dialog";
+import { Textarea } from "./components/textarea";
 import { searchInstance, updateServiceState } from "./local-vector/search-instance";
+import { getDiagnosticRecorder } from "./diagnostics/diagnostic-instance";
+import { AnalogyErrorBoundary } from "./diagnostics/AnalogyErrorBoundary";
+import type { DiagnosticReport } from "./diagnostics/diagnostic-types";
+import { generateReportFileName, sendDiagnosticReport } from "./diagnostics/diagnostic-report";
+import { DiagnosticReportSnapshot } from "./diagnostics/diagnostic-report-snapshot";
 import type { FileIndexStatus, IndexState, RebuildProgress } from "./local-vector/document-indexer";
 import {normalizeExcludedIndexPaths} from "./local-vector/excluded-paths";
 import {EMBEDDING_MODELS, DEFAULT_MODEL_KEY} from "./local-vector/embedding";
@@ -19,7 +33,7 @@ import {
   installLocalRuntimeDependencies,
   type LocalRuntimeStatus,
 } from "./local-vector/runtime-dependencies";
-import {getLocale, setLocale, onLocaleChange, t, type Locale, SUPPORTED_LOCALES} from "./util/i18n";
+import {setLocale, onLocaleChange, t, type Locale, SUPPORTED_LOCALES} from "./util/i18n";
 import {
   deactivateLicense,
   refreshCachedLicense,
@@ -41,6 +55,8 @@ import {getOrCreateDeviceId, getVaultId} from "./license/license-device";
 import {appVersion} from "./model/Consts";
 
 const SUPPORT_EMAIL = "analogypkm@gmail.com";
+
+declare const __ANALOGY_BUILD_ID__: string | undefined;
 
 export interface AnalogySettings {
   chromaPort: number;
@@ -93,12 +109,37 @@ export class AnalogySettingTab extends PluginSettingTab {
   }
 
   display(): void {
+    const recorder = getDiagnosticRecorder();
     this.root = createRoot(this.containerEl);
     this.root.render(
       <StrictMode>
-        <AppContext.Provider value={this.app}>
-          <SettingDetail plugin={this.plugin} setting={this}/>
-        </AppContext.Provider>
+        <AnalogyErrorBoundary
+          recorder={recorder || ({ captureException: () => {} } as any)}
+          viewName="SettingView"
+          onCopyReport={() => {
+            const snapshot = recorder?.getSnapshot();
+            if (!snapshot) return;
+            navigator.clipboard
+              .writeText(JSON.stringify(snapshot, null, 2))
+              .catch((error) => console.error("[Analogy] Failed to copy diagnostics", error));
+          }}
+          onReload={() => {
+            this.root?.unmount();
+            this.display();
+          }}
+          onOpenSettings={() => {
+            // @ts-ignore Obsidian exposes the setting manager at runtime.
+            this.app.setting?.openTabById?.("analogy-rag-in-your-vault");
+          }}
+          onSendReport={() => {
+            this.root?.unmount();
+            this.display();
+          }}
+        >
+          <AppContext.Provider value={this.app}>
+            <SettingDetail plugin={this.plugin} setting={this}/>
+          </AppContext.Provider>
+        </AnalogyErrorBoundary>
       </StrictMode>
     );
   }
@@ -112,7 +153,70 @@ export class AnalogySettingTab extends PluginSettingTab {
 type StatusFilter = "all" | "indexed" | "outdated" | "unindexed";
 
 function formatPageLimit(limit: number): string {
-  return limit >= Number.MAX_SAFE_INTEGER ? "Unlimited" : String(limit);
+  return limit >= Number.MAX_SAFE_INTEGER ? t("settings.license.unlimited") : String(limit);
+}
+
+function formatLicensePlan(plan: LicenseState["plan"] | undefined): string {
+  switch (plan) {
+    case "personal_lifetime":
+      return t("settings.license.planPersonalLifetime");
+    case "team":
+      return t("settings.license.planTeam");
+    case "pro":
+      return t("settings.license.planPro");
+    case "free":
+    default:
+      return t("settings.license.planFree");
+  }
+}
+
+function formatServiceStatus(status: string): string {
+  switch (status) {
+    case "ready":
+      return t("settings.service.ready");
+    case "degraded":
+      return t("settings.service.degraded");
+    case "error":
+      return t("settings.service.error");
+    case "initializing":
+    default:
+      return t("settings.service.initializing");
+  }
+}
+
+function formatOllamaStatus(status: "idle" | "ready" | "error"): string {
+  switch (status) {
+    case "ready":
+      return t("settings.service.ready");
+    case "error":
+      return t("settings.service.error");
+    case "idle":
+    default:
+      return t("common.idle");
+  }
+}
+
+function formatSafeModeReason(reason: string): string {
+  const recentExitPrefix = "Recent unclean exits in embedding stages: ";
+  if (reason.startsWith(recentExitPrefix)) {
+    return t("settings.diagnostics.safeModeRecentUncleanExits", {
+      stages: reason.slice(recentExitPrefix.length),
+    });
+  }
+  if (reason === "Worker exited unexpectedly multiple times") {
+    return t("settings.diagnostics.safeModeWorkerExited");
+  }
+  return reason;
+}
+
+function formatDiagnosticLocale(locale: string): string {
+  if (locale === "zh") return t("settings.language.chinese");
+  if (locale === "en") return t("settings.language.english");
+  return locale;
+}
+
+function formatDiagnosticValue(value: string): string {
+  return value === "unknown" ? t("common.unknown") : value;
 }
 
 function getPluginDir(plugin: Analogy): string {
@@ -124,6 +228,36 @@ function getPluginDir(plugin: Analogy): string {
   }
   const configDir = (plugin.app.vault as any).configDir || ".obsidian";
   return path.join(basePath, configDir, "plugins", plugin.manifest.id);
+}
+
+function readRuntimeVersions(pluginDir: string): {
+  transformers: string;
+  onnxruntime: string;
+  chroma: string;
+} {
+  try {
+    const fs = require("fs");
+    const path = require("path");
+    const pkgPath = path.join(pluginDir, "package.json");
+    const raw = fs.readFileSync(pkgPath, { encoding: "utf-8" });
+    const pkg = JSON.parse(raw);
+    return {
+      transformers: pkg.dependencies?.["@huggingface/transformers"] || "unknown",
+      onnxruntime: pkg.dependencies?.["onnxruntime-node"] || "unknown",
+      chroma: pkg.dependencies?.chromadb || "unknown",
+    };
+  } catch {
+    return { transformers: "unknown", onnxruntime: "unknown", chroma: "unknown" };
+  }
+}
+
+function getBuildId(): string {
+  // eslint-disable-next-line no-undef
+  if (typeof __ANALOGY_BUILD_ID__ !== "undefined") {
+    // eslint-disable-next-line no-undef
+    return __ANALOGY_BUILD_ID__;
+  }
+  return "";
 }
 
 function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySettingTab}) {
@@ -139,6 +273,16 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
   const [dbPath, setDbPath] = useState("");
   const [lastError, setLastError] = useState("");
   const [serviceStatus, setServiceStatus] = useState(searchInstance.state.status);
+  const [diagnosticPreviewOpen, setDiagnosticPreviewOpen] = useState(false);
+  const [diagnosticUserNote, setDiagnosticUserNote] = useState("");
+  const [diagnosticSending, setDiagnosticSending] = useState(false);
+  const [diagnosticLastReportId, setDiagnosticLastReportId] = useState<string | null>(null);
+  const [diagnosticPreviewReport, setDiagnosticPreviewReport] = useState<DiagnosticReport | null>(null);
+  const diagnosticSnapshot = useMemo(() => new DiagnosticReportSnapshot(), []);
+  const [safeModeState, setSafeModeState] = useState(() => plugin.getSafeModeState());
+  const [isRecoveringSafeMode, setIsRecoveringSafeMode] = useState(false);
+  const recorder = useMemo(() => getDiagnosticRecorder(), []);
+  const runtimeVersions = useMemo(() => readRuntimeVersions(pluginDir), [pluginDir]);
   const [portInput, setPortInput] = useState(String(plugin.settings.chromaPort || 8000));
   const [modelHostInput, setModelHostInput] = useState(plugin.settings.embeddingModelHost || DEFAULT_SETTINGS.embeddingModelHost);
   const [selectedModel, setSelectedModel] = useState(plugin.settings.embeddingModel || DEFAULT_MODEL_KEY);
@@ -304,14 +448,14 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
 
   async function rebuildIndex() {
     if (!searchInstance.documentIndexer) {
-      new Notice("Local indexer not initialized");
+      new Notice(t("settings.actions.indexerUnavailable"));
       return;
     }
     const files = plugin.app.vault.getMarkdownFiles();
     const limit = getCurrentPageLimit(licenseState);
     if (files.length > limit) {
       showUpgradePrompt(files.length, limit);
-      new Notice(`Free plan supports indexing up to ${limit} Markdown pages. This vault has ${files.length} pages.`);
+      new Notice(t("settings.license.vaultLimitExceeded", { limit, count: files.length }));
       return;
     }
     setUpgradePrompt(null);
@@ -327,13 +471,13 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
         },
       });
       if (!stopRequestedRef.current) {
-        new Notice("Index rebuilt");
+        new Notice(t("settings.actions.rebuildDone"));
       }
       await refreshServiceStatus();
       refreshFileStatuses();
     } catch (err) {
       console.error("[Analogy] Rebuild error:", err);
-      new Notice("Rebuild failed: " + (err as Error).message);
+      new Notice(t("settings.actions.rebuildFailed", { message: (err as Error).message }));
     } finally {
       setIsRebuilding(false);
       setIsStoppingIndex(false);
@@ -344,7 +488,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
 
   async function continueIndex() {
     if (!searchInstance.documentIndexer) {
-      new Notice("Local indexer not initialized");
+      new Notice(t("settings.actions.indexerUnavailable"));
       return;
     }
     const files = plugin.app.vault.getMarkdownFiles();
@@ -367,11 +511,11 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     const allowedPaths = new Set(capacityPlan.allowedIds);
     const allowedFiles = files.filter((file) => allowedPaths.has(file.path));
     if (allowedFiles.length === 0 && capacityPlan.isLimited) {
-      new Notice(`Free plan supports indexing up to ${limit} Markdown pages. Upgrade to continue indexing this vault.`);
+      new Notice(t("settings.license.upgradeToContinue", { limit }));
       return;
     }
     if (allowedFiles.length === 0) {
-      new Notice("No pending Markdown pages to index.");
+      new Notice(t("settings.actions.noPending"));
       return;
     }
     stopRequestedRef.current = false;
@@ -385,13 +529,17 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
         },
       });
       if (!stopRequestedRef.current) {
-        new Notice(capacityPlan.isLimited ? "Indexed up to the free page limit. Upgrade to index the remaining pages." : "Continue index done");
+        new Notice(
+          capacityPlan.isLimited
+            ? t("settings.license.indexedToFreeLimit")
+            : t("settings.actions.continueDone")
+        );
       }
       await refreshServiceStatus();
       refreshFileStatuses();
     } catch (err) {
       console.error("[Analogy] Continue index error:", err);
-      new Notice("Continue index failed: " + (err as Error).message);
+      new Notice(t("settings.actions.continueFailed", { message: (err as Error).message }));
     } finally {
       setIsRebuilding(false);
       setIsStoppingIndex(false);
@@ -416,7 +564,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
       new Notice(t("settings.actions.indexStopped"));
     } catch (err) {
       console.error("[Analogy] Stop index error:", err);
-      new Notice("Stop index failed: " + (err as Error).message);
+      new Notice(t("settings.actions.stopFailed", { message: (err as Error).message }));
     } finally {
       setIsStoppingIndex(false);
       setIsRebuilding(false);
@@ -425,12 +573,12 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
 
   async function indexSingleFile(filePath: string) {
     if (!searchInstance.documentIndexer) {
-      new Notice("Local indexer not initialized");
+      new Notice(t("settings.actions.indexerUnavailable"));
       return;
     }
     const file = plugin.app.vault.getAbstractFileByPath(filePath);
     if (!(file instanceof TFile)) {
-      new Notice("File not found: " + filePath);
+      new Notice(t("settings.actions.fileNotFound", { path: filePath }));
       return;
     }
     const statuses = searchInstance.documentIndexer.getAllFileStatuses(plugin.app.vault.getMarkdownFiles());
@@ -445,14 +593,14 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     });
     if (capacityPlan.isLimited) {
       showUpgradePrompt(capacityPlan.indexedCount + capacityPlan.blockedNewCount, capacityPlan.limit);
-      new Notice(`Free plan supports indexing up to ${capacityPlan.limit} Markdown pages. Upgrade to index more pages.`);
+      new Notice(t("settings.license.upgradeToIndexMore", { limit: capacityPlan.limit }));
       return;
     }
     setUpgradePrompt(null);
     setIndexingFile(filePath);
     try {
       await searchInstance.documentIndexer.reindexDocument(file);
-      new Notice(`Indexed: ${file.name}`);
+      new Notice(t("settings.actions.indexed", { name: file.name }));
       refreshFileStatuses();
       if (searchInstance.vectorStore) {
         const count = await searchInstance.vectorStore.count();
@@ -460,7 +608,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
       }
     } catch (err) {
       console.error(`[Analogy] Single index error for ${filePath}:`, err);
-      new Notice("Index failed: " + (err as Error).message);
+      new Notice(t("settings.actions.indexFailed", { message: (err as Error).message }));
     } finally {
       setIndexingFile(null);
     }
@@ -470,24 +618,28 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     if (!searchInstance.documentIndexer) return;
     await searchInstance.documentIndexer.setMuted(filePath, !currentlyMuted);
     refreshFileStatuses();
-    new Notice(currentlyMuted ? `Unmuted: ${filePath}` : `Muted: ${filePath}`);
+    new Notice(
+      currentlyMuted
+        ? t("settings.actions.unmuted", { path: filePath })
+        : t("settings.actions.muted", { path: filePath })
+    );
   }
 
   async function savePort() {
     const val = parseInt(portInput, 10);
     if (isNaN(val) || val < 1 || val > 65535) {
-      new Notice("Port must be between 1 and 65535");
+      new Notice(t("settings.chroma.portInvalid"));
       return;
     }
     plugin.settings.chromaPort = val;
     await plugin.saveSettings();
-    new Notice(`ChromaDB port saved: ${val}. Reload plugin to apply.`);
+    new Notice(t("settings.chroma.portSaved", { port: val }));
   }
 
   async function startChromaFromSettings() {
     const val = parseInt(portInput, 10);
     if (isNaN(val) || val < 1 || val > 65535) {
-      new Notice("Port must be between 1 and 65535");
+      new Notice(t("settings.chroma.portInvalid"));
       return;
     }
     setIsStartingChroma(true);
@@ -514,13 +666,13 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
   async function saveModelHost() {
     const val = modelHostInput.trim();
     if (!/^https?:\/\/.+/i.test(val)) {
-      new Notice("Model host must start with http:// or https://");
+      new Notice(t("settings.embedding.hostInvalid"));
       return;
     }
     plugin.settings.embeddingModelHost = val.endsWith("/") ? val : `${val}/`;
     setModelHostInput(plugin.settings.embeddingModelHost);
     await plugin.saveSettings();
-    new Notice("Embedding model host saved. Reload plugin to apply.");
+    new Notice(t("settings.embedding.hostSaved"));
   }
 
   async function checkOllama() {
@@ -600,14 +752,14 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
   async function saveLicenseSettings() {
     const licenseServerUrl = licenseServerInput.trim().replace(/\/+$/, "");
     if (licenseServerUrl && !/^https?:\/\/.+/i.test(licenseServerUrl)) {
-      new Notice("License server URL must start with http:// or https://");
+      new Notice(t("settings.license.serverUrlInvalid"));
       return;
     }
     const buyLicenseUrl = buyLicenseInput.trim();
     const manageLicenseUrl = manageLicenseInput.trim();
     for (const url of [buyLicenseUrl, manageLicenseUrl]) {
       if (url && !/^https?:\/\/.+/i.test(url)) {
-        new Notice("License links must start with http:// or https://");
+        new Notice(t("settings.license.linksInvalid"));
         return;
       }
     }
@@ -616,13 +768,13 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     plugin.settings.manageLicenseUrl = manageLicenseUrl;
     setLicenseServerInput(licenseServerUrl);
     await plugin.saveSettings();
-    new Notice("License settings saved");
+    new Notice(t("settings.license.settingsSaved"));
   }
 
   async function activateLicense() {
     const licenseKey = licenseKeyInput.trim();
     if (!licenseKey) {
-      new Notice("Enter a license key first");
+      new Notice(t("settings.license.enterKey"));
       return;
     }
     setIsActivatingLicense(true);
@@ -637,9 +789,9 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
       setLicenseState(nextState);
       setLicenseKeyInput("");
       if (nextState.status === "active") {
-        new Notice("License activated");
+        new Notice(t("settings.license.activated"));
       } else {
-        new Notice("License is invalid or inactive");
+        new Notice(t("settings.license.invalid"));
       }
     } catch (err) {
       new Notice((err as Error).message);
@@ -652,7 +804,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     if (!licenseState.licenseKey) {
       clearLicenseState();
       setLicenseState(getFreeLicenseState());
-      new Notice("Local license cleared");
+      new Notice(t("settings.license.localCleared"));
       return;
     }
     setIsDeactivatingLicense(true);
@@ -664,7 +816,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
       });
       clearLicenseState();
       setLicenseState(getFreeLicenseState());
-      new Notice("License deactivated on this device");
+      new Notice(t("settings.license.deactivated"));
     } catch (err) {
       new Notice((err as Error).message);
     } finally {
@@ -688,27 +840,27 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     if (normalized.length === 0) return;
     const pathToAdd = normalized[0];
     if (excludedPaths.includes(pathToAdd)) {
-      new Notice("Path already in no-index list");
+      new Notice(t("settings.exclude.exists"));
       return;
     }
     const updated = [...excludedPaths, pathToAdd];
     await syncExcludedPaths(updated);
     setNewPathInput("");
-    new Notice(`Added to no-index: ${pathToAdd}`);
+    new Notice(t("settings.exclude.added", { path: pathToAdd }));
   }
 
   async function removeExcludedPath(pathToRemove: string) {
     const updated = excludedPaths.filter((p) => p !== pathToRemove);
     await syncExcludedPaths(updated);
-    new Notice(`Removed from no-index: ${pathToRemove}`);
+    new Notice(t("settings.exclude.removed", { path: pathToRemove }));
   }
 
   async function clearIndex() {
     if (!searchInstance.vectorStore) {
-      new Notice("Local vector store not initialized");
+      new Notice(t("settings.actions.vectorStoreUnavailable"));
       return;
     }
-    if (!confirm("Are you sure you want to clear the local index? This cannot be undone.")) {
+    if (!confirm(t("settings.actions.clearConfirm"))) {
       return;
     }
     try {
@@ -719,12 +871,12 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
       if (searchInstance.documentIndexer) {
         await searchInstance.documentIndexer.clearState();
       }
-      new Notice("Local index cleared");
+      new Notice(t("settings.actions.clearDone"));
       await refreshServiceStatus();
       refreshFileStatuses();
     } catch (err) {
       console.error("[Analogy] Clear error:", err);
-      new Notice("Clear failed: " + (err as Error).message);
+      new Notice(t("settings.actions.clearFailed", { message: (err as Error).message }));
     }
   }
 
@@ -764,6 +916,149 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
       console.error("[Analogy] Failed to copy support email:", error);
       new Notice(t("settings.feedback.copyFailed"));
     }
+  }
+
+  function buildDiagnosticReport(userNote = diagnosticUserNote): DiagnosticReport | null {
+    if (!recorder) return null;
+    return recorder.buildReport({
+      obsidianVersion: (plugin.app as any).version || "unknown",
+      platform: typeof process !== "undefined" ? process.platform : "unknown",
+      arch: typeof process !== "undefined" ? process.arch : "unknown",
+      locale: plugin.settings.uiLanguage || "en",
+      model: plugin.settings.embeddingModel || DEFAULT_MODEL_KEY,
+      transformersVersion: runtimeVersions.transformers,
+      onnxruntimeVersion: runtimeVersions.onnxruntime,
+      chromaVersion: runtimeVersions.chroma,
+      safeMode: plugin.getSafeModeState().enabled,
+      userNote,
+    });
+  }
+
+  function replaceDiagnosticSnapshot(userNote = diagnosticUserNote): DiagnosticReport | null {
+    const report = buildDiagnosticReport(userNote);
+    if (!report) {
+      diagnosticSnapshot.invalidate();
+      setDiagnosticPreviewReport(null);
+      return null;
+    }
+    const snapshot = diagnosticSnapshot.replace(report);
+    setDiagnosticPreviewReport(snapshot);
+    return snapshot;
+  }
+
+  function getOrCreateDiagnosticSnapshot(): DiagnosticReport | null {
+    return diagnosticSnapshot.get() ?? replaceDiagnosticSnapshot();
+  }
+
+  function openDiagnosticPreview() {
+    replaceDiagnosticSnapshot();
+    setDiagnosticPreviewOpen(true);
+  }
+
+  async function copyDiagnosticReport() {
+    const report = getOrCreateDiagnosticSnapshot();
+    if (!report) {
+      new Notice(t("settings.diagnostics.noReport"));
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(diagnosticSnapshot.serialize()!);
+      new Notice(t("common.copiedToClipboard"));
+    } catch (error) {
+      console.error("[Analogy] Failed to copy diagnostic report:", error);
+      new Notice(t("settings.diagnostics.copyFailed"));
+    }
+  }
+
+  async function saveDiagnosticReport() {
+    const report = getOrCreateDiagnosticSnapshot();
+    if (!report) {
+      new Notice(t("settings.diagnostics.noReport"));
+      return;
+    }
+    const fileName = generateReportFileName(report.plugin.version);
+    try {
+      await plugin.app.vault.adapter.write(fileName, diagnosticSnapshot.serialize()!);
+      new Notice(t("settings.diagnostics.saved", { fileName }));
+    } catch (error) {
+      console.error("[Analogy] Failed to save diagnostic report:", error);
+      new Notice(t("settings.diagnostics.saveFailed"));
+    }
+  }
+
+  async function sendDiagnosticReportFromUI() {
+    const report = diagnosticSnapshot.get();
+    if (!report) {
+      new Notice(t("settings.diagnostics.noReport"));
+      return;
+    }
+    const endpoint = plugin.settings.licenseServerUrl
+      ? `${plugin.settings.licenseServerUrl.replace(/\/$/, "")}/api/v1/obsidian/diagnostic-reports`
+      : "";
+    if (!endpoint) {
+      new Notice(t("settings.diagnostics.endpointMissing"));
+      return;
+    }
+    setDiagnosticSending(true);
+    try {
+      const response = await sendDiagnosticReport(report, {
+        endpoint,
+        timeoutMs: 30000,
+        serializedReport: diagnosticSnapshot.serialize()!,
+      });
+      setDiagnosticLastReportId(response.data.report_id);
+      new Notice(`${t("settings.diagnostics.sendSuccess")} ${response.data.report_id}`);
+      setDiagnosticPreviewOpen(false);
+    } catch (error) {
+      console.error("[Analogy] Failed to send diagnostic report:", error);
+      new Notice(`${t("settings.diagnostics.sendFailed")} ${(error as Error).message}`);
+    } finally {
+      setDiagnosticSending(false);
+    }
+  }
+
+  async function clearDiagnosticData() {
+    if (!window.confirm(t("settings.diagnostics.clearConfirm"))) return;
+    await recorder?.clearDiagnostics();
+    diagnosticSnapshot.invalidate();
+    setDiagnosticPreviewReport(null);
+    setDiagnosticLastReportId(null);
+    new Notice(t("settings.diagnostics.cleared"));
+  }
+
+  async function recoverFromSafeMode() {
+    setIsRecoveringSafeMode(true);
+    try {
+      await plugin.clearSafeModeAndRetry();
+      setSafeModeState(plugin.getSafeModeState());
+      new Notice(t("settings.diagnostics.safeModeRecovered"));
+    } catch (error) {
+      setSafeModeState(plugin.getSafeModeState());
+      new Notice(`${t("settings.diagnostics.safeModeRetryFailed")} ${(error as Error).message}`);
+    } finally {
+      setIsRecoveringSafeMode(false);
+    }
+  }
+
+  async function switchToRecommendedSmallModelAndRecover() {
+    setIsRecoveringSafeMode(true);
+    try {
+      await plugin.switchToRecommendedSmallModelAndRetry();
+      setSelectedModel(DEFAULT_MODEL_KEY);
+      setSafeModeState(plugin.getSafeModeState());
+      new Notice(t("settings.diagnostics.safeModeRecovered"));
+    } catch (error) {
+      setSelectedModel(plugin.settings.embeddingModel || DEFAULT_MODEL_KEY);
+      setSafeModeState(plugin.getSafeModeState());
+      new Notice(`${t("settings.diagnostics.safeModeRetryFailed")} ${(error as Error).message}`);
+    } finally {
+      setIsRecoveringSafeMode(false);
+    }
+  }
+
+  function keepSafeMode() {
+    setSafeModeState(plugin.getSafeModeState());
+    new Notice(t("settings.diagnostics.safeModeKept"));
   }
 
   return (
@@ -842,7 +1137,9 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
           <div className="flex items-center justify-between">
             <span className="text-sm text-[#444444]">{t("settings.license.plan")}</span>
             <Badge className={licenseState.status === "active" ? "bg-[#0a0a0a] text-white" : "bg-[#f5f5f5] text-[#444444]"}>
-              {licenseState.status === "active" ? (licenseState.plan || "Personal") : "Free"}
+              {licenseState.status === "active"
+                ? formatLicensePlan(licenseState.plan || "personal_lifetime")
+                : formatLicensePlan("free")}
             </Badge>
           </div>
           <div className="flex items-center justify-between mt-2">
@@ -945,7 +1242,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
                   ? "bg-[#e74c3c] text-white"
                   : "bg-[#f5f5f5] text-[#444444]"
             }>
-              {serviceStatus}
+              {formatServiceStatus(serviceStatus)}
             </Badge>
           </div>
           <div className="flex items-center justify-between mt-2">
@@ -1013,7 +1310,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
                   updateServiceState({ rebuildProgress: null });
                   plugin.settings.embeddingModel = selectedModel;
                   await plugin.saveSettings();
-                  new Notice("Embedding model changed. Reloading plugin...");
+                  new Notice(t("settings.embedding.modelChanged"));
                   await plugin.reload(plugin.manifest.id);
                 }}>
                   {t("common.apply")}
@@ -1028,7 +1325,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
 
           <details className="mt-2">
             <summary className="text-xs text-[#888888] cursor-pointer hover:text-[#444444]">
-              {language === "zh" ? "如何选择？" : "How to choose?"}
+              {t("settings.embedding.howToChoose")}
             </summary>
             <pre className="whitespace-pre-wrap text-xs text-[#666666] mt-2 bg-[#fafafa] border border-[#f0f0f0] rounded-md px-3 py-2 font-mono">
 {t("settings.embedding.pickerHelp")}
@@ -1227,7 +1524,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
                   ? "bg-[#e74c3c] text-white"
                   : "bg-[#f5f5f5] text-[#444444]"
             }>
-              {ollamaStatus}
+              {formatOllamaStatus(ollamaStatus)}
             </Badge>
             {(ollamaMessage || summaryPullProgress) && (
               <span className="text-xs text-[#666666] truncate max-w-[260px]" title={ollamaMessage || summaryPullProgress}>
@@ -1248,7 +1545,10 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
         <Card>
           <CardContent className="pt-4">
             <div className="whitespace-pre-line text-sm text-[#0a0a0a]">
-              {upgradePrompt.message}
+              {t("settings.license.upgradePrompt", {
+                limit: upgradePrompt.limit,
+                selectedCount: upgradePrompt.selectedCount,
+              })}
             </div>
             <div className="mt-3 flex items-center gap-2">
               {upgradePrompt.canOpenBuyUrl && (
@@ -1257,7 +1557,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
                 </Button>
               )}
               <Button size="sm" variant="secondary" onClick={() => setUpgradePrompt(null)}>
-                Dismiss
+                {t("common.dismiss")}
               </Button>
             </div>
           </CardContent>
@@ -1298,7 +1598,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
                   <button
                     onClick={() => removeExcludedPath(p)}
                     className="shrink-0 ml-2 text-[#888888] hover:text-[#e74c3c] text-base leading-none px-1"
-                    title="Remove"
+                    title={t("common.remove")}
                   >
                     ×
                   </button>
@@ -1479,7 +1779,9 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
           {filteredFiles.length > 0 && (
             <div className="text-xs text-[#888888] mt-2">
               {t("settings.docs.showing")} {Math.min(displayLimit, filteredFiles.length)} {t("settings.docs.of")} {filteredFiles.length} {t("settings.docs.files")}
-              {statusFilter !== "all" || searchQuery ? ` (${statusCounts.total} total)` : ""}
+              {statusFilter !== "all" || searchQuery
+                ? ` (${t("settings.docs.totalCount", { count: statusCounts.total })})`
+                : ""}
             </div>
           )}
         </CardContent>
@@ -1487,28 +1789,196 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
 
       <Card className="mt-4">
         <CardHeader>
-          <CardTitle className="text-base">{t("settings.feedback.title")}</CardTitle>
+          <CardTitle className="text-base">{t("settings.diagnostics.title")}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-sm text-[#444444] mb-3">
-            {t("settings.feedback.description")}
+            {t("settings.diagnostics.description")}
           </div>
-          <button
-            type="button"
-            onClick={copySupportEmail}
-            className="group flex w-full items-center justify-between gap-3 rounded-md border border-[#e5e5e5] px-3 py-2 text-left transition-colors hover:border-[#aaa] hover:bg-[#fafafa] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[#0a0a0a]"
-            aria-label={t("settings.feedback.copyLabel")}
-            title={t("settings.feedback.copyLabel")}
-          >
-            <span className="min-w-0 truncate text-sm font-medium text-[#0a0a0a]">
+          {safeModeState.enabled && (
+            <div className="mb-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+              <div className="font-medium">{t("settings.diagnostics.safeModeTitle")}</div>
+              <div className="mt-1 text-xs">
+                {t("settings.diagnostics.safeModeDescription")}
+              </div>
+              {safeModeState.reason && (
+                <div className="mt-2 break-words rounded bg-white/70 px-2 py-1 text-xs">
+                  {t("settings.diagnostics.safeModeReason")}: {formatSafeModeReason(safeModeState.reason)}
+                </div>
+              )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={switchToRecommendedSmallModelAndRecover}
+                  disabled={isRecoveringSafeMode}
+                  className="rounded-md bg-amber-900 px-3 py-2 text-xs font-medium text-white disabled:opacity-50"
+                >
+                  {isRecoveringSafeMode
+                    ? t("settings.diagnostics.safeModeRetrying")
+                    : t("settings.diagnostics.safeModeSwitchModel")}
+                </button>
+                <button
+                  type="button"
+                  onClick={recoverFromSafeMode}
+                  disabled={isRecoveringSafeMode}
+                  className="rounded-md border border-amber-900 bg-white px-3 py-2 text-xs font-medium text-amber-950 disabled:opacity-50"
+                >
+                  {t("settings.diagnostics.safeModeRetry")}
+                </button>
+                <button
+                  type="button"
+                  onClick={keepSafeMode}
+                  disabled={isRecoveringSafeMode}
+                  className="rounded-md border border-amber-300 bg-transparent px-3 py-2 text-xs font-medium text-amber-950 disabled:opacity-50"
+                >
+                  {t("settings.diagnostics.safeModeKeep")}
+                </button>
+              </div>
+            </div>
+          )}
+          {(() => {
+            const marker = recorder?.getMarker();
+            const unclean = recorder?.isSuspectedUncleanExit();
+            return (
+              <div className="mb-3 text-sm space-y-1">
+                <div>
+                  {t("settings.diagnostics.lastRun")}: {" "}
+                  {unclean ? (
+                    <span className="text-red-600 font-medium">{t("settings.diagnostics.suspectedUncleanExit")}</span>
+                  ) : (
+                    <span className="text-green-600">{t("settings.diagnostics.cleanExit")}</span>
+                  )}
+                </div>
+                <div>
+                  {t("settings.diagnostics.lastStage")}: {" "}
+                  <code className="text-xs bg-[#f5f5f5] px-1 rounded">{marker?.lastStage || "-"}</code>
+                </div>
+                <div>
+                  {t("settings.diagnostics.eventCount")}: {recorder?.getEvents().length ?? 0}
+                </div>
+                {diagnosticLastReportId && (
+                  <div className="text-xs text-[#888888]">
+                    {t("settings.diagnostics.sendSuccess")} {diagnosticLastReportId}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={openDiagnosticPreview}
+              className="rounded-md border border-[#e5e5e5] bg-white px-3 py-2 text-sm font-medium text-[#0a0a0a] transition-colors hover:border-[#aaa] hover:bg-[#fafafa]"
+            >
+              {t("settings.diagnostics.preview")}
+            </button>
+            <button
+              type="button"
+              onClick={copyDiagnosticReport}
+              className="rounded-md border border-[#e5e5e5] bg-white px-3 py-2 text-sm font-medium text-[#0a0a0a] transition-colors hover:border-[#aaa] hover:bg-[#fafafa]"
+            >
+              {t("settings.diagnostics.copy")}
+            </button>
+            <button
+              type="button"
+              onClick={saveDiagnosticReport}
+              className="rounded-md border border-[#e5e5e5] bg-white px-3 py-2 text-sm font-medium text-[#0a0a0a] transition-colors hover:border-[#aaa] hover:bg-[#fafafa]"
+            >
+              {t("settings.diagnostics.save")}
+            </button>
+            <button
+              type="button"
+              onClick={clearDiagnosticData}
+              className="rounded-md border border-[#e5e5e5] bg-white px-3 py-2 text-sm font-medium text-[#0a0a0a] transition-colors hover:border-[#aaa] hover:bg-[#fafafa]"
+            >
+              {t("settings.diagnostics.clear")}
+            </button>
+          </div>
+          <div className="mt-3 text-xs text-[#888888]">
+            {t("settings.feedback.description")}
+            <button
+              type="button"
+              onClick={copySupportEmail}
+              className="ml-1 underline hover:text-[#0a0a0a]"
+            >
               {SUPPORT_EMAIL}
-            </span>
-            <span className="shrink-0 text-xs text-[#888888] transition-colors group-hover:text-[#0a0a0a]">
-              {t("common.copy")}
-            </span>
-          </button>
+            </button>
+          </div>
         </CardContent>
       </Card>
+
+      <Dialog open={diagnosticPreviewOpen} onOpenChange={setDiagnosticPreviewOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{t("settings.diagnostics.previewTitle")}</DialogTitle>
+            <DialogDescription>{t("settings.diagnostics.dataDisclaimer")}</DialogDescription>
+          </DialogHeader>
+          {(() => {
+            const report = diagnosticPreviewReport;
+            if (!report) {
+              return <div className="py-4 text-sm text-[#888888]">{t("settings.diagnostics.noReport")}</div>;
+            }
+            return (
+              <div className="space-y-3 text-sm">
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>{t("settings.diagnostics.fieldPlugin")}: {report.plugin.version}</div>
+                  <div>{t("settings.diagnostics.fieldBuild")}: {report.plugin.build_id || t("common.development")}</div>
+                  <div>{t("settings.diagnostics.fieldObsidian")}: {formatDiagnosticValue(report.host.obsidian_version)}</div>
+                  <div>
+                    {t("settings.diagnostics.fieldPlatform")}: {formatDiagnosticValue(report.host.platform)} {formatDiagnosticValue(report.host.arch)}
+                  </div>
+                  <div>{t("settings.diagnostics.fieldLocale")}: {formatDiagnosticLocale(report.host.locale)}</div>
+                  <div>{t("settings.diagnostics.fieldModel")}: {report.runtime.model}</div>
+                  <div>{t("settings.diagnostics.fieldLastStage")}: {report.session.last_stage}</div>
+                  <div>
+                    {t("settings.diagnostics.fieldUncleanExit")}: {report.session.suspected_unclean_exit ? t("common.yes") : t("common.no")}
+                  </div>
+                </div>
+                <Textarea
+                  placeholder={t("settings.diagnostics.optionalNote")}
+                  value={diagnosticUserNote}
+                  onChange={(e) => {
+                    const nextNote = e.target.value;
+                    setDiagnosticUserNote(nextNote);
+                    replaceDiagnosticSnapshot(nextNote);
+                  }}
+                  className="min-h-[60px]"
+                />
+                <div className="text-xs font-medium">
+                  {t("settings.diagnostics.finalPayload")}
+                </div>
+                <div className="rounded border border-[#e5e5e5] bg-[#fafafa] p-2 max-h-[240px] overflow-y-auto text-xs font-mono whitespace-pre-wrap">
+                  {diagnosticSnapshot.serialize()}
+                </div>
+              </div>
+            );
+          })()}
+          <DialogFooter className="mt-4">
+            <button
+              type="button"
+              onClick={() => setDiagnosticPreviewOpen(false)}
+              className="rounded-md border border-[#e5e5e5] bg-white px-4 py-2 text-sm font-medium text-[#0a0a0a] transition-colors hover:bg-[#fafafa]"
+            >
+              {t("settings.diagnostics.close")}
+            </button>
+            <button
+              type="button"
+              onClick={copyDiagnosticReport}
+              className="rounded-md border border-[#e5e5e5] bg-white px-4 py-2 text-sm font-medium text-[#0a0a0a] transition-colors hover:bg-[#fafafa]"
+            >
+              {t("settings.diagnostics.copy")}
+            </button>
+            <button
+              type="button"
+              onClick={sendDiagnosticReportFromUI}
+              disabled={diagnosticSending || !diagnosticPreviewReport}
+              className="rounded-md bg-[#0a0a0a] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#333] disabled:opacity-50"
+            >
+              {diagnosticSending ? t("common.sending") : t("settings.diagnostics.send")}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

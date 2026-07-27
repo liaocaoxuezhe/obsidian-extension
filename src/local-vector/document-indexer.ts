@@ -1,5 +1,5 @@
 import { TFile, Vault, EventRef, Notice, Workspace } from "obsidian";
-import { LocalEmbeddingService } from "./embedding";
+import { EmbeddingService } from "./embedding-service";
 import { LocalVectorStore } from "./vector-store";
 import { isPathExcludedFromIndex, normalizeExcludedIndexPaths } from "./excluded-paths";
 import { cleanMarkdown, splitByHeaders } from "./strip-markdown";
@@ -67,7 +67,7 @@ interface ChunkSentence {
 }
 
 export class DocumentIndexer {
-  private embedding: LocalEmbeddingService;
+  private embedding: EmbeddingService;
   private vectorStore: LocalVectorStore;
   private vault: Vault;
   private workspace: Workspace | null;
@@ -95,7 +95,7 @@ export class DocumentIndexer {
   private stopped = false;
 
   constructor(
-    embedding: LocalEmbeddingService,
+    embedding: EmbeddingService,
     vectorStore: LocalVectorStore,
     vault: Vault,
     stateStore: IndexStateStore,
@@ -421,7 +421,9 @@ export class DocumentIndexer {
     }
 
     const sentences = this.splitIntoSentences(text);
-    if (sentences.length <= 1) return sentences;
+    if (sentences.length <= 1) {
+      return sentences.map((sentence) => sentence.text);
+    }
 
     if (sentences.length > MAX_SENTENCES_PER_CHUNK_PASS) {
       return this.splitOversizedText(text, MAX_CHUNK_CHARS);

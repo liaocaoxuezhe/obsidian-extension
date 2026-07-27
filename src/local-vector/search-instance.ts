@@ -1,4 +1,4 @@
-import { LocalEmbeddingService } from "./embedding";
+import { EmbeddingService } from "./embedding-service";
 import { LocalVectorStore } from "./vector-store";
 import { LocalSemanticSearch } from "./search";
 import { DocumentIndexer } from "./document-indexer";
@@ -26,7 +26,7 @@ export interface ServiceState {
 }
 
 export const searchInstance = {
-  embeddingService: null as LocalEmbeddingService | null,
+  embeddingService: null as EmbeddingService | null,
   vectorStore: null as LocalVectorStore | null,
   localSearch: null as LocalSemanticSearch | null,
   documentIndexer: null as DocumentIndexer | null,
@@ -63,7 +63,7 @@ export function subscribeServiceState(listener: ServiceStateListener): () => voi
 }
 
 export function initLocalVectorServices(
-  embedding: LocalEmbeddingService | null,
+  embedding: EmbeddingService | null,
   store: LocalVectorStore | null,
   indexer: DocumentIndexer | null,
   chromaManager: ChromaProcessManager | null,
