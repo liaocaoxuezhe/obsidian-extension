@@ -10,6 +10,7 @@ export type ServiceStatus = "initializing" | "ready" | "degraded" | "error";
 type ServiceStateListener = (state: ServiceState) => void;
 
 const listeners = new Set<ServiceStateListener>();
+let indexRevision = 0;
 
 export interface ServiceState {
   status: ServiceStatus;
@@ -71,6 +72,7 @@ export function initLocalVectorServices(
   maxInputChars?: number,
   summarizer?: DocumentSummarizer | null
 ) {
+  bumpIndexRevision();
   searchResultCache.clear();
   searchInstance.embeddingService = embedding;
   searchInstance.vectorStore = store;
@@ -96,8 +98,19 @@ export function getLocalSearch(): LocalSemanticSearch {
 }
 
 export function updateServiceState(updates: Partial<ServiceState>) {
+  const completedRebuild = searchInstance.state.rebuildProgress !== null && updates.rebuildProgress === null;
   Object.assign(searchInstance.state, updates);
+  if (completedRebuild) bumpIndexRevision();
   notifyServiceState();
+}
+
+export function getIndexRevision(): number {
+  return indexRevision;
+}
+
+export function bumpIndexRevision(): number {
+  indexRevision += 1;
+  return indexRevision;
 }
 
 export function isServiceReady(): boolean {

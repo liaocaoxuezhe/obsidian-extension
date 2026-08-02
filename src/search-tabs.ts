@@ -16,6 +16,7 @@ export type SearchTab = {
   documentQueryText: string;
   isLoading: boolean;
   excludedPaths: string[];
+  excludedChunkIds?: string[];
   source: SearchTabSource;
 };
 
@@ -65,6 +66,9 @@ export function createDerivedSearchTab(
   parentTab: SearchTab,
   result: LocalSearchResult
 ): SearchTab {
+  const legacyResultPaths = parentTab.results
+    .filter((item) => !item.chunkId)
+    .map((item) => item.path);
   return {
     id,
     title: createTabTitle(result.title || result.content, "搜索"),
@@ -74,7 +78,12 @@ export function createDerivedSearchTab(
     isLoading: false,
     excludedPaths: uniquePaths([
       ...parentTab.excludedPaths,
-      ...parentTab.results.map((item) => item.path),
+      ...legacyResultPaths,
+    ]),
+    excludedChunkIds: uniquePaths([
+      ...(parentTab.excludedChunkIds || []),
+      ...parentTab.results.map((item) => item.chunkId),
+      result.chunkId,
     ]),
     source: {
       type: "result-card",

@@ -66,6 +66,11 @@ interface ChunkSentence {
   leadingSeparator: string;
 }
 
+interface ChunkDraft {
+  content: string;
+  sectionLabel: string;
+}
+
 export class DocumentIndexer {
   private embedding: EmbeddingService;
   private vectorStore: LocalVectorStore;
@@ -505,7 +510,7 @@ export class DocumentIndexer {
         return;
       }
 
-      const allChunks: string[] = [];
+      const allChunks: ChunkDraft[] = [];
       for (const section of sections) {
         if (this.stopped) return;
         const text = section.header
@@ -517,7 +522,10 @@ export class DocumentIndexer {
           if (this.stopped) return;
           const sectionChunks = await this.splitIntoChunks(sub);
           if (this.stopped) return;
-          allChunks.push(...this.mergeShortChunks(sectionChunks));
+          allChunks.push(...this.mergeShortChunks(sectionChunks).map((content) => ({
+            content,
+            sectionLabel: section.header,
+          })));
         }
       }
       if (allChunks.length === 0) {
@@ -527,7 +535,7 @@ export class DocumentIndexer {
         this.markDocumentProcessed(file, 0, "no chunks generated");
         return;
       }
-      const chunks = allChunks.filter(c => c.length >= 10);
+      const chunks = allChunks.filter((chunk) => chunk.content.length >= 10);
       if (chunks.length === 0) {
         if (existing) {
           await this.vectorStore.deleteDocument(docId);
@@ -554,12 +562,15 @@ export class DocumentIndexer {
       for (let i = 0; i < chunks.length; i += UPSERT_BATCH) {
         if (this.stopped) return;
         const batch = chunks.slice(i, i + UPSERT_BATCH);
-        const embeddings = await this.embedding.embedBatch(batch);
+        const embeddings = await this.embedding.embedBatch(batch.map((chunk) => chunk.content));
         if (this.stopped) return;
-        const chunkData = batch.map((c, j) => ({
+        const chunkData = batch.map((chunk, j) => ({
           chunkId: `${docId}::chunk-${i + j}`,
-          content: c,
+          content: chunk.content,
           embedding: embeddings[j],
+          chunkIndex: i + j,
+          chunkCount: chunks.length,
+          sectionLabel: chunk.sectionLabel,
         }));
         await this.vectorStore.upsertDocument(docId, chunkData, metadata);
         if (i + UPSERT_BATCH < chunks.length) {

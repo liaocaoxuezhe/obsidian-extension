@@ -18,6 +18,7 @@ export type DiagnosticStage =
   | "index.upsert"
   | "search.embed-query"
   | "search.vector-query"
+  | "semantic-walk.expand"
   | "react.render"
   | "license.refresh"
   | "plugin.unload"
@@ -114,4 +115,30 @@ export interface DiagnosticRecorderOptions extends DiagnosticStorageOptions {
   arch: string;
   locale: string;
   model?: string;
+}
+
+export type SemanticWalkExpandEventStage = "start" | "success" | "error" | "fallback";
+
+export type SemanticWalkExpandErrorCategory =
+  | "none"
+  | "chunk-missing"
+  | "chunk-read"
+  | "service-unavailable"
+  | "embedding"
+  | "query"
+  | "unknown";
+
+export interface SemanticWalkExpandDiagnostic {
+  chunkId: string;
+  stage: SemanticWalkExpandEventStage;
+  durationMs: number;
+  candidateCount: number;
+  model: string;
+  usedEmbeddingFallback: boolean;
+  distanceRange: string;
+  errorCategory: SemanticWalkExpandErrorCategory;
+}
+
+export interface SemanticWalkDiagnosticRecorder {
+  recordSemanticWalkExpand(event: SemanticWalkExpandDiagnostic): void;
 }

@@ -7,12 +7,22 @@ import type { DocumentSummarizer } from "./document-summarizer";
 
 export const MAX_DOCUMENT_SEARCH_CHARS = 5000;
 
-export interface LocalSearchResult {
+export interface ChunkSearchResult {
+  chunkId: string;
+  docId: string;
+  path: string;
   title: string;
   content: string;
+  chunkIndex: number;
+  chunkCount: number;
+  sectionLabel: string;
+  mtime: number;
+  distance: number;
+}
+
+export interface LocalSearchResult extends ChunkSearchResult {
   source: "local";
   score: number;
-  path?: string;
 }
 
 export interface LocalDocumentSearchResponse {
@@ -22,6 +32,7 @@ export interface LocalDocumentSearchResponse {
 
 export interface LocalSearchOptions {
   excludePaths?: string[];
+  excludeChunkIds?: string[];
   useSummary?: boolean;
 }
 
@@ -64,7 +75,15 @@ export class LocalSemanticSearch {
 
   async searchByQuery(query: string, topK: number = 5, options: LocalSearchOptions = {}): Promise<LocalSearchResult[]> {
     const queryEmbedding = await this.embedding.embedQuery(query);
-    return this.searchWithBackfill(queryEmbedding, topK, options.excludePaths);
+    return this.searchWithBackfill(queryEmbedding, topK, options.excludePaths, options.excludeChunkIds);
+  }
+
+  async searchByEmbedding(
+    embedding: number[],
+    topK: number = 5,
+    options: LocalSearchOptions = {}
+  ): Promise<LocalSearchResult[]> {
+    return this.searchWithBackfill(embedding, topK, options.excludePaths, options.excludeChunkIds);
   }
 
   async searchByDocument(file: TFile, topK: number = 5, options: LocalSearchOptions = {}): Promise<LocalSearchResult[]> {
@@ -88,32 +107,37 @@ export class LocalSemanticSearch {
     const textForMatching = summaryResult?.text || firstChunk;
     const docEmbedding = await this.embedding.embedDocument(textForMatching);
     return {
-      results: await this.searchWithBackfill(docEmbedding, topK, options.excludePaths),
+      results: await this.searchWithBackfill(docEmbedding, topK, options.excludePaths, options.excludeChunkIds),
       queryText: summaryResult?.usedSummary ? summaryResult.text : undefined,
     };
   }
 
-  private getSearchExtra(topK: number, excludePaths: string[] = []): number {
+  private getSearchExtra(
+    topK: number,
+    excludePaths: string[] = [],
+    excludeChunkIds: string[] = []
+  ): number {
     const mutedCount = this.documentIndexer ? this.documentIndexer.getMutedPaths().size : 0;
-    return mutedCount + excludePaths.length + topK;
+    return mutedCount + excludePaths.length + excludeChunkIds.length + topK;
   }
 
   private async searchWithBackfill(
     embedding: number[],
     topK: number,
-    excludePaths: string[] = []
+    excludePaths: string[] = [],
+    excludeChunkIds: string[] = []
   ): Promise<LocalSearchResult[]> {
     const targetCount = Math.max(1, topK);
     const batchSize = Math.max(targetCount, 10);
     let requestedCount = Math.min(
       SEARCH_RESULT_EXPANSION_LIMIT,
-      targetCount + this.getSearchExtra(targetCount, excludePaths)
+      targetCount + this.getSearchExtra(targetCount, excludePaths, excludeChunkIds)
     );
     let lastRawCount = -1;
 
     while (requestedCount <= SEARCH_RESULT_EXPANSION_LIMIT) {
       const rawResults = await this.vectorStore.search(embedding, requestedCount);
-      const filteredResults = this.filterAndFormat(rawResults, targetCount, excludePaths);
+      const filteredResults = this.filterAndFormat(rawResults, targetCount, excludePaths, excludeChunkIds);
       if (filteredResults.length >= targetCount) {
         return filteredResults;
       }
@@ -131,26 +155,35 @@ export class LocalSemanticSearch {
     }
 
     const rawResults = await this.vectorStore.search(embedding, SEARCH_RESULT_EXPANSION_LIMIT);
-    return this.filterAndFormat(rawResults, targetCount, excludePaths);
+    return this.filterAndFormat(rawResults, targetCount, excludePaths, excludeChunkIds);
   }
 
   private filterAndFormat(
     results: SearchResult[],
     topK: number,
-    excludePaths: string[] = []
+    excludePaths: string[] = [],
+    excludeChunkIds: string[] = []
   ): LocalSearchResult[] {
     const mutedPaths = this.documentIndexer?.getMutedPaths() ?? new Set<string>();
     const excluded = new Set(excludePaths);
+    const excludedChunks = new Set(excludeChunkIds);
     const filtered = results.filter((r) => {
       const path = r.metadata?.path;
-      return !mutedPaths.has(path) && !excluded.has(path);
+      return !mutedPaths.has(path) && !excluded.has(path) && !excludedChunks.has(r.chunkId);
     });
     return filtered.slice(0, topK).map((r) => ({
+      chunkId: r.chunkId,
+      docId: r.metadata?.doc_id || r.metadata?.path || "",
+      path: r.metadata?.path || "",
       title: r.metadata?.title || "Untitled",
       content: r.content,
+      chunkIndex: r.metadata?.chunk_index ?? 0,
+      chunkCount: r.metadata?.chunk_count ?? 1,
+      sectionLabel: r.metadata?.section_label || "",
+      mtime: Number(r.metadata?.mtime) || 0,
+      distance: r.distance ?? r.score,
       source: "local",
       score: r.score,
-      path: r.metadata?.path,
     }));
   }
 }

@@ -6,6 +6,9 @@ import type {
   DiagnosticReport,
   DiagnosticSessionMarker,
   DiagnosticStage,
+  SemanticWalkExpandDiagnostic,
+  SemanticWalkExpandErrorCategory,
+  SemanticWalkExpandEventStage,
 } from "./diagnostic-types";
 import {
   createRedactor,
@@ -19,6 +22,21 @@ const PERSIST_CAPACITY = 50;
 const PERSIST_DEBOUNCE_MS = 2000;
 const MAX_MESSAGE_BYTES = 2048;
 const MAX_STACK_BYTES = 16384;
+const SEMANTIC_WALK_STAGES = new Set<SemanticWalkExpandEventStage>([
+  "start",
+  "success",
+  "error",
+  "fallback",
+]);
+const SEMANTIC_WALK_ERROR_CATEGORIES = new Set<SemanticWalkExpandErrorCategory>([
+  "none",
+  "chunk-missing",
+  "chunk-read",
+  "service-unavailable",
+  "embedding",
+  "query",
+  "unknown",
+]);
 
 export class DiagnosticRecorder {
   private readonly options: DiagnosticRecorderOptions;
@@ -254,6 +272,46 @@ export class DiagnosticRecorder {
     context?: Record<string, string | number | boolean | null>
   ): void {
     this.recordEvent("debug", stage, code, message, context);
+  }
+
+  recordSemanticWalkExpand(details: SemanticWalkExpandDiagnostic): void {
+    try {
+      const stage = SEMANTIC_WALK_STAGES.has(details.stage) ? details.stage : "error";
+      const errorCategory = SEMANTIC_WALK_ERROR_CATEGORIES.has(details.errorCategory)
+        ? details.errorCategory
+        : "unknown";
+      const model = /^[A-Za-z0-9._/@+-]{1,128}$/.test(details.model) ? details.model : "unknown";
+      const distanceRange = details.distanceRange === "none"
+        || (typeof details.distanceRange === "string"
+          && details.distanceRange.length <= 64
+          && /^\d+(?:\.\d{1,6})?\.\.\d+(?:\.\d{1,6})?$/.test(details.distanceRange))
+        ? details.distanceRange
+        : "none";
+      const context: Record<string, string | number | boolean | null> = {
+        chunkId: `chunk:${this.redactor.fileHash(String(details.chunkId || "unknown"))}`,
+        stage,
+        durationMs: Math.min(86_400_000, this.nonNegativeFinite(details.durationMs)),
+        candidateCount: Math.min(40, Math.floor(this.nonNegativeFinite(details.candidateCount))),
+        model,
+        usedEmbeddingFallback: Boolean(details.usedEmbeddingFallback),
+        distanceRange,
+        errorCategory,
+      };
+      const level: DiagnosticLevel = stage === "error" ? "error" : stage === "fallback" ? "warn" : "info";
+      this.recordEvent(
+        level,
+        "semantic-walk.expand",
+        `semantic-walk.expand.${stage}`,
+        `Semantic walk expansion ${stage}`,
+        context,
+      );
+    } catch {
+      // Diagnostics are best effort and must never interrupt semantic exploration.
+    }
+  }
+
+  private nonNegativeFinite(value: unknown): number {
+    return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : 0;
   }
 
   captureException(

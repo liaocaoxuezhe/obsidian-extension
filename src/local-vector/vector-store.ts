@@ -7,8 +7,32 @@ type ChromaApiVersion = "v1" | "v2";
 export interface SearchResult {
   chunkId: string;
   content: string;
+  distance: number;
   score: number;
   metadata: any;
+}
+
+export interface DocumentChunk {
+  chunkId: string;
+  content: string;
+  embedding: number[];
+  chunkIndex: number;
+  chunkCount: number;
+  sectionLabel: string;
+}
+
+export interface ChromaGetOptions {
+  ids?: string[];
+  where?: Record<string, unknown>;
+  includeDocuments?: boolean;
+  includeEmbedding?: boolean;
+}
+
+export interface ChromaGetResponse {
+  ids?: string[] | string[][];
+  documents?: (string | null)[] | (string | null)[][];
+  metadatas?: any[] | any[][];
+  embeddings?: number[][] | number[][][];
 }
 
 export interface IndexedDocumentEntry {
@@ -64,7 +88,7 @@ export class LocalVectorStore {
 
   async upsertDocument(
     docId: string,
-    chunks: Array<{ chunkId: string; content: string; embedding: number[] }>,
+    chunks: DocumentChunk[],
     metadata: { title: string; path: string; mtime: number }
   ): Promise<void> {
     await this.ensureCollectionReady();
@@ -74,7 +98,13 @@ export class LocalVectorStore {
       ids: chunks.map((c) => c.chunkId),
       documents: chunks.map((c) => c.content),
       embeddings: chunks.map((c) => c.embedding),
-      metadatas: chunks.map(() => ({ ...metadata, doc_id: docId })),
+      metadatas: chunks.map((chunk) => ({
+        ...metadata,
+        doc_id: docId,
+        chunk_index: chunk.chunkIndex,
+        chunk_count: chunk.chunkCount,
+        section_label: chunk.sectionLabel,
+      })),
     });
   }
 
@@ -103,6 +133,7 @@ export class LocalVectorStore {
     return ids.map((id, index) => ({
       chunkId: id,
       content: documents[index] || "",
+      distance: distances[index] ?? 0,
       score: distances[index] ?? 0,
       metadata: metadatas[index] || {},
     }));
@@ -111,6 +142,19 @@ export class LocalVectorStore {
   async count(): Promise<number> {
     await this.ensureCollectionReady();
     return await this.requestJson<number>("GET", this.collectionPath("/count"));
+  }
+
+  async getChunks(options: ChromaGetOptions = {}): Promise<ChromaGetResponse> {
+    await this.ensureCollectionReady();
+    return await this.requestJson<ChromaGetResponse>("POST", this.collectionPath("/get"), {
+      ...(options.ids ? { ids: options.ids } : {}),
+      ...(options.where ? { where: options.where } : {}),
+      include: [
+        ...(options.includeDocuments === false ? [] : ["documents"]),
+        "metadatas",
+        ...(options.includeEmbedding ? ["embeddings"] : []),
+      ],
+    });
   }
 
   async listIndexedDocs(): Promise<string[]> {

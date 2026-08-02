@@ -51,6 +51,1098 @@
 	}
 }
 
+/* Semantic Walk keeps Obsidian's visual grammar while adding a quiet map-like spatial layer. */
+@layer components {
+	.semantic-walk-canvas {
+		--semantic-walk-node-width: 414px;
+		--semantic-walk-node-height: 276px;
+		position: relative;
+		box-sizing: border-box;
+		width: 100%;
+		height: 100%;
+		min-height: 420px;
+		overflow: hidden;
+		isolation: isolate;
+		border: 1px solid var(--background-modifier-border);
+		border-radius: var(--radius-l);
+		background-color: var(--background-primary-alt);
+		box-shadow: inset 0 1px 0 var(--background-modifier-hover);
+		color: var(--text-normal);
+		font-family: var(--font-interface);
+		cursor: grab;
+		touch-action: none;
+		user-select: none;
+	}
+
+	.semantic-walk-canvas:active,
+	.semantic-walk-canvas.is-panning {
+		cursor: grabbing;
+	}
+
+	.semantic-walk-canvas__atmosphere {
+		position: absolute;
+		inset: 0;
+		z-index: 0;
+		pointer-events: none;
+		background-image: radial-gradient(circle at center, var(--background-modifier-border) 1px, transparent 1.2px);
+		background-size: 22px 22px;
+		opacity: 0.58;
+	}
+
+	.semantic-walk-scene {
+		position: absolute;
+		inset: 0 auto auto 0;
+		z-index: 1;
+		width: 1px;
+		height: 1px;
+		transform-origin: 0 0;
+		will-change: transform;
+	}
+
+	.semantic-walk-scene.is-centering {
+		transition: transform 180ms ease-out;
+	}
+
+	.semantic-walk-edges,
+	.semantic-walk-nodes {
+		position: absolute;
+		inset: 0 auto auto 0;
+		overflow: visible;
+	}
+
+	.semantic-walk-edges {
+		pointer-events: none;
+	}
+
+	.semantic-walk-edge {
+		fill: none;
+		stroke: var(--text-faint);
+		stroke-width: 1.25;
+		stroke-linecap: round;
+		opacity: 0.72;
+	}
+
+	.semantic-walk-edge.is-strong {
+		stroke: var(--interactive-accent);
+		stroke-width: 2;
+		opacity: 0.88;
+	}
+
+	.semantic-walk-edge.is-exploratory {
+		stroke: var(--background-modifier-border-hover);
+		stroke-dasharray: 5 7;
+		opacity: 0.64;
+	}
+
+	.semantic-walk-node {
+		position: absolute;
+		inset: 0 auto auto 0;
+		display: flex;
+		flex-direction: column;
+		box-sizing: border-box;
+		width: var(--semantic-walk-node-width);
+		height: var(--semantic-walk-node-height);
+		padding: 10px 11px 9px;
+		overflow: hidden;
+		border: 1px solid var(--background-modifier-border);
+		border-radius: var(--radius-m);
+		background: var(--background-primary);
+		box-shadow: var(--shadow-s);
+		color: var(--text-normal);
+		cursor: default;
+		text-align: left;
+		transform-origin: center;
+		transition: border-color 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+	}
+
+	.semantic-walk-node:hover {
+		border-color: var(--background-modifier-border-hover);
+		box-shadow: var(--shadow-l);
+	}
+
+	.semantic-walk-node:focus-visible {
+		outline: 2px solid var(--interactive-accent);
+		outline-offset: 3px;
+	}
+
+	.semantic-walk-node.is-focus {
+		border: 2px solid var(--interactive-accent);
+		padding: 9px 10px 8px;
+		box-shadow: 0 0 0 3px var(--background-modifier-active-hover), var(--shadow-l);
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--interactive-accent) 18%, transparent), var(--shadow-l);
+	}
+
+	.semantic-walk-node.is-focus::before {
+		content: "";
+		position: absolute;
+		inset: 0 auto 0 0;
+		width: 3px;
+		background: var(--interactive-accent);
+	}
+
+	.semantic-walk-node.is-visited {
+		color: var(--text-normal);
+	}
+
+	.semantic-walk-node.is-candidate {
+		color: var(--text-normal);
+	}
+
+	.semantic-walk-node.is-candidate:hover {
+		background: var(--background-primary);
+	}
+
+	.semantic-walk-node.is-error {
+		border-color: var(--background-modifier-error-hover);
+		background: var(--background-modifier-error);
+	}
+
+	.semantic-walk-node.is-stale,
+	.semantic-walk-node.is-missing {
+		filter: grayscale(1);
+		opacity: 0.68;
+		background: var(--background-secondary);
+	}
+
+	.semantic-walk-node.is-loading {
+		cursor: progress;
+	}
+
+	.semantic-walk-node__header {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		min-height: 20px;
+		text-align: left;
+	}
+
+	.semantic-walk-node__source {
+		display: inline-flex;
+		align-items: flex-start;
+		flex: 1 1 auto;
+		gap: 7px;
+		min-width: 0;
+		max-width: 100%;
+		margin: 0;
+		padding: 2px 0;
+		border: 0;
+		background: transparent;
+		box-shadow: none;
+		color: var(--text-normal);
+		font: inherit;
+		font-size: var(--font-ui-small);
+		font-weight: var(--font-semibold);
+		line-height: 1.3;
+		text-align: left;
+	}
+
+	.semantic-walk-node__source:not(:disabled):hover {
+		background: transparent;
+		color: var(--interactive-accent);
+	}
+
+	.semantic-walk-node__source:disabled {
+		opacity: 1;
+	}
+
+	.semantic-walk-node__source > span:last-child {
+		display: -webkit-box;
+		overflow: hidden;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		white-space: normal;
+	}
+
+	.semantic-walk-node__source-mark {
+		flex: 0 0 auto;
+		margin-top: 3px;
+		width: 8px;
+		height: 8px;
+		border: 2px solid var(--text-muted);
+		border-radius: 50%;
+		box-shadow: 0 0 0 2px var(--background-primary);
+	}
+
+	.semantic-walk-node.is-focus .semantic-walk-node__source-mark {
+		border-color: var(--interactive-accent);
+	}
+
+	.semantic-walk-node__meta {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		margin-top: 4px;
+		min-height: 15px;
+		color: var(--text-faint);
+		font-size: var(--font-ui-smaller);
+		text-align: left;
+	}
+
+	.semantic-walk-node__meta > span {
+		display: inline-flex;
+		align-items: center;
+		white-space: nowrap;
+	}
+
+	.semantic-walk-node__meta > span + span::before {
+		content: "·";
+		margin-right: 6px;
+		color: var(--background-modifier-border-hover);
+	}
+
+	.semantic-walk-node__status {
+		color: var(--text-muted);
+	}
+
+	.semantic-walk-node__status[data-status="focus"] {
+		color: var(--interactive-accent);
+		font-weight: var(--font-semibold);
+	}
+
+	.semantic-walk-node__status[data-status="error"] {
+		color: var(--text-error);
+	}
+
+	.semantic-walk-node__section {
+		display: -webkit-box;
+		margin-top: 5px;
+		overflow: hidden;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+		color: var(--text-muted);
+		font-family: var(--font-text);
+		font-size: var(--font-ui-small);
+		font-weight: var(--font-medium);
+		line-height: 1.3;
+		text-align: left;
+	}
+
+	.semantic-walk-node__content {
+		display: -webkit-box;
+		flex: 1 1 auto;
+		margin-top: 5px;
+		overflow: hidden;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 8;
+		color: var(--text-normal);
+		font-family: var(--font-text);
+		font-size: var(--font-ui-small);
+		line-height: 1.4;
+		text-align: left;
+		user-select: text;
+	}
+
+	.semantic-walk-node.is-candidate .semantic-walk-node__content {
+		color: var(--text-normal);
+	}
+
+	.semantic-walk-node__notice {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		margin-top: 6px;
+		padding: 5px 7px;
+		border-radius: var(--radius-s);
+		background: var(--background-secondary);
+		color: var(--text-muted);
+		font-size: var(--font-ui-smaller);
+		line-height: 1.25;
+	}
+
+	.semantic-walk-node__notice.is-error {
+		background: var(--background-modifier-error);
+		color: var(--text-error);
+	}
+
+	.semantic-walk-node__spinner {
+		width: 10px;
+		height: 10px;
+		border: 1.5px solid var(--background-modifier-border-hover);
+		border-top-color: var(--interactive-accent);
+		border-radius: 50%;
+		animation: semantic-walk-spin 700ms linear infinite;
+	}
+
+	.semantic-walk-node__actions {
+		display: flex;
+		align-items: center;
+		gap: 5px;
+		margin-top: auto;
+		padding-top: 6px;
+		border-top: 1px solid var(--background-modifier-border);
+	}
+
+	.semantic-walk-node__actions button {
+		height: 24px;
+		margin: 0;
+		padding: 0 8px;
+		border: 1px solid var(--background-modifier-border);
+		background: var(--background-secondary);
+		box-shadow: none;
+		color: var(--text-muted);
+		font-size: var(--font-ui-smaller);
+		text-align: left;
+	}
+
+	.semantic-walk-node__actions button:not(:disabled):hover {
+		border-color: var(--background-modifier-border);
+		background: var(--background-modifier-hover);
+		color: var(--text-normal);
+	}
+
+	.semantic-walk-node__actions button:first-child:not(:disabled) {
+		border-color: var(--background-modifier-border-hover);
+		background: var(--background-modifier-active-hover);
+		background: color-mix(in srgb, var(--interactive-accent) 10%, var(--background-primary));
+		color: var(--interactive-accent);
+	}
+
+	.semantic-walk-node.is-compact {
+		height: 168px;
+	}
+
+	.semantic-walk-node.is-compact .semantic-walk-node__content,
+	.semantic-walk-node.is-compact .semantic-walk-node__actions,
+	.semantic-walk-node.is-compact .semantic-walk-node__notice {
+		display: none;
+	}
+
+	.semantic-walk-node.is-compact .semantic-walk-node__section {
+		margin-top: 8px;
+		white-space: normal;
+		display: -webkit-box;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 2;
+	}
+
+	.semantic-walk-preview {
+		position: absolute;
+		inset: 0;
+		z-index: 8;
+		display: grid;
+		place-items: center;
+		box-sizing: border-box;
+		padding: 24px;
+		background: color-mix(in srgb, var(--background-primary) 64%, transparent);
+		cursor: default;
+		touch-action: auto;
+		user-select: text;
+	}
+
+	.semantic-walk-preview__dialog {
+		display: flex;
+		flex-direction: column;
+		box-sizing: border-box;
+		width: min(720px, 100%);
+		max-height: 100%;
+		padding: 20px;
+		overflow: hidden;
+		border: 1px solid var(--background-modifier-border);
+		border-radius: var(--radius-l);
+		background: var(--background-primary);
+		box-shadow: var(--shadow-l);
+		color: var(--text-normal);
+	}
+
+	.semantic-walk-preview__header {
+		display: flex;
+		align-items: flex-start;
+		gap: 16px;
+		padding-bottom: 12px;
+		border-bottom: 1px solid var(--background-modifier-border);
+	}
+
+	.semantic-walk-preview__header h2 {
+		flex: 1 1 auto;
+		min-width: 0;
+		margin: 0;
+		color: var(--text-normal);
+		font-family: var(--font-interface);
+		font-size: var(--font-ui-medium);
+		line-height: 1.4;
+		text-align: left;
+	}
+
+	.semantic-walk-preview__close {
+		flex: 0 0 auto;
+		width: 30px;
+		height: 30px;
+		margin: 0;
+		padding: 0;
+		border: 1px solid var(--background-modifier-border);
+		border-radius: 50%;
+		background: var(--background-secondary);
+		box-shadow: none;
+		color: var(--text-muted);
+		font-size: 20px;
+		line-height: 1;
+		text-align: center;
+	}
+
+	.semantic-walk-preview__close:hover {
+		background: var(--background-modifier-hover);
+		color: var(--text-normal);
+	}
+
+	.semantic-walk-preview__close:focus-visible {
+		outline: 2px solid var(--interactive-accent);
+		outline-offset: 2px;
+	}
+
+	.semantic-walk-preview__section {
+		margin-top: 14px;
+		color: var(--text-muted);
+		font-family: var(--font-interface);
+		font-size: var(--font-ui-small);
+		font-weight: var(--font-medium);
+		line-height: 1.4;
+		text-align: left;
+	}
+
+	.semantic-walk-preview__content {
+		margin-top: 14px;
+		overflow: auto;
+		overscroll-behavior: contain;
+		color: var(--text-normal);
+		font-family: var(--font-text);
+		font-size: var(--font-ui-small);
+		line-height: 1.65;
+		text-align: left;
+		white-space: pre-wrap;
+		word-break: break-word;
+	}
+
+	.semantic-walk-toolbar {
+		position: absolute;
+		top: 12px;
+		left: 12px;
+		right: auto;
+		max-width: calc(100% - 24px);
+		z-index: 5;
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
+		flex-wrap: wrap;
+		gap: 10px;
+		pointer-events: none;
+	}
+
+	.semantic-walk-toolbar__identity,
+	.semantic-walk-toolbar__controls,
+	.semantic-walk-toolbar__group {
+		display: inline-flex;
+		align-items: center;
+	}
+
+	.semantic-walk-toolbar__identity {
+		gap: 8px;
+		height: 32px;
+		padding: 0 10px;
+		border: 1px solid var(--background-modifier-border);
+		border-radius: var(--radius-m);
+		background: var(--background-primary);
+		box-shadow: var(--shadow-s);
+		color: var(--text-muted);
+		font-size: var(--font-ui-smaller);
+		font-weight: var(--font-medium);
+		letter-spacing: 0.02em;
+		pointer-events: auto;
+	}
+
+	.semantic-walk-toolbar__beacon {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: var(--interactive-accent);
+		box-shadow: 0 0 0 3px var(--background-modifier-active-hover);
+	}
+
+	.semantic-walk-toolbar__controls {
+		gap: 7px;
+		flex-wrap: wrap;
+		pointer-events: auto;
+	}
+
+	.semantic-walk-toolbar__group {
+		overflow: hidden;
+		border: 1px solid var(--background-modifier-border);
+		border-radius: var(--radius-m);
+		background: var(--background-primary);
+		box-shadow: var(--shadow-s);
+	}
+
+	.semantic-walk-toolbar__button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 32px;
+		height: 32px;
+		margin: 0;
+		padding: 0;
+		border: 0;
+		border-radius: 0;
+		background: transparent;
+		box-shadow: none;
+		color: var(--text-muted);
+		font-family: var(--font-interface);
+		font-size: 16px;
+		line-height: 1;
+	}
+
+	.semantic-walk-toolbar__mode {
+		height: 32px;
+		margin: 0;
+		padding: 0 9px;
+		border: 0;
+		border-radius: 0;
+		background: transparent;
+		box-shadow: none;
+		color: var(--text-muted);
+		font-family: var(--font-interface);
+		font-size: var(--font-ui-smaller);
+	}
+
+	.semantic-walk-toolbar__mode[aria-pressed="true"] {
+		background: var(--background-modifier-active-hover);
+		color: var(--text-normal);
+	}
+
+	.semantic-walk-toolbar__mode:not(:disabled):hover {
+		background: var(--background-modifier-hover);
+		color: var(--text-normal);
+	}
+
+	.semantic-walk-toolbar__mode:focus-visible {
+		position: relative;
+		z-index: 1;
+		outline: 2px solid var(--interactive-accent);
+		outline-offset: -2px;
+	}
+
+	.semantic-walk-toolbar__button + .semantic-walk-toolbar__button {
+		border-left: 1px solid var(--background-modifier-border);
+	}
+
+	.semantic-walk-toolbar__button:not(:disabled):hover {
+		background: var(--background-modifier-hover);
+		color: var(--text-normal);
+	}
+
+	.semantic-walk-toolbar__button:focus-visible {
+		position: relative;
+		z-index: 1;
+		outline: 2px solid var(--interactive-accent);
+		outline-offset: -2px;
+	}
+
+	.semantic-walk-toolbar__button:disabled {
+		color: var(--text-faint);
+		cursor: not-allowed;
+		opacity: 0.55;
+	}
+
+	.semantic-walk-toolbar__button svg {
+		width: 15px;
+		height: 15px;
+		fill: none;
+		stroke: currentColor;
+		stroke-width: 1.5;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+
+	.semantic-walk-toolbar__zoom {
+		width: 54px;
+		font-size: var(--font-ui-smaller);
+		font-variant-numeric: tabular-nums;
+	}
+
+	.semantic-walk-canvas__empty {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		z-index: 2;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 6px;
+		width: min(320px, calc(100% - 48px));
+		padding: 22px;
+		color: var(--text-muted);
+		text-align: center;
+		transform: translate(-50%, -50%);
+	}
+
+	.semantic-walk-canvas__empty strong {
+		color: var(--text-normal);
+		font-size: var(--font-ui-medium);
+		font-weight: var(--font-semibold);
+	}
+
+	.semantic-walk-canvas__empty-mark {
+		position: relative;
+		width: 34px;
+		height: 34px;
+		margin-bottom: 6px;
+		border: 1px solid var(--background-modifier-border-hover);
+		border-radius: 50%;
+	}
+
+	.semantic-walk-canvas__empty-mark::before,
+	.semantic-walk-canvas__empty-mark::after {
+		content: "";
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		border-radius: 50%;
+		background: var(--interactive-accent);
+		transform: translate(-50%, -50%);
+	}
+
+	.semantic-walk-canvas__empty-mark::before {
+		width: 7px;
+		height: 7px;
+	}
+
+	.semantic-walk-canvas__empty-mark::after {
+		width: 18px;
+		height: 1px;
+		border-radius: 0;
+	}
+
+	.semantic-walk-canvas__hint {
+		position: absolute;
+		right: 14px;
+		bottom: 12px;
+		z-index: 4;
+		padding: 4px 7px;
+		border-radius: var(--radius-s);
+		background: var(--background-primary);
+		color: var(--text-faint);
+		font-size: var(--font-ui-smaller);
+		pointer-events: none;
+	}
+
+	.semantic-walk-workspace {
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		min-height: 0;
+	}
+
+	.semantic-walk-workspace > .semantic-walk-view {
+		flex: 1 1 auto;
+		height: auto;
+		min-height: 0;
+	}
+
+	.semantic-walk-view {
+		position: relative;
+		height: 100%;
+		min-height: 420px;
+		display: flex;
+		flex-direction: column;
+		box-sizing: border-box;
+		gap: 10px;
+		overflow: hidden;
+		padding: 12px;
+		background: var(--background-primary);
+		color: var(--text-normal);
+		font-family: var(--font-interface);
+	}
+
+	.semantic-walk-view__canvas,
+	.semantic-walk-view__canvas > .semantic-walk-canvas {
+		min-height: 0;
+	}
+
+	.semantic-walk-view__canvas {
+		position: relative;
+		display: flex;
+		flex: 1 1 auto;
+	}
+
+	.semantic-walk-view__canvas > .semantic-walk-canvas {
+		flex: 1 1 auto;
+		height: auto;
+	}
+
+	.semantic-walk-view__header {
+		position: relative;
+		z-index: 6;
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
+		flex: 0 0 auto;
+		flex-wrap: wrap;
+		gap: 12px;
+	}
+
+	.semantic-walk-view__summary,
+	.semantic-walk-view__actions {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+
+	.semantic-walk-view__summary h2 {
+		margin: 0;
+		color: var(--text-normal);
+		font-size: var(--font-ui-medium);
+		font-weight: var(--font-semibold);
+		line-height: 1.3;
+	}
+
+	.semantic-walk-view__summary > span {
+		color: var(--text-muted);
+		font-size: var(--font-ui-smaller);
+	}
+
+	.semantic-walk-view__actions {
+		margin-right: auto;
+	}
+
+	.semantic-walk-view__feedback {
+		position: absolute;
+		left: 50%;
+		bottom: 14px;
+		z-index: 9;
+		max-width: min(560px, calc(100% - 48px));
+		margin: 0;
+		padding: 7px 10px;
+		border: 1px solid var(--background-modifier-error-hover);
+		border-radius: var(--radius-m);
+		background: var(--background-primary);
+		box-shadow: var(--shadow-s);
+		color: var(--text-error);
+		font-size: var(--font-ui-small);
+		line-height: 1.4;
+		text-align: center;
+		transform: translateX(-50%);
+	}
+
+	.semantic-walk-view__actions button,
+	.semantic-walk-picker button,
+	.semantic-walk-empty button {
+		margin: 0;
+		border: 1px solid var(--background-modifier-border);
+		background: var(--background-primary);
+		box-shadow: none;
+		color: var(--text-muted);
+		font-family: var(--font-interface);
+	}
+
+	.semantic-walk-view__actions button {
+		height: 30px;
+		padding: 0 10px;
+		border-radius: var(--radius-s);
+		font-size: var(--font-ui-smaller);
+	}
+
+	.semantic-walk-view__actions button:first-child:not(:disabled) {
+		border-color: var(--background-modifier-border-hover);
+		background: var(--background-modifier-active-hover);
+		background: color-mix(in srgb, var(--interactive-accent) 10%, var(--background-primary));
+		color: var(--interactive-accent);
+	}
+
+	.semantic-walk-view__actions button:not(:disabled):hover,
+	.semantic-walk-picker button:not(:disabled):hover,
+	.semantic-walk-empty button:not(:disabled):hover {
+		border-color: var(--background-modifier-border-hover);
+		background: var(--background-modifier-hover);
+		color: var(--text-normal);
+	}
+
+	.semantic-walk-empty {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		z-index: 6;
+		width: min(680px, calc(100% - 48px));
+		padding: 28px;
+		border: 1px solid var(--background-modifier-border);
+		border-radius: var(--radius-l);
+		background: var(--background-primary);
+		box-shadow: var(--shadow-l);
+		text-align: center;
+		transform: translate(-50%, -50%);
+	}
+
+	.semantic-walk-empty__beacon {
+		display: inline-block;
+		width: 12px;
+		height: 12px;
+		border: 3px solid var(--interactive-accent);
+		border-radius: 50%;
+		box-shadow: 0 0 0 6px var(--background-modifier-active-hover);
+	}
+
+	.semantic-walk-empty__eyebrow {
+		margin: 15px 0 4px;
+		color: var(--interactive-accent);
+		font-size: var(--font-ui-smaller);
+		font-weight: var(--font-semibold);
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+	}
+
+	.semantic-walk-empty h2 {
+		margin: 0;
+		color: var(--text-normal);
+		font-size: var(--font-ui-large);
+	}
+
+	.semantic-walk-empty__description,
+	.semantic-walk-empty__feedback {
+		margin: 8px 0 0;
+		color: var(--text-muted);
+		font-size: var(--font-ui-small);
+	}
+
+	.semantic-walk-empty__entries {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 10px;
+		margin-top: 22px;
+	}
+
+	.semantic-walk-empty__entries button {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 5px;
+		min-height: 84px;
+		padding: 13px;
+		text-align: left;
+	}
+
+	.semantic-walk-empty__entries strong {
+		color: var(--text-normal);
+		font-size: var(--font-ui-small);
+	}
+
+	.semantic-walk-empty__entries span {
+		color: var(--text-faint);
+		font-size: var(--font-ui-smaller);
+		line-height: 1.35;
+	}
+
+	.semantic-walk-picker {
+		position: absolute;
+		top: 10px;
+		right: 10px;
+		bottom: 10px;
+		z-index: 10;
+		display: flex;
+		flex-direction: column;
+		box-sizing: border-box;
+		width: min(380px, calc(100% - 20px));
+		overflow: hidden;
+		border: 1px solid var(--background-modifier-border);
+		border-radius: var(--radius-l);
+		background: var(--background-primary);
+		box-shadow: var(--shadow-l);
+	}
+
+	.semantic-walk-picker__header,
+	.semantic-walk-picker__chunk-meta,
+	.semantic-walk-picker__actions,
+	.semantic-walk-picker__search form {
+		display: flex;
+		align-items: center;
+	}
+
+	.semantic-walk-picker__header {
+		justify-content: space-between;
+		padding: 14px;
+		border-bottom: 1px solid var(--background-modifier-border);
+	}
+
+	.semantic-walk-picker__header > div {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	.semantic-walk-picker__header span,
+	.semantic-walk-picker__browser label > span {
+		color: var(--text-faint);
+		font-size: var(--font-ui-smaller);
+	}
+
+	.semantic-walk-picker__header button {
+		width: 30px;
+		height: 30px;
+		padding: 0;
+		font-size: 18px;
+	}
+
+	.semantic-walk-picker__tabs {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		padding: 8px;
+		border-bottom: 1px solid var(--background-modifier-border);
+	}
+
+	.semantic-walk-picker__tabs button {
+		border-radius: 0;
+		font-size: var(--font-ui-smaller);
+	}
+
+	.semantic-walk-picker__tabs button[aria-pressed="true"] {
+		background: var(--background-modifier-active-hover);
+		color: var(--interactive-accent);
+		font-weight: var(--font-semibold);
+	}
+
+	.semantic-walk-picker__browser,
+	.semantic-walk-picker__search {
+		display: flex;
+		flex: 1 1 auto;
+		flex-direction: column;
+		min-height: 0;
+		padding: 12px;
+	}
+
+	.semantic-walk-picker__browser label {
+		display: flex;
+		flex-direction: column;
+		gap: 5px;
+	}
+
+	.semantic-walk-picker select,
+	.semantic-walk-picker input {
+		width: 100%;
+		border-color: var(--background-modifier-border);
+		background: var(--background-primary);
+		color: var(--text-normal);
+	}
+
+	.semantic-walk-picker__search form {
+		gap: 6px;
+	}
+
+	.semantic-walk-picker__search form button {
+		flex: 0 0 auto;
+	}
+
+	.semantic-walk-picker__hint,
+	.semantic-walk-picker__status {
+		margin: 8px 12px;
+		color: var(--text-muted);
+		font-size: var(--font-ui-smaller);
+		line-height: 1.4;
+	}
+
+	.semantic-walk-picker__chunks {
+		flex: 1 1 auto;
+		margin: 10px 0 0;
+		padding: 0;
+		overflow: auto;
+		list-style: none;
+	}
+
+	.semantic-walk-picker__chunk {
+		margin-bottom: 8px;
+		padding: 11px;
+		border: 1px solid var(--background-modifier-border);
+		border-radius: var(--radius-m);
+		background: var(--background-primary-alt);
+	}
+
+	.semantic-walk-picker__chunk.is-highlighted {
+		border-color: var(--interactive-accent);
+		box-shadow: 0 0 0 2px var(--background-modifier-active-hover);
+	}
+
+	.semantic-walk-picker__chunk-meta {
+		justify-content: space-between;
+		gap: 8px;
+		color: var(--text-muted);
+		font-size: var(--font-ui-smaller);
+	}
+
+	.semantic-walk-picker__chunk-meta strong {
+		overflow: hidden;
+		color: var(--text-normal);
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.semantic-walk-picker__chunk p {
+		display: -webkit-box;
+		margin: 7px 0;
+		overflow: hidden;
+		-webkit-box-orient: vertical;
+		-webkit-line-clamp: 3;
+		color: var(--text-muted);
+		font-family: var(--font-text);
+		font-size: var(--font-ui-smaller);
+		line-height: 1.45;
+	}
+
+	.semantic-walk-picker__actions {
+		flex-wrap: wrap;
+		gap: 4px;
+	}
+
+	.semantic-walk-picker__actions button {
+		padding: 4px 7px;
+		font-size: var(--font-ui-smaller);
+	}
+
+	.semantic-walk-picker__actions button:last-child {
+		color: var(--interactive-accent);
+	}
+
+	@keyframes semantic-walk-spin {
+		to { transform: rotate(360deg); }
+	}
+
+	@media (max-width: 560px) {
+		.semantic-walk-toolbar__identity,
+		.semantic-walk-canvas__hint {
+			display: none;
+		}
+
+		.semantic-walk-toolbar {
+			left: 8px;
+			max-width: calc(100% - 16px);
+		}
+
+		.semantic-walk-view {
+			padding: 8px;
+		}
+
+		.semantic-walk-view__header {
+			gap: 8px;
+		}
+
+		.semantic-walk-empty__entries {
+			grid-template-columns: 1fr;
+		}
+
+		.semantic-walk-empty {
+			max-height: calc(100% - 32px);
+			overflow: auto;
+			padding: 20px;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.semantic-walk-node,
+		.semantic-walk-scene.is-centering {
+			transition: none;
+		}
+
+		.semantic-walk-node__spinner {
+			animation-duration: 1.4s;
+		}
+	}
+}
+
 @layer components {
 	.scroll-reveal {
 		opacity: 0;

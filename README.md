@@ -8,6 +8,7 @@ The plugin is desktop-only because it uses Node.js APIs, starts a local ChromaDB
 
 - Index Markdown notes into local vector chunks.
 - Search the current vault semantically from the Analogy side pane.
+- Explore related indexed chunks in a local Semantic Walk canvas.
 - Exclude folders or files from the local index.
 - Run ChromaDB locally on `127.0.0.1`.
 - Use the companion MCP server to let tools such as Claude Code or Cursor search approved vault content.
@@ -52,15 +53,25 @@ If you need the companion MCP server files too, download the full runtime zip fr
 5. Click Continue index or Rebuild index.
 6. Search your vault from the Analogy pane, or connect an MCP client to the bundled MCP server.
 
+### Semantic Walk
+
+Semantic Walk is a local, chunk-level exploration canvas in the main Obsidian workspace. Open it from the ribbon, the command palette, the current document, a sidebar search result, or a random indexed chunk.
+
+Expanding a node queries the existing local index on demand. Multiple chunks from the same Markdown document can remain on the canvas while you follow another branch. Use **New batch** to reset the graph and choose a new random root. Relationship labels are relative to the current candidate batch rather than an absolute similarity percentage.
+
+Indexes created by older Analogy versions may lack stable chunk identity, heading, or position metadata. Existing search remains compatible, but run **Rebuild index** to enable every Semantic Walk entry and obtain accurate chunk positioning.
+
 ## Privacy and data flow
 
 - Your vector index is stored locally in the plugin folder.
+- Semantic Walk reuses the local chunk index and embedding worker; it does not create a remote graph service or upload note content.
 - ChromaDB listens on `127.0.0.1` by default.
 - Markdown content is read from the current vault for indexing.
 - Embedding model files may be downloaded from the configured model host, which defaults to `https://hf-mirror.com/`.
 - Optional license validation may connect to your configured license server. License validation sends the license key, plugin version, a local device identifier, and a vault identifier. The plugin caches the license key locally so it can silently refresh the license about every 7 days. It does not upload note contents for license validation.
 - MCP clients can access search snippets only when you explicitly configure and run the MCP server.
 - Use `ANALOGY_ALLOWED_PATHS` to restrict which vault paths the MCP server can return.
+- Semantic Walk diagnostics contain only a hashed chunk identifier and allowlisted runtime metadata; they exclude chunk text, paths, queries, embeddings, and license keys.
 
 ## Development
 
