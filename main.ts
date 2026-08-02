@@ -13,7 +13,12 @@ import {OllamaClient} from "./src/local-vector/ollama-client";
 import {DEFAULT_SUMMARY_MODEL_KEY, SUMMARY_MODELS} from "./src/local-vector/summary-models";
 import {initLocalVectorServices, updateServiceState} from "./src/local-vector/search-instance";
 import {getLocalRuntimeStatus} from "./src/local-vector/runtime-dependencies";
-import {setLocale} from "./src/util/i18n";
+import {setLocale, t} from "./src/util/i18n";
+import {
+	SemanticWalkItemView,
+	type SemanticWalkOpenRequest,
+	VIEW_TYPE_SEMANTIC_WALK,
+} from "./src/semantic-walk/SemanticWalkItemView";
 import {refreshCachedLicense} from "./src/license/license-api";
 import {loadLicenseState, saveLicenseState} from "./src/license/license-store";
 import {getOrCreateDeviceId, getVaultId as getLicenseVaultId} from "./src/license/license-device";
@@ -37,6 +42,7 @@ export default class Analogy extends Plugin {
 	private initLocalServicesPromise: Promise<void> | null = null;
 	private diagnosticRecorder: DiagnosticRecorder | null = null;
 	private safeModeManager: SafeModeManager | null = null;
+	private semanticWalkActivationQueue: Promise<void> = Promise.resolve();
 
 	getSafeModeState(): SafeModeState {
 		return this.safeModeManager?.getState() ?? {
@@ -179,6 +185,7 @@ export default class Analogy extends Plugin {
 			VIEW_TYPE_INDEX,
 			(leaf) => new IndexView(leaf)
 		)
+		this.registerSemanticWalkFeatures();
 
 		addIcon('analogy-icon', icon);
 
@@ -550,6 +557,79 @@ export default class Analogy extends Plugin {
 		if (leaf) {
 			workspace.revealLeaf(leaf);
 		}
+	}
+
+	registerSemanticWalkFeatures(): void {
+		this.registerView(
+			VIEW_TYPE_SEMANTIC_WALK,
+			(leaf) => new SemanticWalkItemView(leaf, this.diagnosticRecorder),
+		);
+		this.addRibbonIcon(
+			"waypoints",
+			t("semanticWalk.viewName"),
+			() => this.activateSemanticWalk({type: "empty"}),
+		);
+		this.addCommand({
+			id: "semantic-walk-open",
+			name: t("semanticWalk.command.open"),
+			callback: () => this.activateSemanticWalk({type: "empty"}),
+		});
+		this.addCommand({
+			id: "semantic-walk-current-document",
+			name: t("semanticWalk.command.currentDocument"),
+			callback: () => {
+				const file = this.app.workspace.getActiveFile();
+				const path = file instanceof TFile && file.extension.toLowerCase() === "md"
+					? file.path
+					: "";
+				return this.activateSemanticWalk({type: "current-document", path});
+			},
+		});
+		this.addCommand({
+			id: "semantic-walk-random",
+			name: t("semanticWalk.command.random"),
+			callback: () => this.activateSemanticWalk({type: "random"}),
+		});
+	}
+
+	async activateSemanticWalk(request: SemanticWalkOpenRequest): Promise<void> {
+		const activation = this.semanticWalkActivationQueue.then(() => this.performSemanticWalkActivation(request));
+		this.semanticWalkActivationQueue = activation.catch(() => undefined);
+		return activation;
+	}
+
+	private async performSemanticWalkActivation(request: SemanticWalkOpenRequest): Promise<void> {
+		const {workspace} = this.app;
+		let leaf = workspace.getLeavesOfType(VIEW_TYPE_SEMANTIC_WALK)[0] ?? null;
+		if (!leaf) {
+			leaf = workspace.getLeaf("tab");
+			await leaf.setViewState({type: VIEW_TYPE_SEMANTIC_WALK, active: true});
+		}
+
+		let view = leaf.view as unknown;
+		if (!this.isSemanticWalkView(view)) {
+			await leaf.setViewState({type: VIEW_TYPE_SEMANTIC_WALK, active: true});
+			view = leaf.view as unknown;
+		}
+		if (!this.isSemanticWalkView(view)) {
+			throw new Error("Semantic walk view could not be initialized");
+		}
+		view.dispatchOpenRequest(request);
+		workspace.revealLeaf(leaf);
+	}
+
+	private isSemanticWalkView(view: unknown): view is {
+		getViewType(): string;
+		dispatchOpenRequest(request: SemanticWalkOpenRequest): void;
+	} {
+		if (!view || typeof view !== "object") return false;
+		const candidate = view as {
+			getViewType?: unknown;
+			dispatchOpenRequest?: unknown;
+		};
+		return typeof candidate.getViewType === "function"
+			&& candidate.getViewType.call(view) === VIEW_TYPE_SEMANTIC_WALK
+			&& typeof candidate.dispatchOpenRequest === "function";
 	}
 
 	async reload(plugin: string) {

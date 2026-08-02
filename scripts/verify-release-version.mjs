@@ -7,7 +7,7 @@ const tag = (process.argv[2] || "").trim();
 
 if (!/^\d+\.\d+\.\d+$/.test(tag)) {
   throw new Error(
-    `Release tag "${tag}" must be a bare semantic version such as 1.1.8`,
+    `Release tag "${tag}" must be a bare semantic version such as 1.2.3`,
   );
 }
 

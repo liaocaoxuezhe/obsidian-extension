@@ -1,4 +1,4 @@
-import { Copy, FileText, Plus, Shuffle } from "lucide-react"
+import { Copy, FileText, Plus, Shuffle, Waypoints } from "lucide-react"
 import { useEffect, useState } from "react"
 import { Textarea } from "./components/textarea";
 import { Button } from "./components/button";
@@ -43,6 +43,70 @@ function createTabId(): string {
 }
 
 type SearchMode = "query" | "document";
+type SemanticWalkChunkRequest = { type: "chunk"; chunkId: string };
+
+const ANALOGY_PLUGIN_ID = "analogy-rag-in-your-vault";
+
+export function getSearchResultKey(result: LocalSearchResult, index: number): string {
+	return result.chunkId || `${result.path || result.title}-${index}`;
+}
+
+export function openSemanticWalkFromResult(
+	event: { preventDefault?: () => void; stopPropagation: () => void },
+	result: LocalSearchResult,
+	onOpen: (request: SemanticWalkChunkRequest) => void,
+	available: boolean = Boolean(result.chunkId)
+): boolean {
+	stopSearchResultActionEvent(event);
+	if (!available || !result.chunkId) return false;
+	onOpen({ type: "chunk", chunkId: result.chunkId });
+	return true;
+}
+
+function getSemanticWalkFailureMessage(error: unknown): string {
+	const detail = error instanceof Error
+		? error.message
+		: typeof error === "string" && error.trim()
+			? error
+			: t("semanticWalk.sidebar.unknownError");
+	const translated = t("semanticWalk.sidebar.openFailed");
+	return translated.includes("{message}")
+		? translated.replace("{message}", detail)
+		: `${translated}${translated.includes(detail) ? "" : detail}`;
+}
+
+async function activateSemanticWalkRequest(
+	app: unknown,
+	request: SemanticWalkChunkRequest,
+	onFailure: (message: string) => void = () => undefined
+): Promise<boolean> {
+	const plugin = (app as any)?.plugins?.getPlugin?.(ANALOGY_PLUGIN_ID);
+	if (!plugin || typeof plugin.activateSemanticWalk !== "function") {
+		onFailure(t("semanticWalk.sidebar.pluginUnavailable"));
+		return false;
+	}
+	try {
+		await plugin.activateSemanticWalk(request);
+		return true;
+	} catch (error) {
+		onFailure(getSemanticWalkFailureMessage(error));
+		return false;
+	}
+}
+
+export async function activateSemanticWalkForResult(
+	app: unknown,
+	result: LocalSearchResult,
+	onFailure: (message: string) => void = () => undefined
+): Promise<boolean> {
+	if (!result.chunkId) return false;
+	return activateSemanticWalkRequest(app, { type: "chunk", chunkId: result.chunkId }, onFailure);
+}
+
+function stopSearchResultActionEvent(event: { preventDefault?: () => void; stopPropagation: () => void }): void {
+	event.preventDefault?.();
+	event.stopPropagation();
+}
 
 type SearchTabBarProps = {
 	tabs: SearchTab[];
@@ -171,6 +235,7 @@ type SearchPanelProps = {
 	onSummarySearch: () => void;
 	onOpenResult: (path: string) => void;
 	onExploreResult: (result: LocalSearchResult) => void;
+	onSemanticWalkResult: (request: SemanticWalkChunkRequest) => void;
 };
 
 function SearchPanel({
@@ -183,6 +248,7 @@ function SearchPanel({
 	onSummarySearch,
 	onOpenResult,
 	onExploreResult,
+	onSemanticWalkResult,
 }: SearchPanelProps) {
 	const [isSummaryHovered, setIsSummaryHovered] = useState(false);
 
@@ -313,12 +379,13 @@ function SearchPanel({
 					Loading("正在搜索...")
 				) : tab.results?.length ? (
 					tab.results.map((item, index) => (
-						<div className="pt-2" key={`${item.path || item.title}-${index}`}>
+						<div className="pt-2" key={getSearchResultKey(item, index)}>
 							<SearchResultCard
 								result={item}
 								serviceReady={serviceReady}
 								onOpen={onOpenResult}
 								onExplore={onExploreResult}
+								onSemanticWalk={onSemanticWalkResult}
 							/>
 						</div>
 					))
@@ -334,16 +401,25 @@ function SearchPanel({
 	);
 }
 
-type SearchResultCardProps = {
+export type SearchResultCardProps = {
 	result: LocalSearchResult;
 	serviceReady: boolean;
 	onOpen: (path: string) => void;
 	onExplore: (result: LocalSearchResult) => void;
+	onSemanticWalk: (request: SemanticWalkChunkRequest) => void;
 };
 
-function SearchResultCard({ result, serviceReady, onOpen, onExplore }: SearchResultCardProps) {
+export function SearchResultCard({ result, serviceReady, onOpen, onExplore, onSemanticWalk }: SearchResultCardProps) {
 	const [isExploreHovered, setIsExploreHovered] = useState(false);
+	const [isSemanticWalkHovered, setIsSemanticWalkHovered] = useState(false);
 	const exploreButtonOpacity = serviceReady ? (isExploreHovered ? 1 : 0.5) : 0.3;
+	const semanticWalkAvailable = serviceReady && Boolean(result.chunkId);
+	const semanticWalkButtonOpacity = semanticWalkAvailable ? (isSemanticWalkHovered ? 1 : 0.5) : 0.3;
+	const semanticWalkTitle = !result.chunkId
+		? t("semanticWalk.sidebar.legacyReindex")
+		: serviceReady
+			? t("semanticWalk.sidebar.open")
+			: t("semanticWalk.sidebar.unavailable");
 
 	return (
 		<Card
@@ -354,6 +430,43 @@ function SearchResultCard({ result, serviceReady, onOpen, onExplore }: SearchRes
 				}
 			}}
 		>
+			<button
+				type="button"
+				title={semanticWalkTitle}
+				aria-label={t("semanticWalk.sidebar.open")}
+				aria-disabled={!semanticWalkAvailable}
+				style={{
+					WebkitAppearance: "none",
+					alignItems: "center",
+					backgroundColor: "#ffffff",
+					border: "1px solid #e5e5e5",
+					borderRadius: "50%",
+					boxSizing: "border-box",
+					boxShadow: "0 1px 3px rgba(0, 0, 0, 0.14)",
+					color: "#222222",
+					cursor: semanticWalkAvailable ? "pointer" : "not-allowed",
+					display: "inline-flex",
+					height: "24px",
+					justifyContent: "center",
+					lineHeight: 0,
+					opacity: semanticWalkButtonOpacity,
+					padding: 0,
+					position: "absolute",
+					right: "40px",
+					top: "8px",
+					width: "24px",
+					zIndex: 10,
+				}}
+				onFocus={() => setIsSemanticWalkHovered(true)}
+				onBlur={() => setIsSemanticWalkHovered(false)}
+				onMouseEnter={() => setIsSemanticWalkHovered(true)}
+				onMouseLeave={() => setIsSemanticWalkHovered(false)}
+				onMouseDown={stopSearchResultActionEvent}
+				onPointerDown={stopSearchResultActionEvent}
+				onClick={(event) => openSemanticWalkFromResult(event, result, onSemanticWalk, semanticWalkAvailable)}
+			>
+				<Waypoints style={{ display: "block", width: "13px", height: "13px", flexShrink: 0 }} />
+			</button>
 			<button
 				type="button"
 				title="继续探索"
@@ -409,7 +522,7 @@ function SearchResultCard({ result, serviceReady, onOpen, onExplore }: SearchRes
 			>
 				<Shuffle style={{ display: "block", width: "13px", height: "13px", flexShrink: 0 }} />
 			</button>
-			<CardHeader className="py-2.5 pl-3" style={{ paddingRight: "40px" }}>
+			<CardHeader className="py-2.5 pl-3" style={{ paddingRight: "72px" }}>
 				<CardTitle className="text-sm truncate m-0 flex items-center gap-1.5">
 					<FileText className="w-4 h-4 shrink-0 text-[#444444]" />
 					<span className="truncate">{result.title}</span>
@@ -431,7 +544,8 @@ export const SmartConnection = ({ activeFile }) => {
 	const [serviceState, setServiceState] = useState<ServiceState>({ ...searchInstance.state })
 	const [, setLocaleVersion] = useState(0)
 	// @ts-ignore
-	const { workspace } = useApp()
+	const app = useApp()
+	const workspace = app?.workspace;
 	const serviceReady = serviceState.status === "ready";
 	const activeTab = tabs.find((tab) => tab.id === activeTabId) || tabs[0];
 
@@ -447,6 +561,7 @@ export const SmartConnection = ({ activeFile }) => {
 		query: string,
 		topK: number,
 		excludePaths: string[],
+		excludeChunkIds: string[],
 		useSummary: boolean = false
 	): SearchResultCacheKey | null => {
 		const trimmedQuery = query.trim();
@@ -458,6 +573,7 @@ export const SmartConnection = ({ activeFile }) => {
 				topK,
 				model: serviceState.activeModel,
 				excludePaths,
+				excludeChunkIds,
 			};
 		}
 		if (trimmedQuery !== "") {
@@ -469,6 +585,7 @@ export const SmartConnection = ({ activeFile }) => {
 				topK,
 				model: serviceState.activeModel,
 				excludePaths,
+				excludeChunkIds,
 			};
 		}
 		return null;
@@ -478,6 +595,7 @@ export const SmartConnection = ({ activeFile }) => {
 		tabId: string,
 		query: string,
 		excludePaths: string[],
+		excludeChunkIds: string[],
 		titleText?: string,
 		useSummary: boolean = false
 	) => {
@@ -506,7 +624,7 @@ export const SmartConnection = ({ activeFile }) => {
 			return;
 		}
 
-		const cacheKey = getSearchCacheKey(query, DEFAULT_TOP_K, excludePaths, useSummary);
+		const cacheKey = getSearchCacheKey(query, DEFAULT_TOP_K, excludePaths, excludeChunkIds, useSummary);
 		const cachedEntry = cacheKey ? searchResultCache.get(cacheKey) : null;
 		if (cachedEntry) {
 			updateTab(tabId, (tab) => ({
@@ -519,6 +637,7 @@ export const SmartConnection = ({ activeFile }) => {
 				documentQueryText: mode === "document" ? cachedEntry.queryText || "" : "",
 				isLoading: false,
 				excludedPaths: excludePaths,
+				excludedChunkIds: excludeChunkIds,
 				source: mode === "document" ? { type: "document", sourcePath: activeFile?.path } : tab.source,
 			}));
 			console.log(`${SEARCH_LOG_PREFIX} cache-hit`, mode === "document"
@@ -538,6 +657,7 @@ export const SmartConnection = ({ activeFile }) => {
 			query,
 			isLoading: true,
 			excludedPaths: excludePaths,
+			excludedChunkIds: excludeChunkIds,
 			title: mode === "document"
 				? createTabTitle(titleText || activeFile?.basename || activeFile?.name || activeFile?.path || "", tab.title)
 				: createTabTitle(trimmedQuery, tab.title),
@@ -551,7 +671,7 @@ export const SmartConnection = ({ activeFile }) => {
 				const response = await searchInstance.localSearch.searchByDocumentWithQueryText(
 					activeFile,
 					DEFAULT_TOP_K,
-					{ excludePaths, useSummary }
+					{ excludePaths, excludeChunkIds, useSummary }
 				);
 				results = response.results;
 				queryText = response.queryText || "";
@@ -559,7 +679,7 @@ export const SmartConnection = ({ activeFile }) => {
 				results = await searchInstance.localSearch.searchByQuery(
 					trimmedQuery,
 					DEFAULT_TOP_K,
-					{ excludePaths }
+					{ excludePaths, excludeChunkIds }
 				);
 			}
 			if (activeFile) {
@@ -625,7 +745,7 @@ export const SmartConnection = ({ activeFile }) => {
 		const nextTab = createDerivedSearchTab(createTabId(), activeTab, result);
 		setTabs((currentTabs) => [...currentTabs, nextTab]);
 		setActiveTabId(nextTab.id);
-		performSearchForTab(nextTab.id, nextTab.query, nextTab.excludedPaths);
+		performSearchForTab(nextTab.id, nextTab.query, nextTab.excludedPaths, nextTab.excludedChunkIds || []);
 	};
 
 	useEffect(() => {
@@ -663,10 +783,13 @@ export const SmartConnection = ({ activeFile }) => {
 					serviceReady={serviceReady}
 					summarySearchEnabled={serviceState.summarySearchEnabled}
 					onQueryChange={(value) => updateTab(activeTab.id, (tab) => ({ ...tab, query: value }))}
-					onSearch={(query) => performSearchForTab(activeTab.id, query, activeTab.excludedPaths)}
-					onSummarySearch={() => performSearchForTab(activeTab.id, "", activeTab.excludedPaths, undefined, true)}
-					onOpenResult={(path) => workspace.openLinkText(path, "", true)}
+					onSearch={(query) => performSearchForTab(activeTab.id, query, activeTab.excludedPaths, activeTab.excludedChunkIds || [])}
+					onSummarySearch={() => performSearchForTab(activeTab.id, "", activeTab.excludedPaths, activeTab.excludedChunkIds || [], undefined, true)}
+					onOpenResult={(path) => workspace?.openLinkText(path, "", true)}
 					onExploreResult={exploreResult}
+					onSemanticWalkResult={(request) => {
+						void activateSemanticWalkRequest(app, request, (message) => new Notice(message));
+					}}
 				/>
 			)}
 		</div>

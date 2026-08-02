@@ -11,6 +11,7 @@ export interface SearchResultCacheKey {
   query?: string;
   activePath?: string;
   excludePaths?: string[];
+  excludeChunkIds?: string[];
 }
 
 export interface SearchResultCacheValue {
@@ -28,6 +29,7 @@ function normalizeKey(key: SearchResultCacheKey): string {
     query: key.query || "",
     activePath: key.activePath || "",
     excludePaths: [...(key.excludePaths || [])].sort(),
+    excludeChunkIds: [...new Set(key.excludeChunkIds || [])].sort(),
   });
 }
 

@@ -4,6 +4,9 @@ const path = require("path");
 
 const root = path.resolve(__dirname, "..");
 const verifier = path.join(root, "scripts", "verify-release-version.mjs");
+const packageVersion = require(path.join(root, "package.json")).version;
+const versionParts = packageVersion.split(".").map(Number);
+const mismatchedVersion = `${versionParts[0]}.${versionParts[1]}.${versionParts[2] + 1}`;
 
 function verify(version) {
   return spawnSync(process.execPath, [verifier, version], {
@@ -12,14 +15,14 @@ function verify(version) {
   });
 }
 
-const matching = verify("1.1.8");
+const matching = verify(packageVersion);
 assert.strictEqual(
   matching.status,
   0,
   `matching release metadata must pass:\n${matching.stdout}${matching.stderr}`,
 );
 
-const mismatched = verify("1.1.9");
+const mismatched = verify(mismatchedVersion);
 assert.notStrictEqual(
   mismatched.status,
   0,
@@ -27,10 +30,10 @@ assert.notStrictEqual(
 );
 assert.match(
   `${mismatched.stdout}${mismatched.stderr}`,
-  /does not match package\.json version 1\.1\.8/,
+  new RegExp(`does not match package\\.json version ${packageVersion.replaceAll(".", "\\.")}`),
 );
 
-const prefixed = verify("v1.1.8");
+const prefixed = verify(`v${packageVersion}`);
 assert.notStrictEqual(
   prefixed.status,
   0,
