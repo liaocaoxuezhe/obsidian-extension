@@ -48,25 +48,32 @@ export function createRuntimePaths(localDataRoot: string, runtimeVaultId: string
   const runtimeRoot = pathModule.join(root, "runtime");
   const vaultRoot = pathModule.join(root, "vaults", runtimeVaultId);
   const paths: RuntimePaths = {
+    runtimeVaultId,
     root,
     downloads: pathModule.join(runtimeRoot, "downloads"),
     staging: pathModule.join(runtimeRoot, "staging"),
     chromaVersions: pathModule.join(runtimeRoot, "chroma"),
     embeddingVersions: pathModule.join(runtimeRoot, "embedding"),
     workerVersions: pathModule.join(runtimeRoot, "worker"),
-    current: pathModule.join(runtimeRoot, "current"),
+    current: pathModule.join(vaultRoot, "current"),
+    legacyCurrent: pathModule.join(runtimeRoot, "current"),
+    installRecords: pathModule.join(runtimeRoot, "installations"),
     modelCache: pathModule.join(root, "models", "transformers-cache"),
     vaultRoot,
+    chromaProcessLease: pathModule.join(vaultRoot, "chroma-process-lease.json"),
     onboardingState: pathModule.join(vaultRoot, "onboarding-state.json"),
     runtimeState: pathModule.join(vaultRoot, "runtime-state.json"),
     chromaDataV2: pathModule.join(vaultRoot, "chroma_data_v2"),
   };
 
-  for (const candidate of Object.values(paths)) {
+  for (const [name, candidate] of Object.entries(paths)) {
+    if (name === "runtimeVaultId") continue;
     assertContained(pathModule, root, candidate);
   }
   assertContained(pathModule, vaultRoot, paths.onboardingState);
   assertContained(pathModule, vaultRoot, paths.runtimeState);
   assertContained(pathModule, vaultRoot, paths.chromaDataV2);
+  assertContained(pathModule, vaultRoot, paths.current);
+  assertContained(pathModule, vaultRoot, paths.chromaProcessLease);
   return paths;
 }

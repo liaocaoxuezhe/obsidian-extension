@@ -1744,14 +1744,14 @@ var require_react_development = __commonJS({
               var thenableResult = result;
               var wasAwaited = false;
               var thenable = {
-                then: function(resolve10, reject) {
+                then: function(resolve11, reject) {
                   wasAwaited = true;
                   thenableResult.then(function(returnValue2) {
                     popActScope(prevActScopeDepth);
                     if (actScopeDepth === 0) {
-                      recursivelyFlushAsyncActWork(returnValue2, resolve10, reject);
+                      recursivelyFlushAsyncActWork(returnValue2, resolve11, reject);
                     } else {
-                      resolve10(returnValue2);
+                      resolve11(returnValue2);
                     }
                   }, function(error2) {
                     popActScope(prevActScopeDepth);
@@ -1781,20 +1781,20 @@ var require_react_development = __commonJS({
                   ReactCurrentActQueue.current = null;
                 }
                 var _thenable = {
-                  then: function(resolve10, reject) {
+                  then: function(resolve11, reject) {
                     if (ReactCurrentActQueue.current === null) {
                       ReactCurrentActQueue.current = [];
-                      recursivelyFlushAsyncActWork(returnValue, resolve10, reject);
+                      recursivelyFlushAsyncActWork(returnValue, resolve11, reject);
                     } else {
-                      resolve10(returnValue);
+                      resolve11(returnValue);
                     }
                   }
                 };
                 return _thenable;
               } else {
                 var _thenable2 = {
-                  then: function(resolve10, reject) {
-                    resolve10(returnValue);
+                  then: function(resolve11, reject) {
+                    resolve11(returnValue);
                   }
                 };
                 return _thenable2;
@@ -1810,7 +1810,7 @@ var require_react_development = __commonJS({
             actScopeDepth = prevActScopeDepth;
           }
         }
-        function recursivelyFlushAsyncActWork(returnValue, resolve10, reject) {
+        function recursivelyFlushAsyncActWork(returnValue, resolve11, reject) {
           {
             var queue = ReactCurrentActQueue.current;
             if (queue !== null) {
@@ -1819,16 +1819,16 @@ var require_react_development = __commonJS({
                 enqueueTask(function() {
                   if (queue.length === 0) {
                     ReactCurrentActQueue.current = null;
-                    resolve10(returnValue);
+                    resolve11(returnValue);
                   } else {
-                    recursivelyFlushAsyncActWork(returnValue, resolve10, reject);
+                    recursivelyFlushAsyncActWork(returnValue, resolve11, reject);
                   }
                 });
               } catch (error2) {
                 reject(error2);
               }
             } else {
-              resolve10(returnValue);
+              resolve11(returnValue);
             }
           }
         }
@@ -22825,10 +22825,10 @@ var require_react_dom_development = __commonJS({
         var setErrorHandler = null;
         var setSuspenseHandler = null;
         {
-          var copyWithDeleteImpl = function(obj, path18, index2) {
-            var key = path18[index2];
+          var copyWithDeleteImpl = function(obj, path19, index2) {
+            var key = path19[index2];
             var updated = isArray(obj) ? obj.slice() : assign({}, obj);
-            if (index2 + 1 === path18.length) {
+            if (index2 + 1 === path19.length) {
               if (isArray(updated)) {
                 updated.splice(key, 1);
               } else {
@@ -22836,11 +22836,11 @@ var require_react_dom_development = __commonJS({
               }
               return updated;
             }
-            updated[key] = copyWithDeleteImpl(obj[key], path18, index2 + 1);
+            updated[key] = copyWithDeleteImpl(obj[key], path19, index2 + 1);
             return updated;
           };
-          var copyWithDelete = function(obj, path18) {
-            return copyWithDeleteImpl(obj, path18, 0);
+          var copyWithDelete = function(obj, path19) {
+            return copyWithDeleteImpl(obj, path19, 0);
           };
           var copyWithRenameImpl = function(obj, oldPath, newPath, index2) {
             var oldKey = oldPath[index2];
@@ -22878,17 +22878,17 @@ var require_react_dom_development = __commonJS({
             }
             return copyWithRenameImpl(obj, oldPath, newPath, 0);
           };
-          var copyWithSetImpl = function(obj, path18, index2, value) {
-            if (index2 >= path18.length) {
+          var copyWithSetImpl = function(obj, path19, index2, value) {
+            if (index2 >= path19.length) {
               return value;
             }
-            var key = path18[index2];
+            var key = path19[index2];
             var updated = isArray(obj) ? obj.slice() : assign({}, obj);
-            updated[key] = copyWithSetImpl(obj[key], path18, index2 + 1, value);
+            updated[key] = copyWithSetImpl(obj[key], path19, index2 + 1, value);
             return updated;
           };
-          var copyWithSet = function(obj, path18, value) {
-            return copyWithSetImpl(obj, path18, 0, value);
+          var copyWithSet = function(obj, path19, value) {
+            return copyWithSetImpl(obj, path19, 0, value);
           };
           var findHook = function(fiber, id) {
             var currentHook2 = fiber.memoizedState;
@@ -22898,10 +22898,10 @@ var require_react_dom_development = __commonJS({
             }
             return currentHook2;
           };
-          overrideHookState = function(fiber, id, path18, value) {
+          overrideHookState = function(fiber, id, path19, value) {
             var hook = findHook(fiber, id);
             if (hook !== null) {
-              var newState = copyWithSet(hook.memoizedState, path18, value);
+              var newState = copyWithSet(hook.memoizedState, path19, value);
               hook.memoizedState = newState;
               hook.baseState = newState;
               fiber.memoizedProps = assign({}, fiber.memoizedProps);
@@ -22911,10 +22911,10 @@ var require_react_dom_development = __commonJS({
               }
             }
           };
-          overrideHookStateDeletePath = function(fiber, id, path18) {
+          overrideHookStateDeletePath = function(fiber, id, path19) {
             var hook = findHook(fiber, id);
             if (hook !== null) {
-              var newState = copyWithDelete(hook.memoizedState, path18);
+              var newState = copyWithDelete(hook.memoizedState, path19);
               hook.memoizedState = newState;
               hook.baseState = newState;
               fiber.memoizedProps = assign({}, fiber.memoizedProps);
@@ -22937,8 +22937,8 @@ var require_react_dom_development = __commonJS({
               }
             }
           };
-          overrideProps = function(fiber, path18, value) {
-            fiber.pendingProps = copyWithSet(fiber.memoizedProps, path18, value);
+          overrideProps = function(fiber, path19, value) {
+            fiber.pendingProps = copyWithSet(fiber.memoizedProps, path19, value);
             if (fiber.alternate) {
               fiber.alternate.pendingProps = fiber.pendingProps;
             }
@@ -22947,8 +22947,8 @@ var require_react_dom_development = __commonJS({
               scheduleUpdateOnFiber(root2, fiber, SyncLane, NoTimestamp);
             }
           };
-          overridePropsDeletePath = function(fiber, path18) {
-            fiber.pendingProps = copyWithDelete(fiber.memoizedProps, path18);
+          overridePropsDeletePath = function(fiber, path19) {
+            fiber.pendingProps = copyWithDelete(fiber.memoizedProps, path19);
             if (fiber.alternate) {
               fiber.alternate.pendingProps = fiber.pendingProps;
             }
@@ -24728,9 +24728,9 @@ var processClassesRecursively = (classGroup, classPartObject, classGroupId, them
     });
   });
 };
-var getPart = (classPartObject, path18) => {
+var getPart = (classPartObject, path19) => {
   let currentClassPartObject = classPartObject;
-  path18.split(CLASS_PART_SEPARATOR).forEach((pathPart) => {
+  path19.split(CLASS_PART_SEPARATOR).forEach((pathPart) => {
     if (!currentClassPartObject.nextPart.has(pathPart)) {
       currentClassPartObject.nextPart.set(pathPart, {
         nextPart: /* @__PURE__ */ new Map(),
@@ -27524,8 +27524,8 @@ var LocalSemanticSearch = class {
     const excluded = new Set(excludePaths);
     const excludedChunks = new Set(excludeChunkIds);
     const filtered = results.filter((r2) => {
-      const path18 = r2.metadata?.path;
-      return !mutedPaths.has(path18) && !excluded.has(path18) && !excludedChunks.has(r2.chunkId);
+      const path19 = r2.metadata?.path;
+      return !mutedPaths.has(path19) && !excluded.has(path19) && !excludedChunks.has(r2.chunkId);
     });
     return filtered.slice(0, topK).map((r2) => ({
       chunkId: r2.chunkId,
@@ -27715,11 +27715,11 @@ function canCreateSearchTab(tabs) {
 function uniquePaths(paths) {
   const seen = /* @__PURE__ */ new Set();
   const unique = [];
-  paths.forEach((path18) => {
-    if (!path18 || seen.has(path18))
+  paths.forEach((path19) => {
+    if (!path19 || seen.has(path19))
       return;
-    seen.add(path18);
-    unique.push(path18);
+    seen.add(path19);
+    unique.push(path19);
   });
   return unique;
 }
@@ -29506,7 +29506,7 @@ var SmartConnection = ({ activeFile, main }) => {
         onQueryChange: (value) => updateTab(activeTab.id, (tab) => ({ ...tab, query: value })),
         onSearch: (query) => performSearchForTab(activeTab.id, query, activeTab.excludedPaths, activeTab.excludedChunkIds || []),
         onSummarySearch: () => performSearchForTab(activeTab.id, "", activeTab.excludedPaths, activeTab.excludedChunkIds || [], void 0, true),
-        onOpenResult: (path18) => workspace?.openLinkText(path18, "", true),
+        onOpenResult: (path19) => workspace?.openLinkText(path19, "", true),
         onExploreResult: exploreResult,
         onSemanticWalkResult: (request5) => {
           void activateSemanticWalkRequest(app, request5, (message) => new import_obsidian.Notice(message));
@@ -32092,11 +32092,11 @@ function normalizeExcludedIndexPaths(paths) {
   const seen = /* @__PURE__ */ new Set();
   const normalized = [];
   for (const rawPath of paths) {
-    const path18 = rawPath.trim().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
-    if (!path18 || seen.has(path18))
+    const path19 = rawPath.trim().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+    if (!path19 || seen.has(path19))
       continue;
-    seen.add(path18);
-    normalized.push(path18);
+    seen.add(path19);
+    normalized.push(path19);
   }
   return normalized;
 }
@@ -32287,8 +32287,8 @@ var LocalEmbeddingService = class {
     } finally {
       this.activeOperations--;
       if (this.activeOperations === 0) {
-        for (const resolve10 of this.idleResolvers.splice(0)) {
-          resolve10();
+        for (const resolve11 of this.idleResolvers.splice(0)) {
+          resolve11();
         }
       }
     }
@@ -32297,8 +32297,8 @@ var LocalEmbeddingService = class {
     if (this.activeOperations === 0) {
       return Promise.resolve();
     }
-    return new Promise((resolve10) => {
-      this.idleResolvers.push(resolve10);
+    return new Promise((resolve11) => {
+      this.idleResolvers.push(resolve11);
     });
   }
   async embed(text) {
@@ -32401,9 +32401,9 @@ var LocalEmbeddingService = class {
   }
 };
 async function loadTransformers(pluginDir) {
-  const path18 = require("path");
+  const path19 = require("path");
   const Module = require("module");
-  const pluginRequire = Module.createRequire(path18.join(pluginDir, "main.js"));
+  const pluginRequire = Module.createRequire(path19.join(pluginDir, "main.js"));
   let transformers;
   try {
     transformers = pluginRequire("@huggingface/transformers");
@@ -32443,7 +32443,7 @@ function fetchWithNode(url, init, redirects = 0) {
   const client = parsedUrl.protocol === "http:" ? http : https;
   const headers = headersToRecord(init?.headers);
   const method = init?.method || "GET";
-  return new Promise((resolve10, reject) => {
+  return new Promise((resolve11, reject) => {
     const request5 = client.request(parsedUrl, { method, headers }, (response) => {
       const status = response.statusCode || 0;
       const location = response.headers.location;
@@ -32454,7 +32454,7 @@ function fetchWithNode(url, init, redirects = 0) {
           return;
         }
         const nextUrl = new URL(location, parsedUrl).toString();
-        fetchWithNode(nextUrl, init, redirects + 1).then(resolve10, reject);
+        fetchWithNode(nextUrl, init, redirects + 1).then(resolve11, reject);
         return;
       }
       const contentLength = response.headers["content-length"];
@@ -32480,7 +32480,7 @@ function fetchWithNode(url, init, redirects = 0) {
         if (!syntheticHeaders["content-length"] && body.byteLength > 0) {
           syntheticHeaders["content-length"] = String(body.byteLength);
         }
-        resolve10(new Response(sliceArrayBuffer(body), {
+        resolve11(new Response(sliceArrayBuffer(body), {
           status,
           statusText: response.statusMessage,
           headers: syntheticHeaders
@@ -32587,10 +32587,10 @@ var OllamaClient = class {
     });
     return String(json.response || "").trim();
   }
-  async requestJson(method, path18, body) {
-    return this.consumeResponse(method, path18, body, void 0, (response) => response.json());
+  async requestJson(method, path19, body) {
+    return this.consumeResponse(method, path19, body, void 0, (response) => response.json());
   }
-  async consumeResponse(method, path18, body, signal, consume) {
+  async consumeResponse(method, path19, body, signal, consume) {
     const controller = new AbortController();
     const abort = () => controller.abort(signal?.reason);
     if (signal?.aborted)
@@ -32599,14 +32599,14 @@ var OllamaClient = class {
       signal?.addEventListener("abort", abort, { once: true });
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
-      const response = await fetch(`${this.host}${path18}`, {
+      const response = await fetch(`${this.host}${path19}`, {
         method,
         signal: controller.signal,
         headers: body ? { "content-type": "application/json" } : void 0,
         body: body ? JSON.stringify(body) : void 0
       });
       if (!response.ok) {
-        throw new Error(`Ollama ${method} ${path18} failed: HTTP ${response.status}`);
+        throw new Error(`Ollama ${method} ${path19} failed: HTTP ${response.status}`);
       }
       return await consume(response);
     } finally {
@@ -34982,8 +34982,8 @@ var EmbeddingWorkerClient = class {
     if (!path.isAbsolute(workerRoot) || !path.isAbsolute(workerDir)) {
       throw new Error("Managed worker paths must be absolute");
     }
-    const relative10 = path.relative(workerRoot, workerDir);
-    if (!relative10 || relative10 === ".." || relative10.startsWith(`..${path.sep}`) || path.isAbsolute(relative10)) {
+    const relative11 = path.relative(workerRoot, workerDir);
+    if (!relative11 || relative11 === ".." || relative11.startsWith(`..${path.sep}`) || path.isAbsolute(relative11)) {
       throw new Error("Managed worker directory escapes its root");
     }
     const rootStat = fs.lstatSync(workerRoot);
@@ -34991,7 +34991,7 @@ var EmbeddingWorkerClient = class {
       throw new Error("Managed worker root must be a real directory");
     }
     let current = workerRoot;
-    for (const segment of relative10.split(path.sep)) {
+    for (const segment of relative11.split(path.sep)) {
       current = path.join(current, segment);
       try {
         fs.mkdirSync(current, { mode: 448 });
@@ -35038,8 +35038,8 @@ var EmbeddingWorkerClient = class {
     }
     const realRoot = fs.realpathSync(workerRoot);
     const realFilename = fs.realpathSync(filename);
-    const relative10 = path.relative(realRoot, realFilename);
-    if (!relative10 || relative10 === ".." || relative10.startsWith(`..${path.sep}`) || path.isAbsolute(relative10)) {
+    const relative11 = path.relative(realRoot, realFilename);
+    if (!relative11 || relative11 === ".." || relative11.startsWith(`..${path.sep}`) || path.isAbsolute(relative11)) {
       throw new Error("Managed worker target resolves outside its root");
     }
     const noFollow = fs.constants.O_NOFOLLOW ?? 0;
@@ -35091,8 +35091,8 @@ var EmbeddingWorkerClient = class {
         const filename = path.join(workerDir, file);
         const realRoot = fs.realpathSync(workerRoot);
         const realFilename = fs.realpathSync(filename);
-        const relative10 = path.relative(realRoot, realFilename);
-        if (relative10 && relative10 !== ".." && !relative10.startsWith(`..${path.sep}`) && !path.isAbsolute(relative10)) {
+        const relative11 = path.relative(realRoot, realFilename);
+        if (relative11 && relative11 !== ".." && !relative11.startsWith(`..${path.sep}`) && !path.isAbsolute(relative11)) {
           fs.unlinkSync(filename);
         }
       }
@@ -35332,7 +35332,7 @@ var EmbeddingWorkerClient = class {
     return result;
   }
   sendRequest(req, terminateOnTimeout = true, onProgress) {
-    return new Promise((resolve10, reject) => {
+    return new Promise((resolve11, reject) => {
       const child = this.worker;
       if (!child || child.exitCode !== null || child.signalCode !== null) {
         reject(new Error("Worker not running"));
@@ -35356,7 +35356,7 @@ var EmbeddingWorkerClient = class {
           reject(pending.failure);
         }
       }, this.options.timeoutMs);
-      this.pending.set(req.id, { resolve: resolve10, reject, timer, worker: child, onProgress });
+      this.pending.set(req.id, { resolve: resolve11, reject, timer, worker: child, onProgress });
       child.stdin?.write(encoded);
     });
   }
@@ -35377,8 +35377,8 @@ var EmbeddingWorkerClient = class {
         this.worker = null;
       return;
     }
-    const exitPromise = new Promise((resolve10) => {
-      child.once("exit", () => resolve10(true));
+    const exitPromise = new Promise((resolve11) => {
+      child.once("exit", () => resolve11(true));
     });
     try {
       child.kill("SIGTERM");
@@ -35386,9 +35386,9 @@ var EmbeddingWorkerClient = class {
     }
     const exitedGracefully = await Promise.race([
       exitPromise,
-      new Promise((resolve10) => {
+      new Promise((resolve11) => {
         setTimeout(
-          () => resolve10(false),
+          () => resolve11(false),
           this.options.terminationGraceMs ?? TERMINATION_GRACE_MS
         );
       })
@@ -35400,7 +35400,7 @@ var EmbeddingWorkerClient = class {
       }
       await Promise.race([
         exitPromise,
-        new Promise((resolve10) => setTimeout(() => resolve10(false), 1e3))
+        new Promise((resolve11) => setTimeout(() => resolve11(false), 1e3))
       ]);
     }
     if (this.worker === child && (child.exitCode !== null || child.signalCode !== null)) {
@@ -35829,7 +35829,7 @@ var LocalVectorStore = class {
     await this.ensureCollection(this.collectionName);
   }
   async ensureCollection(name) {
-    const path18 = `/api/v2/tenants/${TENANT}/databases/${DATABASE}/collections`;
+    const path19 = `/api/v2/tenants/${TENANT}/databases/${DATABASE}/collections`;
     const body = {
       name,
       configuration: null,
@@ -35838,7 +35838,7 @@ var LocalVectorStore = class {
     };
     const collection = await this.requestJson(
       "POST",
-      path18,
+      path19,
       body
     );
     this.collectionId = collection.id;
@@ -35969,18 +35969,18 @@ var LocalVectorStore = class {
       if (!docId)
         continue;
       const existing = entries.get(docId);
-      const path18 = typeof meta?.path === "string" && meta.path ? meta.path : docId;
+      const path19 = typeof meta?.path === "string" && meta.path ? meta.path : docId;
       const mtime = this.normalizeMtime(meta?.mtime);
       if (existing) {
         existing.chunkCount++;
         if (mtime > existing.mtime)
           existing.mtime = mtime;
-        if (!existing.path && path18)
-          existing.path = path18;
+        if (!existing.path && path19)
+          existing.path = path19;
       } else {
         entries.set(docId, {
           docId,
-          path: path18,
+          path: path19,
           mtime,
           chunkCount: 1
         });
@@ -36047,14 +36047,14 @@ var LocalVectorStore = class {
       return false;
     return entries.every(([key, item]) => key.length > 0 && key.length <= 256 && (typeof item === "string" || typeof item === "boolean" || typeof item === "number" && Number.isFinite(item)));
   }
-  async requestJson(method, path18, body) {
-    return new Promise((resolve10, reject) => {
+  async requestJson(method, path19, body) {
+    return new Promise((resolve11, reject) => {
       const payload = body === void 0 ? void 0 : JSON.stringify(body);
       const req = (0, import_http.request)(
         {
           hostname: "127.0.0.1",
           port: this.port,
-          path: path18,
+          path: path19,
           method,
           timeout: 1e4,
           headers: payload ? {
@@ -36071,17 +36071,17 @@ var LocalVectorStore = class {
           res.on("end", () => {
             const statusCode = res.statusCode ?? 0;
             if (statusCode < 200 || statusCode >= 300) {
-              reject(new Error(`ChromaDB ${method} ${path18} failed with HTTP ${statusCode}: ${responseBody}`));
+              reject(new Error(`ChromaDB ${method} ${path19} failed with HTTP ${statusCode}: ${responseBody}`));
               return;
             }
             if (!responseBody) {
-              resolve10(void 0);
+              resolve11(void 0);
               return;
             }
             try {
-              resolve10(JSON.parse(responseBody));
+              resolve11(JSON.parse(responseBody));
             } catch (err) {
-              reject(new Error(`ChromaDB returned invalid JSON for ${method} ${path18}: ${err.message}`));
+              reject(new Error(`ChromaDB returned invalid JSON for ${method} ${path19}: ${err.message}`));
             }
           });
         }
@@ -36089,7 +36089,7 @@ var LocalVectorStore = class {
       req.on("error", (err) => reject(err));
       req.on("timeout", () => {
         req.destroy();
-        reject(new Error(`ChromaDB ${method} ${path18} timed out`));
+        reject(new Error(`ChromaDB ${method} ${path19} timed out`));
       });
       if (payload)
         req.write(payload);
@@ -36101,9 +36101,9 @@ var LocalVectorStore = class {
       throw new Error("ChromaDB heartbeat failed on /api/v2/heartbeat");
     }
   }
-  async isEndpointHealthy(path18) {
+  async isEndpointHealthy(path19) {
     try {
-      await this.requestJson("GET", path18);
+      await this.requestJson("GET", path19);
       return true;
     } catch {
       return false;
@@ -36257,7 +36257,7 @@ var DocumentIndexer = class {
       item.resolve({ path: item.file.path, status: "skipped", chunkCount: 0 });
     }
     while (this.activeWorkers > 0) {
-      await new Promise((resolve10) => setTimeout(resolve10, 50));
+      await new Promise((resolve11) => setTimeout(resolve11, 50));
     }
   }
   shutdown() {
@@ -36394,10 +36394,10 @@ var DocumentIndexer = class {
     if (text.length <= limit)
       return [text];
     const separators = [/\n#{1,3}\s/, /\n\n/, /\n/, /[。！？!?\.]\s*/];
-    for (const sep10 of separators) {
+    for (const sep11 of separators) {
       const mid = Math.floor(text.length / 2);
       const searchWindow = text.slice(Math.max(0, mid - 500), Math.min(text.length, mid + 500));
-      const match = searchWindow.match(sep10);
+      const match = searchWindow.match(sep11);
       if (match && match.index !== void 0) {
         const splitPos = Math.max(0, mid - 500) + match.index + match[0].length;
         const left = text.slice(0, splitPos).trim();
@@ -36685,8 +36685,8 @@ ${section.content}` : section.content;
     if (this.stopped) {
       return Promise.resolve({ path: file.path, status: "skipped", chunkCount: 0 });
     }
-    return new Promise((resolve10, reject) => {
-      this.queue.push({ file, resolve: resolve10, reject });
+    return new Promise((resolve11, reject) => {
+      this.queue.push({ file, resolve: resolve11, reject });
       this.queueTotal++;
       this.startQueueDrain();
     });
@@ -36820,7 +36820,7 @@ ${section.content}` : section.content;
     this.beginIndexing();
     const mdFiles = files.filter((f) => f.extension === "md" && !this.isExcluded(f));
     try {
-      const promises15 = [];
+      const promises16 = [];
       for (let i = 0; i < mdFiles.length; i++) {
         if (this.stopped)
           break;
@@ -36842,9 +36842,9 @@ ${section.content}` : section.content;
             currentFile: file.path
           });
         })();
-        promises15.push(p);
+        promises16.push(p);
       }
-      await Promise.all(promises15);
+      await Promise.all(promises16);
       if (!this.stopped) {
         await this.saveState();
       }
@@ -37156,7 +37156,7 @@ ${section.content}` : section.content;
       return !entry || this.isEntryOutdated(entry, f);
     });
     try {
-      const promises15 = [];
+      const promises16 = [];
       for (const file of pending) {
         if (this.stopped)
           break;
@@ -37170,9 +37170,9 @@ ${section.content}` : section.content;
             currentFile: file.path
           });
         })();
-        promises15.push(p);
+        promises16.push(p);
       }
-      await Promise.all(promises15);
+      await Promise.all(promises16);
       if (!this.stopped) {
         await this.saveState();
       }
@@ -39110,10 +39110,10 @@ var CANVAS_NODE_WIDTH = 414;
 var CANVAS_NODE_HEIGHT = 276;
 var CANVAS_COMPACT_NODE_HEIGHT = 168;
 var EdgeLayer = import_react14.default.memo(function EdgeLayer2({ paths }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("svg", { className: "semantic-walk-edges", width: "1", height: "1", "aria-hidden": "true", children: paths.map(({ edge, path: path18 }) => /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("svg", { className: "semantic-walk-edges", width: "1", height: "1", "aria-hidden": "true", children: paths.map(({ edge, path: path19 }) => /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(
     "path",
     {
-      d: path18,
+      d: path19,
       className: `semantic-walk-edge is-${edge.relationBand}`,
       vectorEffect: "non-scaling-stroke"
     },
@@ -39452,8 +39452,8 @@ function SemanticWalkCanvas({
 var import_react15 = __toESM(require_react());
 
 // src/semantic-walk/markdown-file.ts
-function isMarkdownPath(path18) {
-  return /\.md$/i.test(path18);
+function isMarkdownPath(path19) {
+  return /\.md$/i.test(path19);
 }
 
 // src/semantic-walk/components/ChunkPicker.tsx
@@ -39471,11 +39471,11 @@ async function loadDocumentChunks(repository, document2) {
   const chunks = sortChunksByIndex(await repository.listChunksByDocument(document2.docId));
   return chunks.length > 0 ? { status: "ready", document: document2, chunks } : { status: "empty", document: document2, chunks: [] };
 }
-async function loadChunksForPath(repository, path18) {
+async function loadChunksForPath(repository, path19) {
   const documents = await repository.listIndexedDocuments();
-  const document2 = documents.find((entry) => entry.path === path18);
+  const document2 = documents.find((entry) => entry.path === path19);
   if (!document2)
-    return { status: "unindexed", path: path18 };
+    return { status: "unindexed", path: path19 };
   return loadDocumentChunks(repository, document2);
 }
 async function pickRandomChunk(repository) {
@@ -40192,8 +40192,8 @@ var ObsidianSemanticWalkFileBridge = class {
   getCurrentDocument() {
     return markdownDocument(this.app.workspace.getActiveFile());
   }
-  getFileValidity(path18, indexedMtime) {
-    const document2 = markdownDocument(this.app.vault.getAbstractFileByPath(path18));
+  getFileValidity(path19, indexedMtime) {
+    const document2 = markdownDocument(this.app.vault.getAbstractFileByPath(path19));
     if (!document2)
       return "missing";
     return indexedMtime > 0 && document2.mtime === indexedMtime ? "valid" : "stale";
@@ -40212,11 +40212,11 @@ var ObsidianSemanticWalkFileBridge = class {
         this.stop();
     };
   }
-  async openDocument(path18) {
-    if (this.getFileValidity(path18, markdownDocument(this.app.vault.getAbstractFileByPath(path18))?.mtime ?? 0) === "missing") {
+  async openDocument(path19) {
+    if (this.getFileValidity(path19, markdownDocument(this.app.vault.getAbstractFileByPath(path19))?.mtime ?? 0) === "missing") {
       return false;
     }
-    await this.app.workspace.openLinkText(path18, "", false);
+    await this.app.workspace.openLinkText(path19, "", false);
     return true;
   }
   dispose() {
@@ -40291,8 +40291,8 @@ var SemanticWalkConfirmModal = class extends import_obsidian7.Modal {
   }
 };
 function confirmWithObsidianModal(app, message) {
-  return new Promise((resolve10) => {
-    new SemanticWalkConfirmModal(app, message, resolve10).open();
+  return new Promise((resolve11) => {
+    new SemanticWalkConfirmModal(app, message, resolve11).open();
   });
 }
 var unavailableRepository = {
@@ -40364,7 +40364,7 @@ function SemanticWalkWorkspace({ itemView }) {
         fileBridge: itemView.fileBridge,
         openEvent,
         serviceUnavailableReason,
-        onOpenDocument: (path18) => itemView.openDocument(path18),
+        onOpenDocument: (path19) => itemView.openDocument(path19),
         confirmRestart: () => confirmWithObsidianModal(itemView.app, t("semanticWalk.confirm.restart")),
         confirmHide: () => confirmWithObsidianModal(itemView.app, t("semanticWalk.confirm.hide")),
         diagnosticRecorder: itemView.diagnosticRecorder,
@@ -40442,9 +40442,9 @@ var SemanticWalkItemView = class extends import_obsidian7.ItemView {
   openSettings() {
     this.app.setting?.openTabById?.("analogy-rag-in-your-vault");
   }
-  openDocument(path18) {
+  openDocument(path19) {
     const generation = this.lifecycleGeneration;
-    void this.fileBridge.openDocument(path18).catch((error) => {
+    void this.fileBridge.openDocument(path19).catch((error) => {
       if (!this.closed && generation === this.lifecycleGeneration) {
         console.error("[Analogy] Failed to open semantic walk source", error);
       }
@@ -40619,9 +40619,9 @@ var DiagnosticStorage = class {
   }
   ensureDir() {
     try {
-      const fs18 = require("fs");
-      if (!fs18.existsSync(this.diagnosticsDir)) {
-        fs18.mkdirSync(this.diagnosticsDir, { recursive: true });
+      const fs19 = require("fs");
+      if (!fs19.existsSync(this.diagnosticsDir)) {
+        fs19.mkdirSync(this.diagnosticsDir, { recursive: true });
       }
     } catch (err) {
       console.error("[Analogy][Diagnostics] failed to create diagnostics dir", err);
@@ -40645,21 +40645,21 @@ var DiagnosticStorage = class {
   }
   async clear() {
     this.ensureDir();
-    const fs18 = require("fs");
+    const fs19 = require("fs");
     try {
-      fs18.rmSync(this.diagnosticsDir, { recursive: true, force: true });
+      fs19.rmSync(this.diagnosticsDir, { recursive: true, force: true });
     } catch (err) {
       console.error("[Analogy][Diagnostics] failed to clear diagnostics dir", err);
     }
   }
   async readJson(name) {
     this.ensureDir();
-    const fs18 = require("fs");
+    const fs19 = require("fs");
     const fullPath = this.path(name);
     try {
-      if (!fs18.existsSync(fullPath))
+      if (!fs19.existsSync(fullPath))
         return null;
-      const raw = fs18.readFileSync(fullPath, { encoding: "utf-8" });
+      const raw = fs19.readFileSync(fullPath, { encoding: "utf-8" });
       return JSON.parse(raw);
     } catch (err) {
       console.error(`[Analogy][Diagnostics] failed to read ${name}`, err);
@@ -40670,17 +40670,17 @@ var DiagnosticStorage = class {
     this.ensureDir();
     const fullPath = this.path(name);
     const tempPath = `${fullPath}.tmp`;
-    const fs18 = require("fs");
+    const fs19 = require("fs");
     const task = this.writeQueue.catch(() => {
     }).then(async () => {
       try {
         const raw = JSON.stringify(data, null, 2);
-        fs18.writeFileSync(tempPath, raw, { encoding: "utf-8" });
-        fs18.renameSync(tempPath, fullPath);
+        fs19.writeFileSync(tempPath, raw, { encoding: "utf-8" });
+        fs19.renameSync(tempPath, fullPath);
       } catch (err) {
         console.error(`[Analogy][Diagnostics] failed to write ${name}`, err);
         try {
-          fs18.unlinkSync(tempPath);
+          fs19.unlinkSync(tempPath);
         } catch {
         }
       }
@@ -40752,11 +40752,11 @@ var DiagnosticRecorder = class {
   }
   loadReporterId() {
     try {
-      const fs18 = require("fs");
-      const path18 = require("path");
-      const reporterPath = path18.join(this.options.pluginDir, "diagnostics", "reporter.json");
-      if (fs18.existsSync(reporterPath)) {
-        const raw = fs18.readFileSync(reporterPath, { encoding: "utf-8" });
+      const fs19 = require("fs");
+      const path19 = require("path");
+      const reporterPath = path19.join(this.options.pluginDir, "diagnostics", "reporter.json");
+      if (fs19.existsSync(reporterPath)) {
+        const raw = fs19.readFileSync(reporterPath, { encoding: "utf-8" });
         const parsed = JSON.parse(raw);
         return parsed.reporter_id || null;
       }
@@ -40766,10 +40766,10 @@ var DiagnosticRecorder = class {
   }
   async saveReporterId(id) {
     try {
-      const fs18 = require("fs");
-      const path18 = require("path");
-      const reporterPath = path18.join(this.options.pluginDir, "diagnostics", "reporter.json");
-      fs18.writeFileSync(reporterPath, JSON.stringify({ reporter_id: id }), { encoding: "utf-8" });
+      const fs19 = require("fs");
+      const path19 = require("path");
+      const reporterPath = path19.join(this.options.pluginDir, "diagnostics", "reporter.json");
+      fs19.writeFileSync(reporterPath, JSON.stringify({ reporter_id: id }), { encoding: "utf-8" });
     } catch (err) {
     }
   }
@@ -41118,8 +41118,8 @@ function assertRuntimeVaultId(runtimeVaultId) {
   }
 }
 function assertContained(pathModule, root, candidate) {
-  const relative10 = pathModule.relative(root, candidate);
-  if (relative10 === ".." || relative10.startsWith(`..${pathModule.sep}`) || pathModule.isAbsolute(relative10)) {
+  const relative11 = pathModule.relative(root, candidate);
+  if (relative11 === ".." || relative11.startsWith(`..${pathModule.sep}`) || pathModule.isAbsolute(relative11)) {
     throw new Error("INVALID_RUNTIME_PATH");
   }
 }
@@ -41141,25 +41141,33 @@ function createRuntimePaths(localDataRoot, runtimeVaultId) {
   const runtimeRoot = pathModule.join(root, "runtime");
   const vaultRoot = pathModule.join(root, "vaults", runtimeVaultId);
   const paths = {
+    runtimeVaultId,
     root,
     downloads: pathModule.join(runtimeRoot, "downloads"),
     staging: pathModule.join(runtimeRoot, "staging"),
     chromaVersions: pathModule.join(runtimeRoot, "chroma"),
     embeddingVersions: pathModule.join(runtimeRoot, "embedding"),
     workerVersions: pathModule.join(runtimeRoot, "worker"),
-    current: pathModule.join(runtimeRoot, "current"),
+    current: pathModule.join(vaultRoot, "current"),
+    legacyCurrent: pathModule.join(runtimeRoot, "current"),
+    installRecords: pathModule.join(runtimeRoot, "installations"),
     modelCache: pathModule.join(root, "models", "transformers-cache"),
     vaultRoot,
+    chromaProcessLease: pathModule.join(vaultRoot, "chroma-process-lease.json"),
     onboardingState: pathModule.join(vaultRoot, "onboarding-state.json"),
     runtimeState: pathModule.join(vaultRoot, "runtime-state.json"),
     chromaDataV2: pathModule.join(vaultRoot, "chroma_data_v2")
   };
-  for (const candidate of Object.values(paths)) {
+  for (const [name, candidate] of Object.entries(paths)) {
+    if (name === "runtimeVaultId")
+      continue;
     assertContained(pathModule, root, candidate);
   }
   assertContained(pathModule, vaultRoot, paths.onboardingState);
   assertContained(pathModule, vaultRoot, paths.runtimeState);
   assertContained(pathModule, vaultRoot, paths.chromaDataV2);
+  assertContained(pathModule, vaultRoot, paths.current);
+  assertContained(pathModule, vaultRoot, paths.chromaProcessLease);
   return paths;
 }
 
@@ -41217,8 +41225,8 @@ function normalizedEntryName(rawName) {
 }
 function containedDestination(stagingRoot, entryName) {
   const destination = path6.resolve(stagingRoot, ...entryName.split("/"));
-  const relative10 = path6.relative(path6.resolve(stagingRoot), destination);
-  if (!relative10 || relative10 === ".." || relative10.startsWith(`..${path6.sep}`) || path6.isAbsolute(relative10)) {
+  const relative11 = path6.relative(path6.resolve(stagingRoot), destination);
+  if (!relative11 || relative11 === ".." || relative11.startsWith(`..${path6.sep}`) || path6.isAbsolute(relative11)) {
     throw archiveError("ARCHIVE_UNSAFE_ENTRY");
   }
   return destination;
@@ -41289,18 +41297,18 @@ async function assertStagingGuard(guard, destination) {
   const realParent = await fs3.promises.realpath(path6.dirname(destination)).catch((error) => {
     throw archiveError("ARCHIVE_UNSAFE_STAGING_ROOT", error);
   });
-  const relative10 = path6.relative(guard.realRoot, realParent);
-  if (relative10 === ".." || relative10.startsWith(`..${path6.sep}`) || path6.isAbsolute(relative10)) {
+  const relative11 = path6.relative(guard.realRoot, realParent);
+  if (relative11 === ".." || relative11.startsWith(`..${path6.sep}`) || path6.isAbsolute(relative11)) {
     throw archiveError("ARCHIVE_UNSAFE_STAGING_ROOT");
   }
 }
 async function ensureSafeStagingDirectory(guard, directory, mode = 448) {
-  const relative10 = path6.relative(path6.resolve(guard.root), path6.resolve(directory));
-  if (relative10 === ".." || relative10.startsWith(`..${path6.sep}`) || path6.isAbsolute(relative10)) {
+  const relative11 = path6.relative(path6.resolve(guard.root), path6.resolve(directory));
+  if (relative11 === ".." || relative11.startsWith(`..${path6.sep}`) || path6.isAbsolute(relative11)) {
     throw archiveError("ARCHIVE_UNSAFE_STAGING_ROOT");
   }
   let cursor = guard.root;
-  for (const component of relative10 ? relative10.split(path6.sep) : []) {
+  for (const component of relative11 ? relative11.split(path6.sep) : []) {
     await assertStagingGuard(guard, path6.join(cursor, ".analogy-parent-check"));
     cursor = path6.join(cursor, component);
     let created = false;
@@ -41833,6 +41841,12 @@ function historyDirectory(paths, kind) {
 function historyFile(paths, kind, runtimeId) {
   return path7.join(historyDirectory(paths, kind), `${runtimeId}.json`);
 }
+function installRecordDirectory(paths, kind) {
+  return path7.join(paths.installRecords, kind);
+}
+function installRecordFile(paths, kind, runtimeId) {
+  return path7.join(installRecordDirectory(paths, kind), `${runtimeId}.json`);
+}
 function recoveryDirectory(paths, kind) {
   return path7.join(paths.current, "recovery", kind);
 }
@@ -41857,8 +41871,8 @@ function assertSafeRuntimeId(runtimeId) {
 function assertContained2(root, candidate, code, allowRoot = false) {
   const resolvedRoot = path7.resolve(root);
   const resolvedCandidate = path7.resolve(candidate);
-  const relative10 = path7.relative(resolvedRoot, resolvedCandidate);
-  if (!allowRoot && !relative10 || relative10 === ".." || relative10.startsWith(`..${path7.sep}`) || path7.isAbsolute(relative10)) {
+  const relative11 = path7.relative(resolvedRoot, resolvedCandidate);
+  if (!allowRoot && !relative11 || relative11 === ".." || relative11.startsWith(`..${path7.sep}`) || path7.isAbsolute(relative11)) {
     throw runtimeError(code);
   }
 }
@@ -41914,9 +41928,9 @@ async function assertExistingDirectoryChain(paths, candidate) {
   const resolvedCandidate = path7.resolve(candidate);
   assertContained2(root, resolvedCandidate, "RUNTIME_UNSAFE_DIRECTORY", true);
   const realRoot = await managedRootRealPath(paths, false);
-  const relative10 = path7.relative(root, resolvedCandidate);
+  const relative11 = path7.relative(root, resolvedCandidate);
   let cursor = root;
-  for (const component of relative10 ? relative10.split(path7.sep) : []) {
+  for (const component of relative11 ? relative11.split(path7.sep) : []) {
     cursor = path7.join(cursor, component);
     const stat = await fs4.promises.lstat(cursor).catch((error) => {
       throw runtimeError("RUNTIME_UNSAFE_DIRECTORY", error);
@@ -41932,9 +41946,9 @@ async function ensurePrivateDirectory(paths, candidate) {
   const resolvedCandidate = path7.resolve(candidate);
   assertContained2(root, resolvedCandidate, "RUNTIME_UNSAFE_DIRECTORY", true);
   const realRoot = await managedRootRealPath(paths, true);
-  const relative10 = path7.relative(root, resolvedCandidate);
+  const relative11 = path7.relative(root, resolvedCandidate);
   let cursor = root;
-  for (const component of relative10 ? relative10.split(path7.sep) : []) {
+  for (const component of relative11 ? relative11.split(path7.sep) : []) {
     cursor = path7.join(cursor, component);
     try {
       await fs4.promises.mkdir(cursor, { mode: 448 });
@@ -42086,6 +42100,88 @@ async function readPointerFile(filename, paths, kind, missingIsNull) {
 }
 async function readCurrentRuntime(paths, kind) {
   return readPointerFile(currentFile(paths, kind), paths, kind, true);
+}
+async function readLegacyCurrentRuntime(paths, kind) {
+  try {
+    return await readPointerFile(path7.join(paths.legacyCurrent, `${kind}.json`), paths, kind, true);
+  } catch (error) {
+    if (error.message === "RUNTIME_CURRENT_INVALID")
+      return null;
+    throw error;
+  }
+}
+function pointerMatchesAsset(pointer, paths, asset) {
+  return pointer.kind === asset.kind && pointer.runtimeId === asset.id && pointer.assetSha256 === asset.sha256 && pointer.installedPath === path7.join(versionRoot(paths, asset.kind), asset.id);
+}
+async function readCurrentRuntimeForAsset(paths, asset) {
+  const current = await readCurrentRuntime(paths, asset.kind);
+  if (current)
+    return current;
+  const legacy = await readLegacyCurrentRuntime(paths, asset.kind);
+  if (!legacy || !pointerMatchesAsset(legacy, paths, asset))
+    return null;
+  await assertInstalledPointerTarget(paths, legacy, "RUNTIME_CURRENT_TARGET_INVALID");
+  await ensurePrivateDirectory(paths, paths.current);
+  const kindLock = await acquireKindLock(paths, asset.kind, Date.now());
+  try {
+    const existing = await readCurrentRuntime(paths, asset.kind);
+    if (existing)
+      return existing;
+    await createImmutableHistory(paths, legacy);
+    await syncTree(paths.current);
+    await atomicWriteJson(currentFile(paths, asset.kind), legacy);
+    return legacy;
+  } finally {
+    await releaseLock(kindLock);
+  }
+}
+async function readInstallRecord(paths, kind, runtimeId) {
+  const filename = installRecordFile(paths, kind, runtimeId);
+  let handle;
+  try {
+    handle = await openRegularFile(filename, fs4.constants.O_RDONLY, void 0, "RUNTIME_INSTALL_RECORD_INVALID");
+  } catch (error) {
+    if (lockErrorCode(error) === "ENOENT")
+      return null;
+    throw error;
+  }
+  let value;
+  try {
+    value = JSON.parse(await handle.readFile("utf8"));
+  } catch (error) {
+    throw runtimeError("RUNTIME_INSTALL_RECORD_INVALID", error);
+  } finally {
+    await handle.close();
+  }
+  const record = value;
+  if (!record || record.schemaVersion !== 1 || record.kind !== kind || record.runtimeId !== runtimeId || typeof record.installedPath !== "string" || typeof record.assetSha256 !== "string" || !/^[0-9a-f]{64}$/.test(record.assetSha256) || typeof record.installedAt !== "number" || !Number.isFinite(record.installedAt) || record.installedPath !== path7.join(versionRoot(paths, kind), runtimeId)) {
+    throw runtimeError("RUNTIME_INSTALL_RECORD_INVALID");
+  }
+  return record;
+}
+async function createInstallRecord(paths, asset, installedPath, installedAt) {
+  const directory = installRecordDirectory(paths, asset.kind);
+  await ensurePrivateDirectory(paths, directory);
+  const record = {
+    schemaVersion: 1,
+    kind: asset.kind,
+    runtimeId: asset.id,
+    installedPath,
+    assetSha256: asset.sha256,
+    installedAt
+  };
+  try {
+    await atomicCreateJson(installRecordFile(paths, asset.kind, asset.id), record);
+  } catch (error) {
+    if (lockErrorCode(error) !== "EEXIST")
+      throw error;
+    const existing = await readInstallRecord(paths, asset.kind, asset.id);
+    if (!existing || existing.installedPath !== record.installedPath || existing.assetSha256 !== record.assetSha256) {
+      throw runtimeError("RUNTIME_IDENTITY_CONFLICT", error);
+    }
+    return existing;
+  }
+  return record;
 }
 async function createImmutableHistory(paths, pointer) {
   const identity = { ...pointer, previousRuntimeId: null };
@@ -42315,7 +42411,7 @@ async function acquireRecoverableLock(paths, directory, filename, createdAt, wai
     if (processIsAlive(existing.pid)) {
       if (!waitForLive)
         throw runtimeError(liveErrorCode);
-      await new Promise((resolve10) => setTimeout(resolve10, 10));
+      await new Promise((resolve11) => setTimeout(resolve11, 10));
       continue;
     }
     const latest = await readLockMetadata(filename);
@@ -42390,6 +42486,73 @@ async function publishWithoutReplace(stagingPath, finalPath) {
   }
   await fs4.promises.rmdir(stagingPath);
 }
+async function publishVaultPointerLocked(paths, asset, finalPath, installedAt) {
+  const oldPointer = await readCurrentRuntime(paths, asset.kind);
+  if (oldPointer) {
+    await assertInstalledPointerTarget(paths, oldPointer, "RUNTIME_CURRENT_TARGET_INVALID");
+    await createImmutableHistory(paths, oldPointer);
+  }
+  const pointer = {
+    schemaVersion: 1,
+    kind: asset.kind,
+    runtimeId: asset.id,
+    installedPath: finalPath,
+    assetSha256: asset.sha256,
+    installedAt,
+    previousRuntimeId: oldPointer?.runtimeId ?? null
+  };
+  await createImmutableHistory(paths, pointer);
+  await syncTree(paths.current);
+  await atomicWriteJson(currentFile(paths, asset.kind), pointer);
+  return pointer;
+}
+async function removeInstallRecord(paths, asset) {
+  const filename = installRecordFile(paths, asset.kind, asset.id);
+  await fs4.promises.unlink(filename).catch((error) => {
+    if (error.code !== "ENOENT")
+      throw error;
+  });
+  if (fs4.existsSync(path7.dirname(filename)))
+    await fsyncDirectory(path7.dirname(filename));
+}
+async function reuseInstalledRuntime(paths, asset, finalPath, finalExecutable, smokeTest, operationTime) {
+  let stat;
+  try {
+    stat = await fs4.promises.lstat(finalPath);
+  } catch (error) {
+    if (error.code !== "ENOENT")
+      throw error;
+    if (await readInstallRecord(paths, asset.kind, asset.id))
+      await removeInstallRecord(paths, asset);
+    return null;
+  }
+  if (!stat.isDirectory() || stat.isSymbolicLink())
+    throw runtimeError("RUNTIME_VERSION_EXISTS");
+  let record = await readInstallRecord(paths, asset.kind, asset.id);
+  if (!record) {
+    const legacy = await readLegacyCurrentRuntime(paths, asset.kind);
+    if (!legacy || !pointerMatchesAsset(legacy, paths, asset)) {
+      throw runtimeError("RUNTIME_VERSION_EXISTS");
+    }
+    await assertInstalledPointerTarget(paths, legacy, "RUNTIME_CURRENT_TARGET_INVALID");
+    record = await createInstallRecord(paths, asset, finalPath, legacy.installedAt);
+  }
+  if (record.assetSha256 !== asset.sha256 || record.installedPath !== finalPath) {
+    throw runtimeError("RUNTIME_IDENTITY_CONFLICT");
+  }
+  try {
+    await smokeTest(finalPath);
+  } catch (error) {
+    throw runtimeError("RUNTIME_SMOKE_TEST_FAILED", error);
+  }
+  const kindLock = await acquireKindLock(paths, asset.kind, operationTime);
+  try {
+    const pointer = await publishVaultPointerLocked(paths, asset, finalPath, operationTime);
+    return { ...pointer, executablePath: finalExecutable };
+  } finally {
+    await releaseLock(kindLock);
+  }
+}
 async function installRuntime(input) {
   const { asset, paths, smokeTest } = input;
   const operationTime = (input.now ?? Date.now)();
@@ -42415,6 +42578,16 @@ async function installRuntime(input) {
   let preSmokeRecovery = false;
   try {
     await reconcileRuntimeAttempt(paths, asset.kind, asset.id);
+    const reused = await reuseInstalledRuntime(
+      paths,
+      asset,
+      finalPath,
+      finalExecutable,
+      smokeTest,
+      operationTime
+    );
+    if (reused)
+      return reused;
     await assertVersionAbsent(finalPath);
     await ensurePrivateDirectory(paths, stagingPath);
     stagingExists = true;
@@ -42451,18 +42624,18 @@ async function installRuntime(input) {
       throw runtimeError("RUNTIME_SMOKE_TEST_FAILED", error);
     }
     const kindLock = await acquireKindLock(paths, asset.kind, operationTime);
+    let installRecordCreated = false;
     try {
-      const oldPointer = await readCurrentRuntime(paths, asset.kind);
-      if (oldPointer) {
-        await assertInstalledPointerTarget(paths, oldPointer, "RUNTIME_CURRENT_TARGET_INVALID");
-        await createImmutableHistory(paths, oldPointer);
-      }
       const recovery = { ...baseRecovery, state: "publishing" };
       await writeRecoveryState(paths, recovery);
       preSmokeRecovery = false;
+      await createInstallRecord(paths, asset, finalPath, operationTime);
+      installRecordCreated = true;
       try {
         await publishWithoutReplace(stagingPath, finalPath);
       } catch (error) {
+        if (installRecordCreated)
+          await removeInstallRecord(paths, asset);
         if (error.message === "RUNTIME_VERSION_EXISTS") {
           await removeRecoveryState(paths, asset.kind, asset.id);
         }
@@ -42474,18 +42647,7 @@ async function installRuntime(input) {
       await syncTree(finalPath);
       await fsyncDirectory(targetRoot);
       await writeRecoveryState(paths, { ...recovery, state: "published-not-current" });
-      const pointer = {
-        schemaVersion: 1,
-        kind: asset.kind,
-        runtimeId: asset.id,
-        installedPath: finalPath,
-        assetSha256: asset.sha256,
-        installedAt: operationTime,
-        previousRuntimeId: oldPointer?.runtimeId ?? null
-      };
-      await createImmutableHistory(paths, pointer);
-      await syncTree(paths.current);
-      await atomicWriteJson(currentFile(paths, asset.kind), pointer);
+      const pointer = await publishVaultPointerLocked(paths, asset, finalPath, operationTime);
       await removeRecoveryState(paths, asset.kind, asset.id);
       return { ...pointer, executablePath: finalExecutable };
     } finally {
@@ -42507,6 +42669,7 @@ async function installRuntime(input) {
 
 // src/runtime/chroma-runtime-manager.ts
 var import_child_process2 = require("child_process");
+var import_crypto4 = require("crypto");
 var fs5 = __toESM(require("fs"));
 var import_http2 = require("http");
 var net = __toESM(require("net"));
@@ -42575,6 +42738,34 @@ function defaultProcessExists(pid) {
     return error.code !== "ESRCH";
   }
 }
+function inspectDefaultProcessIdentity(lease, platform) {
+  return new Promise((resolve11) => {
+    const finish = (error, stdout) => {
+      if (error) {
+        resolve11(false);
+        return;
+      }
+      const normalized = stdout.replace(/\\/g, "/");
+      const executable = fs5.realpathSync.native?.(lease.executablePath)?.replace(/\\/g, "/") ?? lease.executablePath.replace(/\\/g, "/");
+      const dataPath = fs5.realpathSync.native?.(lease.dataPath)?.replace(/\\/g, "/") ?? lease.dataPath.replace(/\\/g, "/");
+      resolve11(normalized.includes(executable) && /(?:^|\s)run(?:\s|$)/.test(normalized) && normalized.includes(dataPath) && normalized.includes("--host") && normalized.includes("127.0.0.1") && normalized.includes("--port") && normalized.includes(String(lease.port)));
+    };
+    if (platform === "darwin") {
+      (0, import_child_process2.execFile)("/bin/ps", ["-p", String(lease.pid), "-o", "command="], {
+        timeout: 2e3,
+        maxBuffer: 32 * 1024
+      }, finish);
+    } else if (platform === "win32") {
+      const script = "$p=Get-CimInstance Win32_Process -Filter ('ProcessId=' + $args[0]); if($p){$p.ExecutablePath; $p.CommandLine}";
+      (0, import_child_process2.execFile)("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script, String(lease.pid)], {
+        windowsHide: true,
+        timeout: 2e3,
+        maxBuffer: 32 * 1024
+      }, finish);
+    } else
+      resolve11(false);
+  });
+}
 function finitePositive(value, fallback) {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
 }
@@ -42583,6 +42774,7 @@ var ChromaRuntimeManager = class {
     this.state = initialState();
     this.activeLifecycle = null;
     this.activeConfigKey = null;
+    this.activeLease = null;
     this.operationQueue = Promise.resolve();
     this.stopRequested = false;
     this.stopWaiters = /* @__PURE__ */ new Set();
@@ -42591,7 +42783,7 @@ var ChromaRuntimeManager = class {
     this.logRemainders = { stdout: "", stderr: "" };
     this.logRemainderOrder = { stdout: 0, stderr: 0 };
     this.logSequence = 0;
-    this.requestText = (port, pathname, timeoutMs) => new Promise((resolve10, reject) => {
+    this.requestText = (port, pathname, timeoutMs) => new Promise((resolve11, reject) => {
       let settled = false;
       let responseRef = null;
       let deadlineTimer = null;
@@ -42604,7 +42796,7 @@ var ChromaRuntimeManager = class {
         if (error)
           reject(error);
         else
-          resolve10(value ?? "");
+          resolve11(value ?? "");
       };
       const req = (0, import_http2.request)({
         hostname: "127.0.0.1",
@@ -42638,7 +42830,7 @@ var ChromaRuntimeManager = class {
       deadlineTimer.unref?.();
       req.end();
     });
-    this.isPortAvailable = (port, timeoutMs) => new Promise((resolve10) => {
+    this.isPortAvailable = (port, timeoutMs) => new Promise((resolve11) => {
       let settled = false;
       const server = net.createServer();
       let timer = null;
@@ -42650,9 +42842,9 @@ var ChromaRuntimeManager = class {
           clearTimeout(timer);
         server.removeAllListeners();
         if (server.listening)
-          server.close(() => resolve10(available));
+          server.close(() => resolve11(available));
         else
-          resolve10(available);
+          resolve11(available);
       };
       server.unref();
       server.once("error", () => finish(false));
@@ -42696,6 +42888,16 @@ var ChromaRuntimeManager = class {
       if (expectedLease)
         this.requestStop();
       try {
+        if (this.activeLease && !await this.activeLeaseStillMatches()) {
+          await this.hooks.leaseStore?.isolate(this.activeLease);
+          this.activeLease = null;
+          this.clearActiveState(this.state.port);
+          return { stopped: false, reason: "lease-mismatch" };
+        }
+        if (this.activeLease && !this.activeLifecycle) {
+          await this.terminateAdoptedLease(this.activeLease);
+          return { stopped: true, reason: "stopped" };
+        }
         await this.stopActiveLifecycle(this.stopTimeoutMs);
         return { stopped: true, reason: "stopped" };
       } finally {
@@ -42781,6 +42983,9 @@ var ChromaRuntimeManager = class {
     if (this.platform === "win32" && !options.executablePath.toLowerCase().endsWith(".exe")) {
       throw errorWithCode("CHROMA_EXECUTABLE_INVALID", "Windows Chroma runtime must be an .exe");
     }
+    const recovered = await this.recoverPersistedLease(options, preferredPort, configKey);
+    if (recovered)
+      return recovered;
     const startedAt = this.now();
     const totalDeadline = startedAt + this.startTimeoutMs;
     const readinessDeadline = Math.max(startedAt, totalDeadline - this.stopTimeoutMs);
@@ -42843,6 +43048,26 @@ var ChromaRuntimeManager = class {
           runtimeVersion: ownedContext.runtimeVersion,
           startedAt
         };
+        if (this.hooks.leaseStore && this.state.pid) {
+          const lease = {
+            schemaVersion: 1,
+            runtimeVaultId: this.hooks.leaseStore.runtimeVaultId,
+            pid: this.state.pid,
+            port,
+            executablePath: options.executablePath,
+            dataPath: options.dataPath,
+            runtimeVersion: ownedContext.runtimeVersion,
+            startedAt,
+            token: (0, import_crypto4.randomUUID)()
+          };
+          try {
+            await this.hooks.leaseStore.publish(lease);
+            this.activeLease = lease;
+          } catch (error) {
+            await this.stopActiveLifecycle(this.stopTimeoutMs);
+            throw errorWithCode("CHROMA_LEASE_PUBLISH_FAILED", error.message);
+          }
+        }
         return this.getState();
       }
       if (readiness === "timeout") {
@@ -42910,11 +43135,11 @@ ${this.getLogTail()}`.trim()) : errorWithCode("CHROMA_PORT_CONFLICT", `${preferr
     const readyText = { stdout: "", stderr: "" };
     const lifecycle = {
       child,
-      terminal: new Promise((resolve10) => {
-        resolveTerminal = resolve10;
+      terminal: new Promise((resolve11) => {
+        resolveTerminal = resolve11;
       }),
-      ready: new Promise((resolve10) => {
-        resolveReady = resolve10;
+      ready: new Promise((resolve11) => {
+        resolveReady = resolve11;
       }),
       readySeen: false,
       spawned: false,
@@ -43176,6 +43401,7 @@ ${this.getLogTail()}`.trim()) : errorWithCode("CHROMA_PORT_CONFLICT", `${preferr
       throw failure;
     }
     this.releaseLifecycle(lifecycle);
+    await this.clearActiveLease();
     this.clearActiveState(port);
   }
   clearTerminatedOwnership(lifecycle) {
@@ -43183,7 +43409,80 @@ ${this.getLogTail()}`.trim()) : errorWithCode("CHROMA_PORT_CONFLICT", `${preferr
       return;
     const port = this.state.port;
     this.releaseLifecycle(lifecycle);
+    void this.clearActiveLease();
     this.clearActiveState(port);
+  }
+  processExists(pid) {
+    return this.hooks.processExists ? this.hooks.processExists(pid) : defaultProcessExists(pid);
+  }
+  async inspectLease(lease) {
+    return this.hooks.inspectProcessIdentity ? this.hooks.inspectProcessIdentity(lease) : inspectDefaultProcessIdentity(lease, this.platform);
+  }
+  async recoverPersistedLease(options, preferredPort, configKey) {
+    const store = this.hooks.leaseStore;
+    if (!store)
+      return null;
+    const lease = await store.read();
+    if (!lease)
+      return null;
+    if (!this.processExists(lease.pid)) {
+      await store.clearIfTokenMatches(lease.token);
+      return null;
+    }
+    const expectedVersion = options.runtimeVersion ?? PINNED_CHROMA_RUNTIME_VERSION2;
+    const configMatches = lease.executablePath === options.executablePath && lease.dataPath === options.dataPath && lease.runtimeVersion === expectedVersion && lease.port >= preferredPort && lease.port <= LAST_SCANNED_PORT;
+    if (!configMatches || !await this.inspectLease(lease)) {
+      await store.isolate(lease);
+      return null;
+    }
+    const probe = await this.probeBefore(lease.port, this.now() + this.healthRequestTimeoutMs);
+    if (probe?.healthy && probe.compatible) {
+      this.activeLease = lease;
+      this.activeConfigKey = configKey;
+      this.state = {
+        ownership: "analogy",
+        pid: lease.pid,
+        executablePath: lease.executablePath,
+        port: lease.port,
+        runtimeVersion: lease.runtimeVersion,
+        startedAt: lease.startedAt
+      };
+      return this.getState();
+    }
+    await this.terminateLeaseProcess(lease);
+    await store.clearIfTokenMatches(lease.token);
+    return null;
+  }
+  async activeLeaseStillMatches() {
+    const lease = this.activeLease;
+    const store = this.hooks.leaseStore;
+    if (!lease || !store)
+      return true;
+    const current = await store.read();
+    return current?.token === lease.token && this.processExists(lease.pid) && await this.inspectLease(lease);
+  }
+  async terminateLeaseProcess(lease) {
+    if (this.hooks.terminateProcess)
+      await this.hooks.terminateProcess(lease.pid);
+    else
+      process.kill(lease.pid, this.platform === "win32" ? void 0 : "SIGTERM");
+  }
+  async terminateAdoptedLease(lease) {
+    await this.terminateLeaseProcess(lease);
+    const deadline = this.now() + this.stopTimeoutMs;
+    while (this.processExists(lease.pid) && this.now() < deadline) {
+      await (this.hooks.waitMs?.(Math.min(100, deadline - this.now())) ?? new Promise((resolve11) => setTimeout(resolve11, Math.min(100, deadline - this.now()))));
+    }
+    if (this.processExists(lease.pid))
+      throw errorWithCode("CHROMA_STOP_FAILED", `PID ${lease.pid} is still running`);
+    await this.clearActiveLease();
+    this.clearActiveState(lease.port);
+  }
+  async clearActiveLease() {
+    const lease = this.activeLease;
+    this.activeLease = null;
+    if (lease)
+      await this.hooks.leaseStore?.clearIfTokenMatches(lease.token);
   }
   releaseLifecycle(lifecycle) {
     lifecycle.dispose();
@@ -43267,8 +43566,8 @@ ${this.getLogTail()}`.trim()) : errorWithCode("CHROMA_PORT_CONFLICT", `${preferr
       ]);
     }
     let timer = null;
-    const timeout = new Promise((resolve10) => {
-      timer = setTimeout(() => resolve10({ kind: "timeout" }), ms);
+    const timeout = new Promise((resolve11) => {
+      timer = setTimeout(() => resolve11({ kind: "timeout" }), ms);
       timer.unref?.();
     });
     try {
@@ -43292,8 +43591,8 @@ ${this.getLogTail()}`.trim()) : errorWithCode("CHROMA_PORT_CONFLICT", `${preferr
     if (this.stopRequested)
       return { promise: Promise.resolve(), cancel: () => void 0 };
     let wake = () => void 0;
-    const promise = new Promise((resolve10) => {
-      wake = resolve10;
+    const promise = new Promise((resolve11) => {
+      wake = resolve11;
     });
     this.stopWaiters.add(wake);
     return {
@@ -43549,8 +43848,8 @@ function runtimeError2(code, cause) {
   return error;
 }
 function isContained(root, candidate, allowRoot = false) {
-  const relative10 = path8.relative(path8.resolve(root), path8.resolve(candidate));
-  return (allowRoot || Boolean(relative10)) && relative10 !== ".." && !relative10.startsWith(`..${path8.sep}`) && !path8.isAbsolute(relative10);
+  const relative11 = path8.relative(path8.resolve(root), path8.resolve(candidate));
+  return (allowRoot || Boolean(relative11)) && relative11 !== ".." && !relative11.startsWith(`..${path8.sep}`) && !path8.isAbsolute(relative11);
 }
 function resolveContained(root, relativePath, allowRoot = false) {
   if (!relativePath || path8.posix.isAbsolute(relativePath) || path8.win32.isAbsolute(relativePath)) {
@@ -43658,7 +43957,7 @@ var EmbeddingRuntimeManager = class {
     if (!asset.internalManifestSha256 || !/^[0-9a-f]{64}$/.test(asset.internalManifestSha256)) {
       throw runtimeError2("EMBEDDING_RUNTIME_MANIFEST_BINDING_MISSING");
     }
-    const pointer = await readCurrentRuntime(this.paths, "embedding-runtime");
+    const pointer = await readCurrentRuntimeForAsset(this.paths, asset);
     if (!pointer)
       throw runtimeError2("EMBEDDING_RUNTIME_NOT_INSTALLED");
     if (pointer.runtimeId !== asset.id || pointer.assetSha256 !== asset.sha256 || pointer.installedPath !== path8.join(this.paths.embeddingVersions, asset.id)) {
@@ -43813,16 +44112,16 @@ var EmbeddingRuntimeManager = class {
         if (stat.isDirectory()) {
           await visit(filename);
         } else if (stat.isFile()) {
-          const relative10 = path8.relative(packRoot, filename).split(path8.sep).join("/");
-          if (relative10 !== "manifest.json")
-            actualFiles.add(relative10);
+          const relative11 = path8.relative(packRoot, filename).split(path8.sep).join("/");
+          if (relative11 !== "manifest.json")
+            actualFiles.add(relative11);
         } else {
           throw runtimeError2("EMBEDDING_RUNTIME_UNSAFE_PATH");
         }
       }
     };
     await visit(packRoot);
-    if (actualFiles.size !== seen.size || [...actualFiles].some((relative10) => !seen.has(relative10))) {
+    if (actualFiles.size !== seen.size || [...actualFiles].some((relative11) => !seen.has(relative11))) {
       throw runtimeError2("EMBEDDING_RUNTIME_MANIFEST_INVALID");
     }
   }
@@ -43853,8 +44152,8 @@ function isMissing(error) {
   return code === "ENOENT";
 }
 function isContained2(root, candidate, allowRoot = false) {
-  const relative10 = path9.relative(path9.resolve(root), path9.resolve(candidate));
-  return (allowRoot || Boolean(relative10)) && relative10 !== ".." && !relative10.startsWith(`..${path9.sep}`) && !path9.isAbsolute(relative10);
+  const relative11 = path9.relative(path9.resolve(root), path9.resolve(candidate));
+  return (allowRoot || Boolean(relative11)) && relative11 !== ".." && !relative11.startsWith(`..${path9.sep}`) && !path9.isAbsolute(relative11);
 }
 function assertOwned(stat) {
   if (process.platform !== "win32" && typeof process.getuid === "function" && stat.uid !== process.getuid()) {
@@ -43867,8 +44166,8 @@ async function assertPathChain(root, candidate, directory) {
   if (!isContained2(resolvedRoot, resolvedCandidate, resolvedRoot === resolvedCandidate)) {
     throw detectorError("ENVIRONMENT_UNSAFE_PATH");
   }
-  const relative10 = path9.relative(resolvedRoot, resolvedCandidate);
-  const parts = relative10 ? relative10.split(path9.sep) : [];
+  const relative11 = path9.relative(resolvedRoot, resolvedCandidate);
+  const parts = relative11 ? relative11.split(path9.sep) : [];
   let current = resolvedRoot;
   const all = [resolvedRoot];
   for (const part of parts) {
@@ -43977,16 +44276,16 @@ async function assertSafeRuntimeTree(root, runtimeRoot) {
 }
 async function inspectChromaRuntime(paths, platform, assetResolver) {
   try {
-    const pointer = await readCurrentRuntime(paths, "chroma");
+    const asset = assetResolver("chroma", platform);
+    if (!asset || asset.kind !== "chroma") {
+      return { state: "corrupt", asset: null, executablePath: null, executableRealPath: null };
+    }
+    const pointer = await readCurrentRuntimeForAsset(paths, asset);
     if (!pointer)
       return { state: "missing", asset: null, executablePath: null, executableRealPath: null };
     const pointerPath = path9.join(paths.current, "chroma.json");
     if (await assertPathChain(paths.root, pointerPath, false) === "missing") {
       return { state: "missing", asset: null, executablePath: null, executableRealPath: null };
-    }
-    const asset = assetResolver("chroma", platform);
-    if (!asset || asset.kind !== "chroma") {
-      return { state: "corrupt", asset: null, executablePath: null, executableRealPath: null };
     }
     const versionsRoot = paths.chromaVersions;
     const expectedRoot = path9.join(versionsRoot, asset.id);
@@ -44046,15 +44345,15 @@ async function verifyManagedChromaIdentity(manager, inspection, paths, port, pro
 }
 async function inspectEmbeddingRuntime(paths, platform, assetResolver) {
   try {
-    const pointer = await readCurrentRuntime(paths, "embedding-runtime");
+    const asset = assetResolver("embedding-runtime", platform);
+    if (!asset || asset.kind !== "embedding-runtime")
+      return "corrupt";
+    const pointer = await readCurrentRuntimeForAsset(paths, asset);
     if (!pointer)
       return "missing";
     const pointerPath = path9.join(paths.current, "embedding-runtime.json");
     if (await assertPathChain(paths.root, pointerPath, false) === "missing")
       return "missing";
-    const asset = assetResolver("embedding-runtime", platform);
-    if (!asset || asset.kind !== "embedding-runtime")
-      return "corrupt";
     const expectedRoot = path9.join(paths.embeddingVersions, asset.id);
     if (pointer.runtimeId !== asset.id || pointer.assetSha256 !== asset.sha256 || pointer.installedPath !== expectedRoot)
       return "corrupt";
@@ -44137,7 +44436,7 @@ function parseVersion(body) {
   }
 }
 function requestText(input, pathname) {
-  return new Promise((resolve10, reject) => {
+  return new Promise((resolve11, reject) => {
     let bytes = 0;
     const chunks = [];
     const request5 = http2.request({
@@ -44161,7 +44460,7 @@ function requestText(input, pathname) {
         }
         chunks.push(Buffer.from(chunk));
       });
-      response.on("end", () => resolve10(Buffer.concat(chunks).toString("utf8")));
+      response.on("end", () => resolve11(Buffer.concat(chunks).toString("utf8")));
     });
     request5.once("error", reject);
     request5.end();
@@ -44277,10 +44576,113 @@ async function resolveVerifiedChromaSnapshot(options) {
   };
 }
 
-// src/onboarding/onboarding-store.ts
+// src/runtime/chroma-process-lease.ts
+var import_child_process3 = require("child_process");
+var crypto6 = __toESM(require("crypto"));
 var fs8 = __toESM(require("fs"));
 var path10 = __toESM(require("path"));
-var import_crypto4 = require("crypto");
+function contained(root, target) {
+  const relative11 = path10.relative(path10.resolve(root), path10.resolve(target));
+  return relative11 !== ".." && !relative11.startsWith(`..${path10.sep}`) && !path10.isAbsolute(relative11);
+}
+function validLease(value, runtimeVaultId) {
+  const lease = value;
+  return lease?.schemaVersion === 1 && lease.runtimeVaultId === runtimeVaultId && /^vault-v2-[0-9a-f]{16}$/.test(lease.runtimeVaultId) && Number.isSafeInteger(lease.pid) && lease.pid > 0 && Number.isInteger(lease.port) && lease.port >= 1 && lease.port <= 65535 && typeof lease.executablePath === "string" && path10.isAbsolute(lease.executablePath) && typeof lease.dataPath === "string" && path10.isAbsolute(lease.dataPath) && typeof lease.runtimeVersion === "string" && /^[A-Za-z0-9._-]{1,80}$/.test(lease.runtimeVersion) && Number.isFinite(lease.startedAt) && lease.startedAt > 0 && typeof lease.token === "string" && /^[A-Za-z0-9_-]{16,128}$/.test(lease.token);
+}
+async function assertNoSymlink(root, target, allowMissingLeaf) {
+  if (!contained(root, target))
+    throw new Error("CHROMA_LEASE_PATH_INVALID");
+  const relative11 = path10.relative(path10.resolve(root), path10.resolve(target));
+  let current = path10.resolve(root);
+  const parts = relative11.split(path10.sep).filter(Boolean);
+  for (let index = 0; index < parts.length; index += 1) {
+    current = path10.join(current, parts[index]);
+    try {
+      const stat = await fs8.promises.lstat(current);
+      if (stat.isSymbolicLink())
+        throw new Error("CHROMA_LEASE_UNSAFE_PATH");
+      if (index < parts.length - 1 && !stat.isDirectory())
+        throw new Error("CHROMA_LEASE_UNSAFE_PATH");
+      if (index === parts.length - 1 && !stat.isFile())
+        throw new Error("CHROMA_LEASE_INVALID");
+    } catch (error) {
+      if (error.code === "ENOENT" && allowMissingLeaf)
+        return;
+      throw error;
+    }
+  }
+}
+var ChromaProcessLeaseStore = class {
+  constructor(options) {
+    this.root = path10.resolve(options.root);
+    this.leasePath = path10.resolve(options.leasePath);
+    this.runtimeVaultId = options.runtimeVaultId;
+    if (!contained(this.root, this.leasePath) || !/^vault-v2-[0-9a-f]{16}$/.test(this.runtimeVaultId)) {
+      throw new Error("CHROMA_LEASE_PATH_INVALID");
+    }
+  }
+  async read() {
+    try {
+      await assertNoSymlink(this.root, this.leasePath, false);
+      const handle = await fs8.promises.open(this.leasePath, fs8.constants.O_RDONLY | (fs8.constants.O_NOFOLLOW ?? 0));
+      try {
+        const stat = await handle.stat();
+        if (!stat.isFile() || stat.size > 16 * 1024)
+          throw new Error("CHROMA_LEASE_INVALID");
+        const value = JSON.parse(await handle.readFile("utf8"));
+        if (!validLease(value, this.runtimeVaultId))
+          throw new Error("CHROMA_LEASE_INVALID");
+        return value;
+      } finally {
+        await handle.close();
+      }
+    } catch (error) {
+      if (error.code === "ENOENT")
+        return null;
+      throw error;
+    }
+  }
+  async publish(lease) {
+    if (!validLease(lease, this.runtimeVaultId))
+      throw new Error("CHROMA_LEASE_INVALID");
+    const directory = path10.dirname(this.leasePath);
+    await fs8.promises.mkdir(directory, { recursive: true, mode: 448 });
+    await assertNoSymlink(this.root, this.leasePath, true);
+    const temporary = path10.join(directory, `.chroma-process-lease.${process.pid}.${crypto6.randomUUID()}.tmp`);
+    const handle = await fs8.promises.open(temporary, "wx", 384);
+    try {
+      await handle.writeFile(`${JSON.stringify(lease)}
+`, "utf8");
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+    try {
+      await fs8.promises.rename(temporary, this.leasePath);
+    } finally {
+      await fs8.promises.rm(temporary, { force: true });
+    }
+  }
+  async clearIfTokenMatches(token) {
+    const current = await this.read();
+    if (!current || current.token !== token)
+      return false;
+    await fs8.promises.unlink(this.leasePath);
+    return true;
+  }
+  async isolate(lease) {
+    const current = await this.read();
+    if (!current || current.token !== lease.token)
+      return;
+    const isolated = `${this.leasePath}.isolated-${Date.now()}-${lease.token.slice(0, 12)}`;
+    await fs8.promises.rename(this.leasePath, isolated);
+  }
+};
+
+// src/onboarding/onboarding-store.ts
+var fs9 = __toESM(require("fs"));
+var path11 = __toESM(require("path"));
+var import_crypto5 = require("crypto");
 
 // src/onboarding/onboarding-types.ts
 var RESUMABLE_STAGES = /* @__PURE__ */ new Set([
@@ -44590,7 +44992,7 @@ var OnboardingStore = class {
     this.paths = options.paths;
     this.progressThrottleMs = Math.max(1, options.progressThrottleMs ?? DEFAULT_PROGRESS_THROTTLE_MS);
     this.now = options.now ?? Date.now;
-    this.rename = options.rename ?? fs8.promises.rename.bind(fs8.promises);
+    this.rename = options.rename ?? fs9.promises.rename.bind(fs9.promises);
     this.platform = options.platform ?? process.platform;
     this.validateConfiguredPath();
   }
@@ -44718,7 +45120,7 @@ var OnboardingStore = class {
       await this.enqueue(async () => {
         await this.assertSafeExistingTarget(true);
         try {
-          await fs8.promises.unlink(this.paths.onboardingState);
+          await fs9.promises.unlink(this.paths.onboardingState);
           await this.fsyncDirectory(this.paths.vaultRoot);
         } catch (error) {
           if (error.code !== "ENOENT")
@@ -44755,12 +45157,12 @@ var OnboardingStore = class {
     return disposal;
   }
   validateConfiguredPath() {
-    const root = path10.resolve(this.paths.root);
-    const vaultRoot = path10.resolve(this.paths.vaultRoot);
-    const runtimeVaultId = path10.basename(vaultRoot);
-    const expectedVaultRoot = path10.join(root, "vaults", runtimeVaultId);
-    const expectedState = path10.join(expectedVaultRoot, "onboarding-state.json");
-    if (!path10.isAbsolute(this.paths.root) || !RUNTIME_VAULT_ID.test(runtimeVaultId) || vaultRoot !== expectedVaultRoot || path10.resolve(this.paths.onboardingState) !== expectedState) {
+    const root = path11.resolve(this.paths.root);
+    const vaultRoot = path11.resolve(this.paths.vaultRoot);
+    const runtimeVaultId = path11.basename(vaultRoot);
+    const expectedVaultRoot = path11.join(root, "vaults", runtimeVaultId);
+    const expectedState = path11.join(expectedVaultRoot, "onboarding-state.json");
+    if (!path11.isAbsolute(this.paths.root) || !RUNTIME_VAULT_ID.test(runtimeVaultId) || vaultRoot !== expectedVaultRoot || path11.resolve(this.paths.onboardingState) !== expectedState) {
       throw stateError("ONBOARDING_STATE_UNSAFE_PATH");
     }
   }
@@ -44768,7 +45170,7 @@ var OnboardingStore = class {
     await this.assertSafeExistingTarget(true);
     let expected = null;
     try {
-      expected = await fs8.promises.lstat(this.paths.onboardingState);
+      expected = await fs9.promises.lstat(this.paths.onboardingState);
       if (expected.isSymbolicLink() || !expected.isFile())
         throw stateError("ONBOARDING_STATE_UNSAFE_PATH");
       this.assertOwnedMode(expected, false);
@@ -44778,9 +45180,9 @@ var OnboardingStore = class {
     }
     let handle;
     try {
-      handle = await fs8.promises.open(
+      handle = await fs9.promises.open(
         this.paths.onboardingState,
-        fs8.constants.O_RDONLY | (fs8.constants.O_NOFOLLOW ?? 0)
+        fs9.constants.O_RDONLY | (fs9.constants.O_NOFOLLOW ?? 0)
       );
     } catch (error) {
       if (error.code === "ENOENT")
@@ -44815,15 +45217,15 @@ var OnboardingStore = class {
       return;
     await this.ensurePrivateDirectories();
     await this.assertSafeExistingTarget(true);
-    const temporary = path10.join(
+    const temporary = path11.join(
       this.paths.vaultRoot,
-      `.onboarding-state.json.${(0, import_crypto4.randomUUID)()}.tmp`
+      `.onboarding-state.json.${(0, import_crypto5.randomUUID)()}.tmp`
     );
     let handle = null;
     try {
-      handle = await fs8.promises.open(
+      handle = await fs9.promises.open(
         temporary,
-        fs8.constants.O_WRONLY | fs8.constants.O_CREAT | fs8.constants.O_EXCL | (fs8.constants.O_NOFOLLOW ?? 0),
+        fs9.constants.O_WRONLY | fs9.constants.O_CREAT | fs9.constants.O_EXCL | (fs9.constants.O_NOFOLLOW ?? 0),
         384
       );
       const stat = await handle.stat();
@@ -44842,10 +45244,10 @@ var OnboardingStore = class {
     } catch (error) {
       if (handle)
         await handle.close().catch(() => void 0);
-      await fs8.promises.unlink(temporary).catch(() => void 0);
+      await fs9.promises.unlink(temporary).catch(() => void 0);
       throw error;
     } finally {
-      await fs8.promises.unlink(temporary).catch(() => void 0);
+      await fs9.promises.unlink(temporary).catch(() => void 0);
     }
   }
   enqueue(operation) {
@@ -44862,8 +45264,8 @@ var OnboardingStore = class {
     this.assertActive();
     const generation = this.generation;
     let resolveSettlement = () => void 0;
-    const settlement = new Promise((resolve10) => {
-      resolveSettlement = resolve10;
+    const settlement = new Promise((resolve11) => {
+      resolveSettlement = resolve11;
     });
     this.activeMutations.add(settlement);
     let finished = false;
@@ -44889,14 +45291,14 @@ var OnboardingStore = class {
   }
   async ensurePrivateDirectories() {
     await this.createOrAssertDirectory(this.paths.root);
-    const vaults = path10.join(this.paths.root, "vaults");
+    const vaults = path11.join(this.paths.root, "vaults");
     await this.createOrAssertDirectory(vaults);
     await this.createOrAssertDirectory(this.paths.vaultRoot);
   }
   async createOrAssertDirectory(directory) {
     let created = false;
     try {
-      await fs8.promises.mkdir(directory, { mode: 448 });
+      await fs9.promises.mkdir(directory, { mode: 448 });
       created = true;
     } catch (error) {
       if (error.code !== "EEXIST")
@@ -44904,7 +45306,7 @@ var OnboardingStore = class {
     }
     await this.assertDirectory(directory, false);
     if (created && this.platform !== "win32") {
-      const stat = await fs8.promises.lstat(directory);
+      const stat = await fs9.promises.lstat(directory);
       if ((stat.mode & 511) !== 448)
         throw stateError("ONBOARDING_STATE_UNSAFE_MODE");
     }
@@ -44912,13 +45314,13 @@ var OnboardingStore = class {
   async assertSafeExistingTarget(missingAllowed) {
     if (!await this.assertDirectory(this.paths.root, missingAllowed))
       return;
-    const vaults = path10.join(this.paths.root, "vaults");
+    const vaults = path11.join(this.paths.root, "vaults");
     if (!await this.assertDirectory(vaults, true))
       return;
     if (!await this.assertDirectory(this.paths.vaultRoot, true))
       return;
     try {
-      const stat = await fs8.promises.lstat(this.paths.onboardingState);
+      const stat = await fs9.promises.lstat(this.paths.onboardingState);
       if (stat.isSymbolicLink() || !stat.isFile())
         throw stateError("ONBOARDING_STATE_UNSAFE_PATH");
       this.assertOwnedMode(stat, false);
@@ -44930,7 +45332,7 @@ var OnboardingStore = class {
   }
   async assertDirectory(directory, missingAllowed) {
     try {
-      const stat = await fs8.promises.lstat(directory);
+      const stat = await fs9.promises.lstat(directory);
       if (stat.isSymbolicLink() || !stat.isDirectory())
         throw stateError("ONBOARDING_STATE_UNSAFE_PATH");
       this.assertOwnedMode(stat, true);
@@ -44955,7 +45357,7 @@ var OnboardingStore = class {
   async fsyncDirectory(directory) {
     let handle = null;
     try {
-      handle = await fs8.promises.open(directory, fs8.constants.O_RDONLY);
+      handle = await fs9.promises.open(directory, fs9.constants.O_RDONLY);
       await handle.sync();
     } catch (error) {
       const code = error.code;
@@ -44974,8 +45376,8 @@ function createSuspension() {
   let resolvePromise;
   let rejectPromise;
   const suspension = {
-    promise: new Promise((resolve10, reject) => {
-      resolvePromise = resolve10;
+    promise: new Promise((resolve11, reject) => {
+      resolvePromise = resolve11;
       rejectPromise = reject;
     }),
     resolve(value) {
@@ -45780,13 +46182,13 @@ var OnboardingCoordinator = class {
 };
 
 // src/onboarding/production-onboarding-dependencies.ts
-var import_child_process3 = require("child_process");
-var fs11 = __toESM(require("fs"));
-var path11 = __toESM(require("path"));
-var import_crypto6 = require("crypto");
+var import_child_process4 = require("child_process");
+var fs12 = __toESM(require("fs"));
+var path12 = __toESM(require("path"));
+var import_crypto7 = require("crypto");
 
 // src/runtime/runtime-downloader.ts
-var fs9 = __toESM(require("fs"));
+var fs10 = __toESM(require("fs"));
 var https2 = __toESM(require("https"));
 var import_events = require("events");
 var MAX_REDIRECTS = 5;
@@ -45823,10 +46225,10 @@ function isRedirect(statusCode) {
   return statusCode === 301 || statusCode === 302 || statusCode === 303 || statusCode === 307 || statusCode === 308;
 }
 async function defaultRequest(url, options) {
-  return new Promise((resolve10, reject) => {
+  return new Promise((resolve11, reject) => {
     const request5 = https2.request(url, { method: "GET", headers: options.headers }, (response) => {
       cleanup();
-      resolve10(response);
+      resolve11(response);
     });
     const onAbort = () => request5.destroy(downloadError("DOWNLOAD_CANCELLED"));
     const cleanup = () => options.signal.removeEventListener("abort", onAbort);
@@ -45874,7 +46276,7 @@ async function requestFollowingRedirects(startUrl, headers, signal, request5) {
 }
 async function optionalLstat(filePath) {
   try {
-    return await fs9.promises.lstat(filePath);
+    return await fs10.promises.lstat(filePath);
   } catch (error) {
     if (error.code === "ENOENT")
       return null;
@@ -45896,7 +46298,7 @@ async function isolate(filePath, isolationId, errorCode2) {
   if (!stat)
     return;
   assertRegular(stat, errorCode2);
-  await fs9.promises.rename(filePath, `${filePath}.isolated-${isolationId}`);
+  await fs10.promises.rename(filePath, `${filePath}.isolated-${isolationId}`);
 }
 async function isolatePartAndMetadata(partPath, metaPath) {
   const isolationId = createIsolationId();
@@ -45911,15 +46313,15 @@ function sameOpenedFile(expected, actual) {
   return true;
 }
 async function readMetadataSafely(metaPath, expectedStat) {
-  const flags = fs9.constants.O_RDONLY | (fs9.constants.O_NOFOLLOW ?? 0);
+  const flags = fs10.constants.O_RDONLY | (fs10.constants.O_NOFOLLOW ?? 0);
   let handle;
   try {
-    handle = await fs9.promises.open(metaPath, flags);
+    handle = await fs10.promises.open(metaPath, flags);
   } catch (error) {
     throw downloadError("DOWNLOAD_UNSAFE_META", error);
   }
   try {
-    const [openStat, currentStat] = await Promise.all([handle.stat(), fs9.promises.lstat(metaPath)]);
+    const [openStat, currentStat] = await Promise.all([handle.stat(), fs10.promises.lstat(metaPath)]);
     assertRegular(openStat, "DOWNLOAD_UNSAFE_META");
     assertRegular(currentStat, "DOWNLOAD_UNSAFE_META");
     if (!sameOpenedFile(expectedStat, openStat) || !sameOpenedFile(currentStat, openStat)) {
@@ -45963,17 +46365,17 @@ async function writeMetadataAtomically(metaPath, metadata) {
   const temporaryPath = `${metaPath}.tmp-${process.pid}-${Math.random().toString(16).slice(2)}`;
   let handle = null;
   try {
-    handle = await fs9.promises.open(temporaryPath, "wx", 384);
+    handle = await fs10.promises.open(temporaryPath, "wx", 384);
     await handle.writeFile(`${JSON.stringify(metadata)}
 `, "utf8");
     await handle.sync();
     await handle.close();
     handle = null;
-    await fs9.promises.rename(temporaryPath, metaPath);
+    await fs10.promises.rename(temporaryPath, metaPath);
   } catch (error) {
     if (handle)
       await handle.close().catch(() => void 0);
-    await fs9.promises.unlink(temporaryPath).catch(() => void 0);
+    await fs10.promises.unlink(temporaryPath).catch(() => void 0);
     throw error;
   }
 }
@@ -45997,8 +46399,8 @@ function assertMatchingRange(response, start, total) {
   }
 }
 async function closeFileDescriptor(fd) {
-  await new Promise((resolve10, reject) => {
-    fs9.close(fd, (error) => error ? reject(error) : resolve10());
+  await new Promise((resolve11, reject) => {
+    fs10.close(fd, (error) => error ? reject(error) : resolve11());
   });
 }
 async function streamToPart(response, partPath, startSize, totalBytes, signal, onProgress, now) {
@@ -46034,14 +46436,14 @@ async function streamToPart(response, partPath, startSize, totalBytes, signal, o
       return;
     let current = now();
     while (current - lastPublishedAt < PROGRESS_INTERVAL_MS) {
-      await new Promise((resolve10, reject) => {
+      await new Promise((resolve11, reject) => {
         const onAbort = () => {
           clearTimeout(timer);
           reject(downloadError("DOWNLOAD_CANCELLED"));
         };
         const timer = setTimeout(() => {
           signal.removeEventListener("abort", onAbort);
-          resolve10();
+          resolve11();
         }, PROGRESS_INTERVAL_MS - (current - lastPublishedAt));
         if (signal.aborted)
           onAbort();
@@ -46061,19 +46463,19 @@ async function streamToPart(response, partPath, startSize, totalBytes, signal, o
   signal.addEventListener("abort", cancel, { once: true });
   try {
     if (startSize === 0) {
-      output = fs9.createWriteStream(partPath, { flags: "wx", mode: 384, autoClose: false });
+      output = fs10.createWriteStream(partPath, { flags: "wx", mode: 384, autoClose: false });
       output.on("error", () => void 0);
       const [openedFd] = await (0, import_events.once)(output, "open");
       fd = openedFd;
     } else {
-      const flags = fs9.constants.O_WRONLY | fs9.constants.O_APPEND | (fs9.constants.O_NOFOLLOW ?? 0);
-      fd = await new Promise((resolve10, reject) => {
-        fs9.open(partPath, flags, 384, (error, openedFd) => error ? reject(error) : resolve10(openedFd));
+      const flags = fs10.constants.O_WRONLY | fs10.constants.O_APPEND | (fs10.constants.O_NOFOLLOW ?? 0);
+      fd = await new Promise((resolve11, reject) => {
+        fs10.open(partPath, flags, 384, (error, openedFd) => error ? reject(error) : resolve11(openedFd));
       });
-      output = fs9.createWriteStream(partPath, { fd, autoClose: false });
+      output = fs10.createWriteStream(partPath, { fd, autoClose: false });
       output.on("error", () => void 0);
     }
-    const openStat = await new Promise((resolve10, reject) => fs9.fstat(fd, (error, stat) => error ? reject(error) : resolve10(stat)));
+    const openStat = await new Promise((resolve11, reject) => fs10.fstat(fd, (error, stat) => error ? reject(error) : resolve11(stat)));
     if (!openStat.isFile() || openStat.size !== startSize)
       throw downloadError("DOWNLOAD_PART_CHANGED");
     if (signal.aborted)
@@ -46090,7 +46492,7 @@ async function streamToPart(response, partPath, startSize, totalBytes, signal, o
     const finished = (0, import_events.once)(output, "finish");
     output.end();
     await finished;
-    await new Promise((resolve10, reject) => fs9.fsync(fd, (error) => error ? reject(error) : resolve10()));
+    await new Promise((resolve11, reject) => fs10.fsync(fd, (error) => error ? reject(error) : resolve11()));
     await closeFileDescriptor(fd);
     fd = null;
     await publishFinal();
@@ -46100,7 +46502,7 @@ async function streamToPart(response, partPath, startSize, totalBytes, signal, o
     output?.destroy();
     if (fd !== null) {
       const fdToClose = fd;
-      await new Promise((resolve10) => fs9.close(fdToClose, () => resolve10()));
+      await new Promise((resolve11) => fs10.close(fdToClose, () => resolve11()));
       fd = null;
     }
     if (signal.aborted || error.message === "DOWNLOAD_CANCELLED") {
@@ -46116,7 +46518,7 @@ async function streamToPart(response, partPath, startSize, totalBytes, signal, o
 }
 async function acquireLock(lockPath) {
   try {
-    return await fs9.promises.open(lockPath, "wx", 384);
+    return await fs10.promises.open(lockPath, "wx", 384);
   } catch (error) {
     if (error.code === "EEXIST") {
       throw downloadError("DOWNLOAD_IN_PROGRESS", error);
@@ -46132,7 +46534,7 @@ async function downloadRuntimeAsset(input) {
   const now = input.now ?? Date.now;
   const metaPath = `${partPath}.meta.json`;
   const lockPath = `${partPath}.lock`;
-  await fs9.promises.mkdir(require("path").dirname(partPath), { recursive: true, mode: 448 });
+  await fs10.promises.mkdir(require("path").dirname(partPath), { recursive: true, mode: 448 });
   const lock = await acquireLock(lockPath);
   try {
     let state = await prepareResumeState(asset, partPath);
@@ -46208,27 +46610,27 @@ async function downloadRuntimeAsset(input) {
     }
   } finally {
     await lock.close().catch(() => void 0);
-    await fs9.promises.unlink(lockPath).catch(() => void 0);
+    await fs10.promises.unlink(lockPath).catch(() => void 0);
   }
 }
 
 // src/runtime/runtime-verifier.ts
-var import_crypto5 = require("crypto");
-var fs10 = __toESM(require("fs"));
+var import_crypto6 = require("crypto");
+var fs11 = __toESM(require("fs"));
 async function verifyRuntimeAsset(asset, filePath) {
-  const stat = await fs10.promises.lstat(filePath);
+  const stat = await fs11.promises.lstat(filePath);
   if (!stat.isFile() || stat.isSymbolicLink()) {
     throw new Error("DOWNLOAD_UNSAFE_FILE");
   }
-  const hash = (0, import_crypto5.createHash)("sha256");
+  const hash = (0, import_crypto6.createHash)("sha256");
   let actualSize = 0;
-  const flags = fs10.constants.O_RDONLY | (fs10.constants.O_NOFOLLOW ?? 0);
-  const handle = await fs10.promises.open(filePath, flags);
+  const flags = fs11.constants.O_RDONLY | (fs11.constants.O_NOFOLLOW ?? 0);
+  const handle = await fs11.promises.open(filePath, flags);
   try {
     const openStat = await handle.stat();
     if (!openStat.isFile())
       throw new Error("DOWNLOAD_UNSAFE_FILE");
-    const stream = fs10.createReadStream(filePath, { fd: handle.fd, autoClose: false });
+    const stream = fs11.createReadStream(filePath, { fd: handle.fd, autoClose: false });
     for await (const chunk of stream) {
       const bytes = chunk;
       actualSize += bytes.length;
@@ -46256,8 +46658,8 @@ function codedError2(code, cause) {
   return error;
 }
 function runEmbeddingExecutableSmokeTest(executablePath) {
-  return new Promise((resolve10, reject) => {
-    (0, import_child_process3.execFile)(executablePath, ["--version"], { timeout: 15e3, maxBuffer: 8 * 1024 }, (error, stdout) => {
+  return new Promise((resolve11, reject) => {
+    (0, import_child_process4.execFile)(executablePath, ["--version"], { timeout: 15e3, maxBuffer: 8 * 1024 }, (error, stdout) => {
       if (error) {
         reject(codedError2("EMBEDDING_RUNTIME_SMOKE_FAILED", error));
         return;
@@ -46266,13 +46668,13 @@ function runEmbeddingExecutableSmokeTest(executablePath) {
         reject(codedError2("EMBEDDING_RUNTIME_SMOKE_VERSION_MISMATCH"));
         return;
       }
-      resolve10();
+      resolve11();
     });
   });
 }
 async function runChromaSmokeTest(installedPath, asset, paths) {
-  const executablePath = path11.join(installedPath, asset.executableRelativePath);
-  const dataPath = await fs11.promises.mkdtemp(path11.join(paths.staging, "chroma-smoke-"));
+  const executablePath = path12.join(installedPath, asset.executableRelativePath);
+  const dataPath = await fs12.promises.mkdtemp(path12.join(paths.staging, "chroma-smoke-"));
   const manager = new ChromaRuntimeManager();
   let lease = null;
   try {
@@ -46285,12 +46687,12 @@ async function runChromaSmokeTest(installedPath, asset, paths) {
       if (owned)
         await manager.stopOwnedProcess(owned);
     } finally {
-      await fs11.promises.rm(dataPath, { recursive: true, force: true });
+      await fs12.promises.rm(dataPath, { recursive: true, force: true });
     }
   }
 }
 function createProductionRuntimePipeline(input) {
-  const partPath = path11.join(input.paths.downloads, `${input.asset.id}.part`);
+  const partPath = path12.join(input.paths.downloads, `${input.asset.id}.part`);
   return {
     asset: input.asset,
     download: (signal, onProgress) => downloadRuntimeAsset({
@@ -46304,12 +46706,12 @@ function createProductionRuntimePipeline(input) {
       asset: input.asset,
       verifiedAssetPath: downloaded.path,
       paths: input.paths,
-      smokeTest: (installedPath) => input.asset.kind === "chroma" ? runChromaSmokeTest(installedPath, input.asset, input.paths) : runEmbeddingExecutableSmokeTest(path11.join(installedPath, input.asset.executableRelativePath))
+      smokeTest: (installedPath) => input.asset.kind === "chroma" ? runChromaSmokeTest(installedPath, input.asset, input.paths) : runEmbeddingExecutableSmokeTest(path12.join(installedPath, input.asset.executableRelativePath))
     })
   };
 }
 function createProductionEmbeddingModel(input) {
-  const modelRoot = path11.join(input.paths.modelCache, input.modelConfig.shortName);
+  const modelRoot = path12.join(input.paths.modelCache, input.modelConfig.shortName);
   let generation = 0;
   let active = null;
   let cancellationBarrier = null;
@@ -46502,7 +46904,7 @@ function createProductionEmbeddingModel(input) {
       const operation = (async () => {
         try {
           assertCurrent(context, signal);
-          await fs11.promises.mkdir(modelRoot, { recursive: true, mode: 448 });
+          await fs12.promises.mkdir(modelRoot, { recursive: true, mode: 448 });
           assertCurrent(context, signal);
           await initializeService(context);
           assertCurrent(context, signal);
@@ -46542,7 +46944,7 @@ function createProductionEmbeddingModel(input) {
         let markerPublished = false;
         try {
           assertCurrent(context, signal);
-          await fs11.promises.mkdir(modelRoot, { recursive: true, mode: 448 });
+          await fs12.promises.mkdir(modelRoot, { recursive: true, mode: 448 });
           await initializeService(context);
           assertCurrent(context, signal);
           const service = context.service;
@@ -46552,22 +46954,22 @@ function createProductionEmbeddingModel(input) {
           if (!Array.isArray(vector) || vector.length === 0 || !vector.every(Number.isFinite)) {
             throw codedError2("EMBEDDING_MODEL_WARMUP_FAILED");
           }
-          const markerPath = path11.join(modelRoot, ".analogy-ready.json");
-          const temporaryPath = path11.join(modelRoot, `.analogy-ready.${(0, import_crypto6.randomUUID)()}.tmp`);
+          const markerPath = path12.join(modelRoot, ".analogy-ready.json");
+          const temporaryPath = path12.join(modelRoot, `.analogy-ready.${(0, import_crypto7.randomUUID)()}.tmp`);
           try {
-            await fs11.promises.writeFile(temporaryPath, `${JSON.stringify({
+            await fs12.promises.writeFile(temporaryPath, `${JSON.stringify({
               schemaVersion: 1,
               modelKey: input.modelConfig.shortName
             })}
 `, { encoding: "utf8", mode: 384, flag: "wx" });
             assertCurrent(context, signal);
-            await fs11.promises.rename(temporaryPath, markerPath);
+            await fs12.promises.rename(temporaryPath, markerPath);
             markerPublished = true;
             assertCurrent(context, signal);
           } finally {
-            await fs11.promises.unlink(temporaryPath).catch(() => void 0);
+            await fs12.promises.unlink(temporaryPath).catch(() => void 0);
             if (markerPublished && !isCurrent(context)) {
-              await fs11.promises.unlink(markerPath).catch(() => void 0);
+              await fs12.promises.unlink(markerPath).catch(() => void 0);
             }
           }
           onProgress({ phase: "ready", file: null, loadedBytes: null, totalBytes: null, percent: 100 });
@@ -46600,7 +47002,7 @@ function createProductionEmbeddingModel(input) {
 }
 
 // src/onboarding/quick-index-coordinator.ts
-var import_crypto7 = require("crypto");
+var import_crypto8 = require("crypto");
 function codedError3(code, result) {
   const error = Object.assign(new Error(code), { code });
   if (result)
@@ -46829,7 +47231,7 @@ var QuickIndexCoordinator = class {
   }
   recordFailure(filePath, errorCategory) {
     try {
-      const pathHash = (0, import_crypto7.createHash)("sha256").update(`${this.options.hashSalt}\0${filePath.normalize("NFC")}`).digest("hex");
+      const pathHash = (0, import_crypto8.createHash)("sha256").update(`${this.options.hashSalt}\0${filePath.normalize("NFC")}`).digest("hex");
       this.options.recordFailure?.({ pathHash, errorCategory });
     } catch {
     }
@@ -47034,8 +47436,8 @@ var INSTALL_STAGES = /* @__PURE__ */ new Set([
   "verifying-legacy-index"
 ]);
 function validFolderPath(value) {
-  const path18 = value.trim().replace(/\\/g, "/");
-  return Boolean(path18) && path18.length <= 1024 && !path18.startsWith("/") && !/^[A-Za-z]:\//.test(path18) && !path18.includes("\0") && path18.split("/").every((part) => Boolean(part) && part !== "." && part !== "..");
+  const path19 = value.trim().replace(/\\/g, "/");
+  return Boolean(path19) && path19.length <= 1024 && !path19.startsWith("/") && !/^[A-Za-z]:\//.test(path19) && !path19.includes("\0") && path19.split("/").every((part) => Boolean(part) && part !== "." && part !== "..");
 }
 function useTransferSpeed(snapshot) {
   const previous = (0, import_react19.useRef)(null);
@@ -47303,22 +47705,22 @@ var OnboardingModal = class extends import_obsidian8.Modal {
 };
 
 // src/runtime/runtime-control-surface.ts
+var fs14 = __toESM(require("fs"));
+var path14 = __toESM(require("path"));
+var import_crypto10 = require("crypto");
+
+// src/runtime/runtime-history-isolation.ts
 var fs13 = __toESM(require("fs"));
 var path13 = __toESM(require("path"));
 var import_crypto9 = require("crypto");
-
-// src/runtime/runtime-history-isolation.ts
-var fs12 = __toESM(require("fs"));
-var path12 = __toESM(require("path"));
-var import_crypto8 = require("crypto");
 var SAFE_RUNTIME_ID2 = /^[A-Za-z0-9][A-Za-z0-9._-]{0,159}$/;
 var MAX_METADATA_BYTES = 64 * 1024;
 function isContainedOrEqual(root, candidate) {
-  const relative10 = path12.relative(path12.resolve(root), path12.resolve(candidate));
-  return relative10 === "" || relative10 !== ".." && !relative10.startsWith(`..${path12.sep}`) && !path12.isAbsolute(relative10);
+  const relative11 = path13.relative(path13.resolve(root), path13.resolve(candidate));
+  return relative11 === "" || relative11 !== ".." && !relative11.startsWith(`..${path13.sep}`) && !path13.isAbsolute(relative11);
 }
 function isStrictlyContained(root, candidate) {
-  return path12.resolve(root) !== path12.resolve(candidate) && isContainedOrEqual(root, candidate);
+  return path13.resolve(root) !== path13.resolve(candidate) && isContainedOrEqual(root, candidate);
 }
 function identityFor(stat) {
   return `${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeMs}`;
@@ -47326,7 +47728,7 @@ function identityFor(stat) {
 function writeBufferAtStartSync(descriptor, value) {
   let offset = 0;
   while (offset < value.length) {
-    const written = fs12.writeSync(descriptor, value, offset, value.length - offset, offset);
+    const written = fs13.writeSync(descriptor, value, offset, value.length - offset, offset);
     if (written <= 0)
       throw new Error("RUNTIME_CLEANUP_RECOVERY_WRITE_FAILED");
     offset += written;
@@ -47335,50 +47737,50 @@ function writeBufferAtStartSync(descriptor, value) {
 function safeDirectoryChain(root, candidate) {
   if (!isContainedOrEqual(root, candidate))
     return false;
-  const relative10 = path12.relative(path12.resolve(root), path12.resolve(candidate));
-  const components = relative10 ? relative10.split(path12.sep) : [];
-  let cursor = path12.resolve(root);
+  const relative11 = path13.relative(path13.resolve(root), path13.resolve(candidate));
+  const components = relative11 ? relative11.split(path13.sep) : [];
+  let cursor = path13.resolve(root);
   try {
     for (const component of ["", ...components]) {
       if (component)
-        cursor = path12.join(cursor, component);
-      const stat = fs12.lstatSync(cursor);
+        cursor = path13.join(cursor, component);
+      const stat = fs13.lstatSync(cursor);
       if (!stat.isDirectory() || stat.isSymbolicLink())
         return false;
     }
-    const realRoot = fs12.realpathSync(root);
-    const realCandidate = fs12.realpathSync(candidate);
+    const realRoot = fs13.realpathSync(root);
+    const realCandidate = fs13.realpathSync(candidate);
     return isContainedOrEqual(realRoot, realCandidate);
   } catch {
     return false;
   }
 }
 function readRegularJsonSync(filename, dataRoot) {
-  if (!safeDirectoryChain(dataRoot, path12.dirname(filename)))
+  if (!safeDirectoryChain(dataRoot, path13.dirname(filename)))
     return null;
   let descriptor = null;
   try {
-    const before = fs12.lstatSync(filename);
+    const before = fs13.lstatSync(filename);
     if (!before.isFile() || before.isSymbolicLink() || before.size > MAX_METADATA_BYTES)
       return null;
-    const noFollow = fs12.constants.O_NOFOLLOW ?? 0;
-    descriptor = fs12.openSync(filename, fs12.constants.O_RDONLY | noFollow);
-    const opened = fs12.fstatSync(descriptor);
+    const noFollow = fs13.constants.O_NOFOLLOW ?? 0;
+    descriptor = fs13.openSync(filename, fs13.constants.O_RDONLY | noFollow);
+    const opened = fs13.fstatSync(descriptor);
     if (!opened.isFile() || identityFor(opened) !== identityFor(before) || opened.size > MAX_METADATA_BYTES)
       return null;
-    return JSON.parse(fs12.readFileSync(descriptor, "utf8"));
+    return JSON.parse(fs13.readFileSync(descriptor, "utf8"));
   } catch {
     return null;
   } finally {
     if (descriptor !== null)
-      fs12.closeSync(descriptor);
+      fs13.closeSync(descriptor);
   }
 }
 function validPointer(value, paths, kind, expectedRuntimeId, immutableHistory) {
   if (!value || typeof value !== "object")
     return null;
   const pointer = value;
-  if (pointer.schemaVersion !== 1 || pointer.kind !== kind || typeof pointer.runtimeId !== "string" || !SAFE_RUNTIME_ID2.test(pointer.runtimeId) || expectedRuntimeId !== null && pointer.runtimeId !== expectedRuntimeId || pointer.installedPath !== path12.join(
+  if (pointer.schemaVersion !== 1 || pointer.kind !== kind || typeof pointer.runtimeId !== "string" || !SAFE_RUNTIME_ID2.test(pointer.runtimeId) || expectedRuntimeId !== null && pointer.runtimeId !== expectedRuntimeId || pointer.installedPath !== path13.join(
     kind === "chroma" ? paths.chromaVersions : paths.embeddingVersions,
     pointer.runtimeId
   ) || typeof pointer.assetSha256 !== "string" || !/^[0-9a-f]{64}$/i.test(pointer.assetSha256) || typeof pointer.installedAt !== "number" || !Number.isFinite(pointer.installedAt) || pointer.installedAt < 0 || (immutableHistory ? pointer.previousRuntimeId !== null : pointer.previousRuntimeId !== null && (typeof pointer.previousRuntimeId !== "string" || !SAFE_RUNTIME_ID2.test(pointer.previousRuntimeId)))) {
@@ -47389,7 +47791,7 @@ function validPointer(value, paths, kind, expectedRuntimeId, immutableHistory) {
 function readTrustedRuntimeHistoryPointer(paths, kind, runtimeId, resolveTrustedAsset) {
   if (!SAFE_RUNTIME_ID2.test(runtimeId))
     return null;
-  const filename = path12.join(paths.current, "history", kind, `${runtimeId}.json`);
+  const filename = path13.join(paths.current, "history", kind, `${runtimeId}.json`);
   const pointer = validPointer(readRegularJsonSync(filename, paths.root), paths, kind, runtimeId, true);
   let binding;
   try {
@@ -47402,9 +47804,9 @@ function readTrustedRuntimeHistoryPointer(paths, kind, runtimeId, resolveTrusted
   return pointer;
 }
 function readCurrentPointerSync(paths, kind) {
-  const filename = path12.join(paths.current, `${kind}.json`);
+  const filename = path13.join(paths.current, `${kind}.json`);
   try {
-    fs12.lstatSync(filename);
+    fs13.lstatSync(filename);
   } catch (error) {
     return error.code === "ENOENT" ? { safe: true, pointer: null } : { safe: false, pointer: null };
   }
@@ -47412,7 +47814,7 @@ function readCurrentPointerSync(paths, kind) {
   return { safe: pointer !== null, pointer };
 }
 function validHeldKindLock(paths, kind, filename, token) {
-  const expected = path12.join(paths.current, ".locks", `${kind}.lock`);
+  const expected = path13.join(paths.current, ".locks", `${kind}.lock`);
   if (filename !== expected || !/^[0-9a-f-]{36}$/i.test(token))
     return false;
   const value = readRegularJsonSync(filename, paths.root);
@@ -47420,16 +47822,16 @@ function validHeldKindLock(paths, kind, filename, token) {
 }
 function installLockAbsent(paths, kind, runtimeId) {
   const root = kind === "chroma" ? paths.chromaVersions : paths.embeddingVersions;
-  const directory = path12.join(root, ".locks");
+  const directory = path13.join(root, ".locks");
   try {
-    fs12.lstatSync(directory);
+    fs13.lstatSync(directory);
   } catch (error) {
     return error.code === "ENOENT";
   }
   if (!safeDirectoryChain(paths.root, directory))
     return false;
   try {
-    fs12.lstatSync(path12.join(directory, `${runtimeId}.lock`));
+    fs13.lstatSync(path13.join(directory, `${runtimeId}.lock`));
     return false;
   } catch (error) {
     return error.code === "ENOENT";
@@ -47438,11 +47840,11 @@ function installLockAbsent(paths, kind, runtimeId) {
 function ensurePrivateDirectorySync(dataRoot, directory) {
   if (!isStrictlyContained(dataRoot, directory))
     return false;
-  const parent = path12.dirname(directory);
+  const parent = path13.dirname(directory);
   if (!safeDirectoryChain(dataRoot, parent))
     return false;
   try {
-    fs12.mkdirSync(directory, { mode: 448 });
+    fs13.mkdirSync(directory, { mode: 448 });
   } catch (error) {
     if (error.code !== "EEXIST")
       return false;
@@ -47450,7 +47852,7 @@ function ensurePrivateDirectorySync(dataRoot, directory) {
   if (!safeDirectoryChain(dataRoot, directory))
     return false;
   try {
-    fs12.chmodSync(directory, 448);
+    fs13.chmodSync(directory, 448);
   } catch {
     return false;
   }
@@ -47466,7 +47868,7 @@ var FileSystemRuntimeHistoryIsolationAdapter = class {
     if (item.kind !== "chroma" && item.kind !== "embedding-runtime" || !SAFE_RUNTIME_ID2.test(item.runtimeId) || !validHeldKindLock(this.paths, item.kind, request5.kindLock.filename, request5.kindLock.token))
       return null;
     const versionRoot2 = item.kind === "chroma" ? this.paths.chromaVersions : this.paths.embeddingVersions;
-    const target = path12.join(versionRoot2, item.runtimeId);
+    const target = path13.join(versionRoot2, item.runtimeId);
     const history = readTrustedRuntimeHistoryPointer(
       this.paths,
       item.kind,
@@ -47476,21 +47878,21 @@ var FileSystemRuntimeHistoryIsolationAdapter = class {
     const current = readCurrentPointerSync(this.paths, item.kind);
     if (!history || history.installedAt !== item.installedAt || !current.safe || current.pointer?.runtimeId === item.runtimeId || request5.activeRuntimeId === item.runtimeId || !isStrictlyContained(versionRoot2, target) || !safeDirectoryChain(this.paths.root, versionRoot2) || !safeDirectoryChain(versionRoot2, target) || !installLockAbsent(this.paths, item.kind, item.runtimeId))
       return null;
-    const stat = fs12.lstatSync(target);
+    const stat = fs13.lstatSync(target);
     if (identityFor(stat) !== item.identity)
       return null;
-    const quarantineRoot = path12.join(this.paths.staging, "runtime-history-quarantine");
+    const quarantineRoot = path13.join(this.paths.staging, "runtime-history-quarantine");
     if (!ensurePrivateDirectorySync(this.paths.root, quarantineRoot))
       return null;
-    const containerName = `${item.kind}-${item.runtimeId}-${(0, import_crypto8.randomUUID)()}`;
-    const quarantinePath = path12.join(quarantineRoot, containerName);
+    const containerName = `${item.kind}-${item.runtimeId}-${(0, import_crypto9.randomUUID)()}`;
+    const quarantinePath = path13.join(quarantineRoot, containerName);
     if (!isStrictlyContained(quarantineRoot, quarantinePath))
       return null;
-    fs12.mkdirSync(quarantinePath, { mode: 448 });
+    fs13.mkdirSync(quarantinePath, { mode: 448 });
     if (!safeDirectoryChain(quarantineRoot, quarantinePath))
       return null;
-    const isolatedRuntimePath = path12.join(quarantinePath, "runtime");
-    const recoveryMetadataPath = path12.join(quarantinePath, "recovery.json");
+    const isolatedRuntimePath = path13.join(quarantinePath, "runtime");
+    const recoveryMetadataPath = path13.join(quarantinePath, "recovery.json");
     const recovery = {
       schemaVersion: 1,
       state: "prepared",
@@ -47501,59 +47903,59 @@ var FileSystemRuntimeHistoryIsolationAdapter = class {
       isolatedAt: Date.now(),
       identity: item.identity
     };
-    const recoveryDescriptor = fs12.openSync(recoveryMetadataPath, "wx", 384);
+    const recoveryDescriptor = fs13.openSync(recoveryMetadataPath, "wx", 384);
     try {
       let recoveryBytes = Buffer.from(JSON.stringify(recovery), "utf8");
       writeBufferAtStartSync(recoveryDescriptor, recoveryBytes);
-      fs12.fsyncSync(recoveryDescriptor);
-      fs12.renameSync(target, isolatedRuntimePath);
+      fs13.fsyncSync(recoveryDescriptor);
+      fs13.renameSync(target, isolatedRuntimePath);
       recovery.state = "isolated";
-      fs12.ftruncateSync(recoveryDescriptor, 0);
+      fs13.ftruncateSync(recoveryDescriptor, 0);
       recoveryBytes = Buffer.from(JSON.stringify(recovery), "utf8");
       writeBufferAtStartSync(recoveryDescriptor, recoveryBytes);
-      fs12.fsyncSync(recoveryDescriptor);
+      fs13.fsyncSync(recoveryDescriptor);
     } finally {
-      fs12.closeSync(recoveryDescriptor);
+      fs13.closeSync(recoveryDescriptor);
     }
-    const quarantineIdentity = identityFor(fs12.lstatSync(quarantinePath));
+    const quarantineIdentity = identityFor(fs13.lstatSync(quarantinePath));
     return { quarantinePath, recoveryMetadataPath, quarantineIdentity };
   }
   readyForTrash(item) {
-    const quarantineRoot = path12.join(this.paths.staging, "runtime-history-quarantine");
-    if (!isStrictlyContained(quarantineRoot, item.quarantinePath) || item.recoveryMetadataPath !== path12.join(item.quarantinePath, "recovery.json") || !safeDirectoryChain(this.paths.root, quarantineRoot) || !safeDirectoryChain(quarantineRoot, item.quarantinePath))
+    const quarantineRoot = path13.join(this.paths.staging, "runtime-history-quarantine");
+    if (!isStrictlyContained(quarantineRoot, item.quarantinePath) || item.recoveryMetadataPath !== path13.join(item.quarantinePath, "recovery.json") || !safeDirectoryChain(this.paths.root, quarantineRoot) || !safeDirectoryChain(quarantineRoot, item.quarantinePath))
       return false;
     try {
-      const stat = fs12.lstatSync(item.quarantinePath);
-      return stat.isDirectory() && !stat.isSymbolicLink() && identityFor(stat) === item.quarantineIdentity && fs12.lstatSync(item.recoveryMetadataPath).isFile();
+      const stat = fs13.lstatSync(item.quarantinePath);
+      return stat.isDirectory() && !stat.isSymbolicLink() && identityFor(stat) === item.quarantineIdentity && fs13.lstatSync(item.recoveryMetadataPath).isFile();
     } catch {
       return false;
     }
   }
   trashCompleted(item) {
     try {
-      fs12.lstatSync(item.quarantinePath);
+      fs13.lstatSync(item.quarantinePath);
       return false;
     } catch (error) {
       return error.code === "ENOENT";
     }
   }
   listRecoveries() {
-    const quarantineRoot = path12.join(this.paths.staging, "runtime-history-quarantine");
+    const quarantineRoot = path13.join(this.paths.staging, "runtime-history-quarantine");
     try {
-      fs12.lstatSync(quarantineRoot);
+      fs13.lstatSync(quarantineRoot);
     } catch {
       return [];
     }
     if (!safeDirectoryChain(this.paths.root, quarantineRoot))
       return [];
     const result = [];
-    for (const name of fs12.readdirSync(quarantineRoot)) {
-      const recoveryContainer = path12.join(quarantineRoot, name);
+    for (const name of fs13.readdirSync(quarantineRoot)) {
+      const recoveryContainer = path13.join(quarantineRoot, name);
       if (!isStrictlyContained(quarantineRoot, recoveryContainer) || !safeDirectoryChain(quarantineRoot, recoveryContainer))
         continue;
-      const recoveryPath = path12.join(recoveryContainer, "recovery.json");
+      const recoveryPath = path13.join(recoveryContainer, "recovery.json");
       const value = readRegularJsonSync(recoveryPath, this.paths.root);
-      if (!value || value.schemaVersion !== 1 || value.state !== "isolated" || value.kind !== "chroma" && value.kind !== "embedding-runtime" || typeof value.runtimeId !== "string" || !SAFE_RUNTIME_ID2.test(value.runtimeId) || typeof value.isolatedAt !== "number" || !Number.isFinite(value.isolatedAt) || value.isolatedAt < 0 || typeof value.identity !== "string" || value.isolatedRuntimePath !== path12.join(recoveryContainer, "runtime") || value.sourcePath !== path12.join(
+      if (!value || value.schemaVersion !== 1 || value.state !== "isolated" || value.kind !== "chroma" && value.kind !== "embedding-runtime" || typeof value.runtimeId !== "string" || !SAFE_RUNTIME_ID2.test(value.runtimeId) || typeof value.isolatedAt !== "number" || !Number.isFinite(value.isolatedAt) || value.isolatedAt < 0 || typeof value.identity !== "string" || value.isolatedRuntimePath !== path13.join(recoveryContainer, "runtime") || value.sourcePath !== path13.join(
         value.kind === "chroma" ? this.paths.chromaVersions : this.paths.embeddingVersions,
         value.runtimeId
       ) || !safeDirectoryChain(recoveryContainer, value.isolatedRuntimePath))
@@ -47631,8 +48033,8 @@ function migrationSnapshot(value) {
   };
 }
 function isContained3(root, candidate) {
-  const relative10 = path13.relative(path13.resolve(root), path13.resolve(candidate));
-  return Boolean(relative10) && relative10 !== ".." && !relative10.startsWith(`..${path13.sep}`) && !path13.isAbsolute(relative10);
+  const relative11 = path14.relative(path14.resolve(root), path14.resolve(candidate));
+  return Boolean(relative11) && relative11 !== ".." && !relative11.startsWith(`..${path14.sep}`) && !path14.isAbsolute(relative11);
 }
 function boundedPort(port) {
   return Number.isSafeInteger(port) && port >= 1 && port <= 65535 ? port : null;
@@ -47928,7 +48330,7 @@ var RuntimeControlSurface = class {
         return result;
       } finally {
         await lock.close().catch(() => void 0);
-        await fs13.promises.unlink(this.cleanupLockPath()).catch(() => void 0);
+        await fs14.promises.unlink(this.cleanupLockPath()).catch(() => void 0);
       }
     });
     this.cleanupFlight = operation;
@@ -48049,14 +48451,14 @@ var RuntimeControlSurface = class {
     if (state.ownership !== "analogy" || !state.executablePath)
       return null;
     const root = this.versionRoot(kind);
-    const relative10 = path13.relative(root, state.executablePath);
-    if (!relative10 || relative10 === ".." || relative10.startsWith(`..${path13.sep}`) || path13.isAbsolute(relative10))
+    const relative11 = path14.relative(root, state.executablePath);
+    if (!relative11 || relative11 === ".." || relative11.startsWith(`..${path14.sep}`) || path14.isAbsolute(relative11))
       return null;
-    const runtimeId = relative10.split(path13.sep)[0];
+    const runtimeId = relative11.split(path14.sep)[0];
     return SAFE_RUNTIME_ID3.test(runtimeId) ? runtimeId : null;
   }
   async scanHistory() {
-    const realDataRoot = await fs13.promises.realpath(this.options.paths.root).catch(() => null);
+    const realDataRoot = await fs14.promises.realpath(this.options.paths.root).catch(() => null);
     if (!realDataRoot)
       return [];
     const currents = /* @__PURE__ */ new Map();
@@ -48066,19 +48468,19 @@ var RuntimeControlSurface = class {
     const result = [];
     for (const kind of ["chroma", "embedding-runtime"]) {
       const root = this.versionRoot(kind);
-      const rootStat = await fs13.promises.lstat(root).catch(() => null);
+      const rootStat = await fs14.promises.lstat(root).catch(() => null);
       if (!rootStat || !rootStat.isDirectory() || rootStat.isSymbolicLink())
         continue;
-      const realRoot = await fs13.promises.realpath(root).catch(() => null);
+      const realRoot = await fs14.promises.realpath(root).catch(() => null);
       if (!realRoot || !isContained3(realDataRoot, realRoot))
         continue;
       const currentId = currents.get(kind)?.runtimeId ?? null;
       const activeId = this.activeRuntimeId(kind);
-      const historyDirectory2 = path13.join(this.options.paths.current, "history", kind);
-      const historyStat = await fs13.promises.lstat(historyDirectory2).catch(() => null);
+      const historyDirectory2 = path14.join(this.options.paths.current, "history", kind);
+      const historyStat = await fs14.promises.lstat(historyDirectory2).catch(() => null);
       if (!historyStat || !historyStat.isDirectory() || historyStat.isSymbolicLink())
         continue;
-      for (const filename of await fs13.promises.readdir(historyDirectory2)) {
+      for (const filename of await fs14.promises.readdir(historyDirectory2)) {
         if (!filename.endsWith(".json"))
           continue;
         const name = filename.slice(0, -5);
@@ -48093,10 +48495,10 @@ var RuntimeControlSurface = class {
         if (!pointer)
           continue;
         const target = pointer.installedPath;
-        const stat = await fs13.promises.lstat(target).catch(() => null);
+        const stat = await fs14.promises.lstat(target).catch(() => null);
         if (!stat || !stat.isDirectory() || stat.isSymbolicLink())
           continue;
-        const realTarget = await fs13.promises.realpath(target).catch(() => null);
+        const realTarget = await fs14.promises.realpath(target).catch(() => null);
         if (!realTarget || !isContained3(realRoot, realTarget))
           continue;
         result.push({ kind, runtimeId: name, installedAt: pointer.installedAt, identity: identityFor2(stat) });
@@ -48106,16 +48508,16 @@ var RuntimeControlSurface = class {
     return result;
   }
   cleanupLockPath() {
-    return path13.join(this.options.paths.current, ".locks", "runtime-control-cleanup.lock");
+    return path14.join(this.options.paths.current, ".locks", "runtime-control-cleanup.lock");
   }
   async acquireCleanupLock() {
-    const directory = path13.dirname(this.cleanupLockPath());
-    await fs13.promises.mkdir(directory, { recursive: true, mode: 448 });
-    const stat = await fs13.promises.lstat(directory);
+    const directory = path14.dirname(this.cleanupLockPath());
+    await fs14.promises.mkdir(directory, { recursive: true, mode: 448 });
+    const stat = await fs14.promises.lstat(directory);
     if (!stat.isDirectory() || stat.isSymbolicLink())
       throw controlError("RUNTIME_CLEANUP_UNSAFE_LOCK");
     try {
-      return await fs13.promises.open(this.cleanupLockPath(), "wx", 384);
+      return await fs14.promises.open(this.cleanupLockPath(), "wx", 384);
     } catch (error) {
       throw controlError("RUNTIME_CLEANUP_BUSY", error);
     }
@@ -48123,27 +48525,27 @@ var RuntimeControlSurface = class {
   async acquireKindCleanupLock(kind) {
     if (kind !== "chroma" && kind !== "embedding-runtime")
       throw controlError("RUNTIME_CLEANUP_INVALID_KIND");
-    const filename = path13.join(this.options.paths.current, ".locks", `${kind}.lock`);
-    const directory = path13.dirname(filename);
-    await fs13.promises.mkdir(directory, { recursive: true, mode: 448 });
-    const token = (0, import_crypto9.randomUUID)();
-    const handle = await fs13.promises.open(filename, "wx", 384);
+    const filename = path14.join(this.options.paths.current, ".locks", `${kind}.lock`);
+    const directory = path14.dirname(filename);
+    await fs14.promises.mkdir(directory, { recursive: true, mode: 448 });
+    const token = (0, import_crypto10.randomUUID)();
+    const handle = await fs14.promises.open(filename, "wx", 384);
     try {
       await handle.writeFile(JSON.stringify({ schemaVersion: 1, pid: process.pid, token, createdAt: Date.now() }), "utf8");
       await handle.sync();
       return { handle, filename, token };
     } catch (error) {
       await handle.close().catch(() => void 0);
-      await fs13.promises.unlink(filename).catch(() => void 0);
+      await fs14.promises.unlink(filename).catch(() => void 0);
       throw error;
     }
   }
   async releaseKindCleanupLock(lock) {
     await lock.handle.close().catch(() => void 0);
-    const metadata = await fs13.promises.readFile(lock.filename, "utf8").then(JSON.parse).catch(() => null);
+    const metadata = await fs14.promises.readFile(lock.filename, "utf8").then(JSON.parse).catch(() => null);
     if (metadata?.token !== lock.token)
       throw controlError("RUNTIME_CLEANUP_LOCK_REPLACED");
-    await fs13.promises.unlink(lock.filename).catch((error) => {
+    await fs14.promises.unlink(lock.filename).catch((error) => {
       if (error.code !== "ENOENT")
         throw error;
     });
@@ -48162,9 +48564,9 @@ var RuntimeControlSurface = class {
 };
 
 // src/runtime/chroma-data-migration.ts
-var fs14 = __toESM(require("fs"));
-var path14 = __toESM(require("path"));
-var import_crypto10 = require("crypto");
+var fs15 = __toESM(require("fs"));
+var path15 = __toESM(require("path"));
+var import_crypto11 = require("crypto");
 var CHROMA_DATA_GENERATION = "v2";
 var CHROMA_RUNTIME_ID = "chroma-cli-1.4.4";
 var CHROMA_REBUILD_SMOKE_QUERY = "Analogy \u56FA\u5B9A\u91CD\u5EFA\u9A8C\u8BC1\u67E5\u8BE2";
@@ -48244,8 +48646,8 @@ function validV2Collection(value, runtimeVaultId, modelShortName) {
   return value === prefix || new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_[0-9a-f]{12}$`).test(value);
 }
 function assertContained3(root, candidate) {
-  const relative10 = path14.relative(path14.resolve(root), path14.resolve(candidate));
-  if (!relative10 || relative10 === ".." || relative10.startsWith(`..${path14.sep}`) || path14.isAbsolute(relative10)) {
+  const relative11 = path15.relative(path15.resolve(root), path15.resolve(candidate));
+  if (!relative11 || relative11 === ".." || relative11.startsWith(`..${path15.sep}`) || path15.isAbsolute(relative11)) {
     throw migrationError("UNSAFE_CHROMA_DATA_PATH");
   }
 }
@@ -48263,21 +48665,21 @@ function toGenerationPointer(state) {
   };
 }
 async function atomicWriteJson2(filename, value) {
-  const directory = path14.dirname(filename);
-  await fs14.promises.mkdir(directory, { recursive: true, mode: 448 });
-  const temp = path14.join(directory, `.${path14.basename(filename)}.${process.pid}.${(0, import_crypto10.randomUUID)()}.tmp`);
+  const directory = path15.dirname(filename);
+  await fs15.promises.mkdir(directory, { recursive: true, mode: 448 });
+  const temp = path15.join(directory, `.${path15.basename(filename)}.${process.pid}.${(0, import_crypto11.randomUUID)()}.tmp`);
   let handle = null;
   try {
-    handle = await fs14.promises.open(temp, "wx", 384);
+    handle = await fs15.promises.open(temp, "wx", 384);
     await handle.writeFile(`${JSON.stringify(value, null, 2)}
 `, "utf8");
     await handle.sync();
     await handle.close();
     handle = null;
-    await fs14.promises.rename(temp, filename);
+    await fs15.promises.rename(temp, filename);
     let directoryHandle = null;
     try {
-      directoryHandle = await fs14.promises.open(directory, fs14.constants.O_RDONLY);
+      directoryHandle = await fs15.promises.open(directory, fs15.constants.O_RDONLY);
       await directoryHandle.sync();
     } catch (error) {
       const code = error.code;
@@ -48289,7 +48691,7 @@ async function atomicWriteJson2(filename, value) {
     }
   } catch (error) {
     await handle?.close().catch(() => void 0);
-    await fs14.promises.unlink(temp).catch(() => void 0);
+    await fs15.promises.unlink(temp).catch(() => void 0);
     throw error;
   }
 }
@@ -48297,16 +48699,16 @@ function createChromaDataGeneration(input) {
   validateRuntimeVaultId(input.runtimeVaultId);
   validateModelShortName(input.modelShortName);
   validatePort(input.port);
-  if (!path14.isAbsolute(input.localDataRoot))
+  if (!path15.isAbsolute(input.localDataRoot))
     throw migrationError("INVALID_LOCAL_DATA_ROOT");
-  const vaultRoot = path14.join(path14.resolve(input.localDataRoot), "vaults", input.runtimeVaultId);
-  const dataPath = path14.join(vaultRoot, "chroma_data_v2");
-  assertContained3(path14.resolve(input.localDataRoot), dataPath);
+  const vaultRoot = path15.join(path15.resolve(input.localDataRoot), "vaults", input.runtimeVaultId);
+  const dataPath = path15.join(vaultRoot, "chroma_data_v2");
+  assertContained3(path15.resolve(input.localDataRoot), dataPath);
   const legacyDataPath = input.legacyDataPath ?? null;
-  if (legacyDataPath !== null && !path14.isAbsolute(legacyDataPath)) {
+  if (legacyDataPath !== null && !path15.isAbsolute(legacyDataPath)) {
     throw migrationError("INVALID_LEGACY_DATA_PATH");
   }
-  const transitionToken = input.transitionToken ?? (0, import_crypto10.randomUUID)().replace(/-/g, "");
+  const transitionToken = input.transitionToken ?? (0, import_crypto11.randomUUID)().replace(/-/g, "");
   validateTransitionToken(transitionToken);
   const collectionName = `${collectionPrefix(input.runtimeVaultId, input.modelShortName)}_${transitionToken.slice(0, 12)}`;
   if (!validCollectionName(collectionName))
@@ -48330,11 +48732,11 @@ function indexStateFilename(vaultRoot, generation, modelShortName, evidenceId) {
   if (generation !== "legacy" && generation !== "v2")
     throw migrationError("INVALID_INDEX_GENERATION");
   validateModelShortName(modelShortName);
-  if (!path14.isAbsolute(vaultRoot))
+  if (!path15.isAbsolute(vaultRoot))
     throw migrationError("INVALID_VAULT_RUNTIME_ROOT");
   if (evidenceId !== void 0)
     validateTransitionToken(evidenceId);
-  const filename = evidenceId ? path14.join(path14.resolve(vaultRoot), "index-states", generation, modelShortName, `${evidenceId}.json`) : path14.join(path14.resolve(vaultRoot), "index-states", generation, `${modelShortName}.json`);
+  const filename = evidenceId ? path15.join(path15.resolve(vaultRoot), "index-states", generation, modelShortName, `${evidenceId}.json`) : path15.join(path15.resolve(vaultRoot), "index-states", generation, `${modelShortName}.json`);
   assertContained3(vaultRoot, filename);
   return filename;
 }
@@ -48365,7 +48767,7 @@ function createDeviceLocalIndexStateStore(vaultRoot, generation, modelShortName,
     load: async () => {
       let parsed;
       try {
-        parsed = JSON.parse(await fs14.promises.readFile(filename, "utf8"));
+        parsed = JSON.parse(await fs15.promises.readFile(filename, "utf8"));
       } catch (error) {
         if (error.code === "ENOENT")
           return void 0;
@@ -48447,7 +48849,7 @@ var STORED_EVIDENCE_KEYS = [
   "completedAt"
 ];
 function selectionDigest(documents) {
-  return (0, import_crypto10.createHash)("sha256").update(JSON.stringify(documents), "utf8").digest("hex");
+  return (0, import_crypto11.createHash)("sha256").update(JSON.stringify(documents), "utf8").digest("hex");
 }
 function validScopeCompletion(value) {
   if (!value || typeof value !== "object" || Array.isArray(value))
@@ -48469,17 +48871,17 @@ function validateCollectionDocument(value) {
 }
 var _ChromaDataMigration = class {
   constructor(options) {
-    if (!path14.isAbsolute(options.runtimeStatePath))
+    if (!path15.isAbsolute(options.runtimeStatePath))
       throw migrationError("INVALID_RUNTIME_STATE_PATH");
-    this.runtimeStatePath = path14.resolve(options.runtimeStatePath);
+    this.runtimeStatePath = path15.resolve(options.runtimeStatePath);
     this.now = options.now ?? Date.now;
   }
   async withStateLock(operation) {
     const key = this.runtimeStatePath;
     const previous = _ChromaDataMigration.stateLocks.get(key) ?? Promise.resolve();
     let release;
-    const current = new Promise((resolve10) => {
-      release = resolve10;
+    const current = new Promise((resolve11) => {
+      release = resolve11;
     });
     _ChromaDataMigration.stateLocks.set(key, current);
     await previous;
@@ -48542,7 +48944,7 @@ var _ChromaDataMigration = class {
     ];
     if (!exactKeys(old, oldKeys))
       return null;
-    const expectedVaultId = path14.basename(path14.dirname(this.runtimeStatePath));
+    const expectedVaultId = path15.basename(path15.dirname(this.runtimeStatePath));
     try {
       validateRuntimeVaultId(old.runtimeVaultId);
       validatePort(old.port);
@@ -48555,7 +48957,7 @@ var _ChromaDataMigration = class {
     const now = this.now();
     if (!Number.isSafeInteger(now) || now <= 0)
       return null;
-    const token = (0, import_crypto10.randomUUID)().replace(/-/g, "");
+    const token = (0, import_crypto11.randomUUID)().replace(/-/g, "");
     let pending = null;
     const oldPending = old.pendingGeneration;
     if (oldPending !== null) {
@@ -48656,7 +49058,7 @@ var _ChromaDataMigration = class {
       validateRevision(state.revision);
       validatePort(state.port);
       validateModelShortName(state.modelShortName);
-      const expectedVaultId = path14.basename(path14.dirname(this.runtimeStatePath));
+      const expectedVaultId = path15.basename(path15.dirname(this.runtimeStatePath));
       if (state.schemaVersion !== 1 || state.runtimeVaultId !== expectedVaultId || state.activeGeneration !== null && state.activeGeneration !== "legacy" && state.activeGeneration !== "v2" || !validRuntimeId(state.runtimeId) || !validCollectionName(state.collectionName) || state.rebuildCompletedAt !== null && (!Number.isSafeInteger(state.rebuildCompletedAt) || state.rebuildCompletedAt <= 0) || state.previousGeneration !== null && !this.validPrevious(state.previousGeneration, expectedVaultId) || state.pendingGeneration !== null && !this.validPending(state.pendingGeneration, expectedVaultId)) {
         throw migrationError("RUNTIME_STATE_INVALID");
       }
@@ -48675,7 +49077,7 @@ var _ChromaDataMigration = class {
   }
   async readUnsafe() {
     try {
-      const parsed = JSON.parse(await fs14.promises.readFile(this.runtimeStatePath, "utf8"));
+      const parsed = JSON.parse(await fs15.promises.readFile(this.runtimeStatePath, "utf8"));
       try {
         return this.validateRuntimeState(parsed);
       } catch (error) {
@@ -48803,7 +49205,7 @@ var _ChromaDataMigration = class {
       return { ...generation, stateRevision: 1 };
     });
   }
-  writeLegacyPointerForMigration(generation, port, collectionName, modelShortName, runtimeVaultId = path14.basename(path14.dirname(this.runtimeStatePath))) {
+  writeLegacyPointerForMigration(generation, port, collectionName, modelShortName, runtimeVaultId = path15.basename(path15.dirname(this.runtimeStatePath))) {
     return this.withStateLock(async () => {
       validateRuntimeVaultId(runtimeVaultId);
       validatePort(port);
@@ -48834,7 +49236,7 @@ var _ChromaDataMigration = class {
       const pending = state?.pendingGeneration;
       if (!state || !pending)
         return null;
-      if (!path14.isAbsolute(localDataRoot))
+      if (!path15.isAbsolute(localDataRoot))
         throw migrationError("INVALID_LOCAL_DATA_ROOT");
       return {
         schemaVersion: 1,
@@ -48843,7 +49245,7 @@ var _ChromaDataMigration = class {
         runtimeVaultId: state.runtimeVaultId,
         modelShortName: pending.modelShortName,
         collectionName: pending.collectionName,
-        dataPath: path14.join(path14.resolve(localDataRoot), "vaults", state.runtimeVaultId, "chroma_data_v2"),
+        dataPath: path15.join(path15.resolve(localDataRoot), "vaults", state.runtimeVaultId, "chroma_data_v2"),
         port: pending.port,
         rebuildCompletedAt: null,
         legacyDataPath,
@@ -48877,8 +49279,8 @@ var _ChromaDataMigration = class {
   }
   evidenceFilename(evidenceId) {
     validateTransitionToken(evidenceId);
-    const vaultRoot = path14.dirname(this.runtimeStatePath);
-    const filename = path14.join(vaultRoot, "generation-evidence", `${evidenceId}.json`);
+    const vaultRoot = path15.dirname(this.runtimeStatePath);
+    const filename = path15.join(vaultRoot, "generation-evidence", `${evidenceId}.json`);
     assertContained3(vaultRoot, filename);
     return filename;
   }
@@ -48907,12 +49309,12 @@ var _ChromaDataMigration = class {
       return;
     }
     await Promise.all([
-      fs14.promises.unlink(this.evidenceFilename(transitionToken)).catch((error) => {
+      fs15.promises.unlink(this.evidenceFilename(transitionToken)).catch((error) => {
         if (error.code !== "ENOENT")
           throw error;
       }),
-      fs14.promises.unlink(indexStateFilename(
-        path14.dirname(this.runtimeStatePath),
+      fs15.promises.unlink(indexStateFilename(
+        path15.dirname(this.runtimeStatePath),
         "v2",
         modelShortName,
         transitionToken
@@ -49057,7 +49459,7 @@ var _ChromaDataMigration = class {
       try {
         await atomicWriteJson2(this.runtimeStatePath, runtimeState);
       } catch (error) {
-        await fs14.promises.unlink(evidenceFilename).catch(() => void 0);
+        await fs15.promises.unlink(evidenceFilename).catch(() => void 0);
         throw error;
       }
       const retired = previous.previousGeneration;
@@ -49104,7 +49506,7 @@ var _ChromaDataMigration = class {
       const state = await this.read();
       if (state.activeGeneration !== "v2" || state.pendingGeneration !== null || state.modelShortName !== input.modelShortName || state.rebuildCompletedAt === null || !state.scopeCompletion || input.actualPort != null && state.port !== input.actualPort)
         return false;
-      const raw = JSON.parse(await fs14.promises.readFile(this.evidenceFilename(state.scopeCompletion.evidenceId), "utf8"));
+      const raw = JSON.parse(await fs15.promises.readFile(this.evidenceFilename(state.scopeCompletion.evidenceId), "utf8"));
       if (!raw || typeof raw !== "object" || Array.isArray(raw))
         return false;
       const evidence = raw;
@@ -49150,25 +49552,25 @@ var _ChromaDataMigration = class {
 var ChromaDataMigration = _ChromaDataMigration;
 ChromaDataMigration.stateLocks = /* @__PURE__ */ new Map();
 function isContainedOrEqual2(root, candidate) {
-  const relative10 = path14.relative(path14.resolve(root), path14.resolve(candidate));
-  return relative10 === "" || relative10 !== ".." && !relative10.startsWith(`..${path14.sep}`) && !path14.isAbsolute(relative10);
+  const relative11 = path15.relative(path15.resolve(root), path15.resolve(candidate));
+  return relative11 === "" || relative11 !== ".." && !relative11.startsWith(`..${path15.sep}`) && !path15.isAbsolute(relative11);
 }
 function safeDirectoryChain2(root, candidate) {
   if (!isContainedOrEqual2(root, candidate))
     return false;
-  const relative10 = path14.relative(path14.resolve(root), path14.resolve(candidate));
-  let cursor = path14.resolve(root);
+  const relative11 = path15.relative(path15.resolve(root), path15.resolve(candidate));
+  let cursor = path15.resolve(root);
   try {
-    for (const component of relative10 ? relative10.split(path14.sep) : []) {
-      const parent = fs14.lstatSync(cursor);
+    for (const component of relative11 ? relative11.split(path15.sep) : []) {
+      const parent = fs15.lstatSync(cursor);
       if (!parent.isDirectory() || parent.isSymbolicLink())
         return false;
-      cursor = path14.join(cursor, component);
+      cursor = path15.join(cursor, component);
     }
-    const final = fs14.lstatSync(cursor);
+    const final = fs15.lstatSync(cursor);
     if (!final.isDirectory() || final.isSymbolicLink())
       return false;
-    return isContainedOrEqual2(fs14.realpathSync(root), fs14.realpathSync(candidate));
+    return isContainedOrEqual2(fs15.realpathSync(root), fs15.realpathSync(candidate));
   } catch {
     return false;
   }
@@ -49187,25 +49589,25 @@ function sameIdentity(left, right) {
   return left.dev === right.dev && left.ino === right.ino && left.isDirectory() && right.isDirectory() && !left.isSymbolicLink() && !right.isSymbolicLink();
 }
 function writeJsonSyncAtomic(filename, value) {
-  const temp = path14.join(path14.dirname(filename), `.${path14.basename(filename)}.${process.pid}.${(0, import_crypto10.randomUUID)()}.tmp`);
+  const temp = path15.join(path15.dirname(filename), `.${path15.basename(filename)}.${process.pid}.${(0, import_crypto11.randomUUID)()}.tmp`);
   let fd = null;
   try {
-    fd = fs14.openSync(temp, "wx", 384);
-    fs14.writeFileSync(fd, `${JSON.stringify(value, null, 2)}
+    fd = fs15.openSync(temp, "wx", 384);
+    fs15.writeFileSync(fd, `${JSON.stringify(value, null, 2)}
 `, "utf8");
-    fs14.fsyncSync(fd);
-    fs14.closeSync(fd);
+    fs15.fsyncSync(fd);
+    fs15.closeSync(fd);
     fd = null;
-    fs14.renameSync(temp, filename);
+    fs15.renameSync(temp, filename);
   } catch (error) {
     if (fd !== null) {
       try {
-        fs14.closeSync(fd);
+        fs15.closeSync(fd);
       } catch {
       }
     }
     try {
-      fs14.unlinkSync(temp);
+      fs15.unlinkSync(temp);
     } catch {
     }
     throw error;
@@ -49218,14 +49620,14 @@ function validRecoveryMetadata(value, expectedId) {
   return exactKeys(item, LEGACY_RECOVERY_KEYS) && item.schemaVersion === 1 && item.id === expectedId && /^[0-9a-f]{32}$/.test(expectedId) && (item.state === "prepared" || item.state === "isolated" || item.state === "trash-failed" || item.state === "restore-failed") && typeof item.sourceName === "string" && /^[A-Za-z0-9][A-Za-z0-9._-]{0,159}$/.test(item.sourceName) && Number.isSafeInteger(item.sourceDev) && item.sourceDev >= 0 && Number.isSafeInteger(item.sourceIno) && item.sourceIno >= 0 && Number.isSafeInteger(item.isolatedAt) && item.isolatedAt > 0 && Number.isSafeInteger(item.updatedAt) && item.updatedAt > 0;
 }
 function createLegacyCleanupManager(options) {
-  const pluginDirectory = path14.resolve(options.pluginDirectory);
-  const allowedRoot = path14.join(pluginDirectory, "chroma_data");
-  const source = options.legacyDataPath ? path14.resolve(options.legacyDataPath) : null;
-  const quarantineRoot = path14.join(allowedRoot, ".analogy-quarantine");
+  const pluginDirectory = path15.resolve(options.pluginDirectory);
+  const allowedRoot = path15.join(pluginDirectory, "chroma_data");
+  const source = options.legacyDataPath ? path15.resolve(options.legacyDataPath) : null;
+  const quarantineRoot = path15.join(allowedRoot, ".analogy-quarantine");
   const recoveryDirectory2 = (id) => {
     if (!/^[0-9a-f]{32}$/.test(id))
       throw migrationError("LEGACY_CLEANUP_RECOVERY_INVALID");
-    const directory = path14.join(quarantineRoot, `legacy-${id}`);
+    const directory = path15.join(quarantineRoot, `legacy-${id}`);
     if (!isContainedOrEqual2(quarantineRoot, directory) || directory === quarantineRoot) {
       throw migrationError("LEGACY_CLEANUP_RECOVERY_INVALID");
     }
@@ -49235,27 +49637,27 @@ function createLegacyCleanupManager(options) {
     const directory = recoveryDirectory2(id);
     if (!safeDirectoryChain2(quarantineRoot, directory))
       throw migrationError("LEGACY_CLEANUP_RECOVERY_INVALID");
-    const metadataPath = path14.join(directory, "recovery.json");
-    const stat = fs14.lstatSync(metadataPath);
+    const metadataPath = path15.join(directory, "recovery.json");
+    const stat = fs15.lstatSync(metadataPath);
     if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 16 * 1024) {
       throw migrationError("LEGACY_CLEANUP_RECOVERY_INVALID");
     }
-    const metadata = JSON.parse(fs14.readFileSync(metadataPath, "utf8"));
+    const metadata = JSON.parse(fs15.readFileSync(metadataPath, "utf8"));
     if (!validRecoveryMetadata(metadata, id))
       throw migrationError("LEGACY_CLEANUP_RECOVERY_INVALID");
-    const isolated = fs14.lstatSync(path14.join(directory, "data"));
+    const isolated = fs15.lstatSync(path15.join(directory, "data"));
     if (!isolated.isDirectory() || isolated.isSymbolicLink() || isolated.dev !== metadata.sourceDev || isolated.ino !== metadata.sourceIno) {
       throw migrationError("LEGACY_CLEANUP_RECOVERY_IDENTITY_MISMATCH");
     }
     return { directory, metadata };
   };
   const listRecoveries = async () => {
-    if (!fs14.existsSync(quarantineRoot))
+    if (!fs15.existsSync(quarantineRoot))
       return [];
     if (!safeDirectoryChain2(allowedRoot, quarantineRoot))
       throw migrationError("LEGACY_CLEANUP_RECOVERY_INVALID");
     const results = [];
-    for (const entry of fs14.readdirSync(quarantineRoot, { withFileTypes: true })) {
+    for (const entry of fs15.readdirSync(quarantineRoot, { withFileTypes: true })) {
       const match = /^legacy-([0-9a-f]{32})$/.exec(entry.name);
       if (!match || !entry.isDirectory() || entry.isSymbolicLink())
         continue;
@@ -49271,34 +49673,34 @@ function createLegacyCleanupManager(options) {
     if (confirmation !== LEGACY_CLEANUP_CONFIRMATION) {
       throw migrationError("LEGACY_CLEANUP_CONFIRMATION_REQUIRED");
     }
-    if (!source || !path14.isAbsolute(options.pluginDirectory) || !isContainedOrEqual2(allowedRoot, source) || source === allowedRoot || path14.basename(source).startsWith("."))
+    if (!source || !path15.isAbsolute(options.pluginDirectory) || !isContainedOrEqual2(allowedRoot, source) || source === allowedRoot || path15.basename(source).startsWith("."))
       throw migrationError("LEGACY_CLEANUP_UNAVAILABLE");
     if (!await options.isV2Completed())
       throw migrationError("LEGACY_CLEANUP_V2_NOT_COMPLETE");
-    if (!fs14.existsSync(source))
+    if (!fs15.existsSync(source))
       return { removed: 0, failed: 0, skipped: 1 };
     if (!safeDirectoryChain2(pluginDirectory, allowedRoot) || !safeDirectoryChain2(allowedRoot, source)) {
       throw migrationError("LEGACY_CLEANUP_UNSAFE_PATH");
     }
-    fs14.mkdirSync(quarantineRoot, { recursive: true, mode: 448 });
-    fs14.chmodSync(quarantineRoot, 448);
+    fs15.mkdirSync(quarantineRoot, { recursive: true, mode: 448 });
+    fs15.chmodSync(quarantineRoot, 448);
     if (!safeDirectoryChain2(allowedRoot, quarantineRoot))
       throw migrationError("LEGACY_CLEANUP_UNSAFE_PATH");
-    const sourceIdentity = fs14.lstatSync(source);
-    const quarantineIdentity = fs14.lstatSync(quarantineRoot);
+    const sourceIdentity = fs15.lstatSync(source);
+    const quarantineIdentity = fs15.lstatSync(quarantineRoot);
     if (!sourceIdentity.isDirectory() || sourceIdentity.isSymbolicLink() || sourceIdentity.dev !== quarantineIdentity.dev)
       throw migrationError("LEGACY_CLEANUP_UNSAFE_PATH");
-    const id = (0, import_crypto10.randomUUID)().replace(/-/g, "");
+    const id = (0, import_crypto11.randomUUID)().replace(/-/g, "");
     const directory = recoveryDirectory2(id);
-    const isolated = path14.join(directory, "data");
-    const metadataPath = path14.join(directory, "recovery.json");
-    fs14.mkdirSync(directory, { mode: 448 });
+    const isolated = path15.join(directory, "data");
+    const metadataPath = path15.join(directory, "recovery.json");
+    fs15.mkdirSync(directory, { mode: 448 });
     const now = Date.now();
     let metadata = {
       schemaVersion: 1,
       id,
       state: "prepared",
-      sourceName: path14.basename(source),
+      sourceName: path15.basename(source),
       sourceDev: sourceIdentity.dev,
       sourceIno: sourceIdentity.ino,
       isolatedAt: now,
@@ -49308,14 +49710,14 @@ function createLegacyCleanupManager(options) {
     try {
       if (!safeDirectoryChain2(pluginDirectory, allowedRoot) || !safeDirectoryChain2(allowedRoot, source) || !safeDirectoryChain2(allowedRoot, quarantineRoot) || !safeDirectoryChain2(quarantineRoot, directory))
         throw migrationError("LEGACY_CLEANUP_UNSAFE_PATH");
-      const finalIdentity = fs14.lstatSync(source);
+      const finalIdentity = fs15.lstatSync(source);
       if (!sameIdentity(sourceIdentity, finalIdentity))
         throw migrationError("LEGACY_CLEANUP_IDENTITY_CHANGED");
-      fs14.renameSync(source, isolated);
-      const isolatedIdentity = fs14.lstatSync(isolated);
+      fs15.renameSync(source, isolated);
+      const isolatedIdentity = fs15.lstatSync(isolated);
       if (!sameIdentity(sourceIdentity, isolatedIdentity)) {
         try {
-          fs14.renameSync(isolated, source);
+          fs15.renameSync(isolated, source);
         } catch {
         }
         throw migrationError("LEGACY_CLEANUP_IDENTITY_CHANGED");
@@ -49323,13 +49725,13 @@ function createLegacyCleanupManager(options) {
       metadata = { ...metadata, state: "isolated", updatedAt: Date.now() };
       writeJsonSyncAtomic(metadataPath, metadata);
     } catch (error) {
-      if (fs14.existsSync(source)) {
+      if (fs15.existsSync(source)) {
         try {
-          fs14.unlinkSync(metadataPath);
+          fs15.unlinkSync(metadataPath);
         } catch {
         }
         try {
-          fs14.rmdirSync(directory);
+          fs15.rmdirSync(directory);
         } catch {
         }
       }
@@ -49338,7 +49740,7 @@ function createLegacyCleanupManager(options) {
     try {
       const recovery = readRecovery(id);
       await options.trashItem(recovery.directory);
-      if (fs14.existsSync(recovery.directory))
+      if (fs15.existsSync(recovery.directory))
         throw migrationError("LEGACY_CLEANUP_TRASH_INCOMPLETE");
       return { removed: 1, failed: 0, skipped: 0 };
     } catch {
@@ -49354,13 +49756,13 @@ function createLegacyCleanupManager(options) {
     const recovery = readRecovery(id);
     try {
       await options.trashItem(recovery.directory);
-      if (fs14.existsSync(recovery.directory))
+      if (fs15.existsSync(recovery.directory))
         throw migrationError("LEGACY_CLEANUP_TRASH_INCOMPLETE");
       return { removed: 1, failed: 0 };
     } catch {
       const metadata = { ...recovery.metadata, state: "trash-failed", updatedAt: Date.now() };
       try {
-        writeJsonSyncAtomic(path14.join(recovery.directory, "recovery.json"), metadata);
+        writeJsonSyncAtomic(path15.join(recovery.directory, "recovery.json"), metadata);
       } catch {
       }
       return { removed: 0, failed: 1 };
@@ -49368,35 +49770,35 @@ function createLegacyCleanupManager(options) {
   };
   const restoreRecovery = async (id) => {
     const recovery = readRecovery(id);
-    const restoreTarget = path14.join(allowedRoot, recovery.metadata.sourceName);
+    const restoreTarget = path15.join(allowedRoot, recovery.metadata.sourceName);
     if (source && restoreTarget !== source)
       throw migrationError("LEGACY_CLEANUP_RECOVERY_INVALID");
-    if (fs14.existsSync(restoreTarget))
+    if (fs15.existsSync(restoreTarget))
       return { restored: 0, failed: 1 };
     try {
-      fs14.renameSync(path14.join(recovery.directory, "data"), restoreTarget);
-      const restored = fs14.lstatSync(restoreTarget);
+      fs15.renameSync(path15.join(recovery.directory, "data"), restoreTarget);
+      const restored = fs15.lstatSync(restoreTarget);
       if (restored.dev !== recovery.metadata.sourceDev || restored.ino !== recovery.metadata.sourceIno || !restored.isDirectory() || restored.isSymbolicLink()) {
         try {
-          fs14.renameSync(restoreTarget, path14.join(recovery.directory, "data"));
+          fs15.renameSync(restoreTarget, path15.join(recovery.directory, "data"));
         } catch {
         }
         throw migrationError("LEGACY_CLEANUP_RECOVERY_IDENTITY_MISMATCH");
       }
       try {
-        fs14.unlinkSync(path14.join(recovery.directory, "recovery.json"));
+        fs15.unlinkSync(path15.join(recovery.directory, "recovery.json"));
       } catch {
       }
       try {
-        fs14.rmdirSync(recovery.directory);
+        fs15.rmdirSync(recovery.directory);
       } catch {
       }
       return { restored: 1, failed: 0 };
     } catch {
-      if (fs14.existsSync(path14.join(recovery.directory, "recovery.json"))) {
+      if (fs15.existsSync(path15.join(recovery.directory, "recovery.json"))) {
         const metadata = { ...recovery.metadata, state: "restore-failed", updatedAt: Date.now() };
         try {
-          writeJsonSyncAtomic(path14.join(recovery.directory, "recovery.json"), metadata);
+          writeJsonSyncAtomic(path15.join(recovery.directory, "recovery.json"), metadata);
         } catch {
         }
       }
@@ -49407,23 +49809,23 @@ function createLegacyCleanupManager(options) {
 }
 
 // src/runtime/legacy-chroma-runtime-bridge.ts
-var fs15 = __toESM(require("fs"));
-var path15 = __toESM(require("path"));
-var import_crypto11 = require("crypto");
+var fs16 = __toESM(require("fs"));
+var path16 = __toESM(require("path"));
+var import_crypto12 = require("crypto");
 var import_http3 = require("http");
 var import_net = require("net");
-var import_child_process4 = require("child_process");
+var import_child_process5 = require("child_process");
 function legacyError(code, cause) {
   return Object.assign(new Error(code), { code, ...cause === void 0 ? {} : { cause } });
 }
 function isContained4(root, candidate) {
-  const relative10 = path15.relative(path15.resolve(root), path15.resolve(candidate));
-  return Boolean(relative10) && relative10 !== ".." && !relative10.startsWith(`..${path15.sep}`) && !path15.isAbsolute(relative10);
+  const relative11 = path16.relative(path16.resolve(root), path16.resolve(candidate));
+  return Boolean(relative11) && relative11 !== ".." && !relative11.startsWith(`..${path16.sep}`) && !path16.isAbsolute(relative11);
 }
 async function requirePlainPath(candidate, code, kind) {
   let stat;
   try {
-    stat = await fs15.promises.lstat(candidate);
+    stat = await fs16.promises.lstat(candidate);
   } catch (error) {
     throw legacyError(code, error);
   }
@@ -49431,23 +49833,23 @@ async function requirePlainPath(candidate, code, kind) {
     throw legacyError(code);
   }
   try {
-    return await fs15.promises.realpath(candidate);
+    return await fs16.promises.realpath(candidate);
   } catch (error) {
     throw legacyError(code, error);
   }
 }
 async function discoverLegacyRuntime(input) {
   const pluginDir = await requirePlainPath(input.pluginDir, "LEGACY_RUNTIME_UNTRUSTED", "directory");
-  const expectedExecutable = input.platform === "win32-x64" ? path15.join(pluginDir, "chroma-venv", "Scripts", "chroma.exe") : path15.join(pluginDir, "chroma-venv", "bin", "chroma");
+  const expectedExecutable = input.platform === "win32-x64" ? path16.join(pluginDir, "chroma-venv", "Scripts", "chroma.exe") : path16.join(pluginDir, "chroma-venv", "bin", "chroma");
   const executablePath = await requirePlainPath(
     expectedExecutable,
     "LEGACY_RUNTIME_UNTRUSTED",
     "file"
   );
-  const trustedVenv = path15.join(pluginDir, "chroma-venv");
+  const trustedVenv = path16.join(pluginDir, "chroma-venv");
   if (!isContained4(trustedVenv, executablePath))
     throw legacyError("LEGACY_RUNTIME_UNTRUSTED");
-  const expectedLegacyRoot = path15.join(pluginDir, "chroma_data");
+  const expectedLegacyRoot = path16.join(pluginDir, "chroma_data");
   const legacyDataPath = await requirePlainPath(
     input.legacyDataPath,
     "LEGACY_DATA_PATH_UNSAFE",
@@ -49464,11 +49866,11 @@ async function discoverLegacyRuntime(input) {
 async function collectSourceEntries(root) {
   const entries = [];
   const visit = async (directory) => {
-    const names = await fs15.promises.readdir(directory);
+    const names = await fs16.promises.readdir(directory);
     names.sort((left, right) => left.localeCompare(right, "en"));
     for (const name of names) {
-      const absolutePath = path15.join(directory, name);
-      const stat = await fs15.promises.lstat(absolutePath);
+      const absolutePath = path16.join(directory, name);
+      const stat = await fs16.promises.lstat(absolutePath);
       if (stat.isSymbolicLink())
         throw legacyError("LEGACY_DATA_PATH_UNSAFE");
       if (stat.isDirectory()) {
@@ -49477,13 +49879,13 @@ async function collectSourceEntries(root) {
       }
       if (!stat.isFile())
         throw legacyError("LEGACY_DATA_PATH_UNSAFE");
-      const relativePath = path15.relative(root, absolutePath);
-      if (!relativePath || path15.isAbsolute(relativePath) || relativePath.startsWith(`..${path15.sep}`)) {
+      const relativePath = path16.relative(root, absolutePath);
+      if (!relativePath || path16.isAbsolute(relativePath) || relativePath.startsWith(`..${path16.sep}`)) {
         throw legacyError("LEGACY_DATA_PATH_UNSAFE");
       }
       entries.push({
         absolutePath,
-        relativePath: relativePath.split(path15.sep).join("/"),
+        relativePath: relativePath.split(path16.sep).join("/"),
         size: stat.size,
         mtimeMs: stat.mtimeMs,
         dev: stat.dev,
@@ -49496,7 +49898,7 @@ async function collectSourceEntries(root) {
   return entries;
 }
 function identityFor3(entries) {
-  const hash = (0, import_crypto11.createHash)("sha256");
+  const hash = (0, import_crypto12.createHash)("sha256");
   let totalBytes = 0;
   let newestMtimeMs = 0;
   for (const entry of entries) {
@@ -49514,18 +49916,18 @@ function identityFor3(entries) {
   return { digest: hash.digest("hex"), totalBytes, newestMtimeMs, fileCount: entries.length };
 }
 async function defaultAvailableBytes(directory) {
-  const statfs = await fs15.promises.statfs(directory);
+  const statfs = await fs16.promises.statfs(directory);
   return statfs.bavail * statfs.bsize;
 }
 async function createLegacySnapshot(options) {
   if (!/^[0-9a-f]{32}$/.test(options.migrationId))
     throw legacyError("LEGACY_MIGRATION_ID_INVALID");
-  const stagingRoot = path15.resolve(options.stagingRoot);
-  await fs15.promises.mkdir(stagingRoot, { recursive: true, mode: 448 });
-  const snapshotPath = path15.join(stagingRoot, `snapshot-${options.migrationId}`);
+  const stagingRoot = path16.resolve(options.stagingRoot);
+  await fs16.promises.mkdir(stagingRoot, { recursive: true, mode: 448 });
+  const snapshotPath = path16.join(stagingRoot, `snapshot-${options.migrationId}`);
   if (!isContained4(stagingRoot, snapshotPath))
     throw legacyError("LEGACY_SNAPSHOT_PATH_UNSAFE");
-  const stale = await fs15.promises.lstat(snapshotPath).catch((error) => {
+  const stale = await fs16.promises.lstat(snapshotPath).catch((error) => {
     if (error.code === "ENOENT")
       return null;
     throw error;
@@ -49533,7 +49935,7 @@ async function createLegacySnapshot(options) {
   if (stale) {
     if (!stale.isDirectory() || stale.isSymbolicLink())
       throw legacyError("LEGACY_SNAPSHOT_PATH_UNSAFE");
-    await fs15.promises.rm(snapshotPath, { recursive: true, force: true });
+    await fs16.promises.rm(snapshotPath, { recursive: true, force: true });
   }
   const sourceEntries = await collectSourceEntries(options.candidate.legacyDataPath);
   const sourceIdentity = identityFor3(sourceEntries);
@@ -49541,16 +49943,16 @@ async function createLegacySnapshot(options) {
   if (!Number.isFinite(available) || available < sourceIdentity.totalBytes) {
     throw legacyError("INSUFFICIENT_DISK_SPACE");
   }
-  const copyFile = options.copyFile ?? ((source, target, flags) => fs15.promises.copyFile(source, target, flags));
+  const copyFile = options.copyFile ?? ((source, target, flags) => fs16.promises.copyFile(source, target, flags));
   try {
-    await fs15.promises.mkdir(snapshotPath, { recursive: false, mode: 448 });
+    await fs16.promises.mkdir(snapshotPath, { recursive: false, mode: 448 });
     for (const entry of sourceEntries) {
-      const target = path15.join(snapshotPath, ...entry.relativePath.split("/"));
+      const target = path16.join(snapshotPath, ...entry.relativePath.split("/"));
       if (!isContained4(snapshotPath, target))
         throw legacyError("LEGACY_SNAPSHOT_PATH_UNSAFE");
-      await fs15.promises.mkdir(path15.dirname(target), { recursive: true, mode: 448 });
+      await fs16.promises.mkdir(path16.dirname(target), { recursive: true, mode: 448 });
       try {
-        await copyFile(entry.absolutePath, target, fs15.constants.COPYFILE_FICLONE);
+        await copyFile(entry.absolutePath, target, fs16.constants.COPYFILE_FICLONE);
       } catch (error) {
         const code = error?.code;
         if (!["ENOTSUP", "EINVAL", "EXDEV", "ENOSYS"].includes(code ?? ""))
@@ -49563,7 +49965,7 @@ async function createLegacySnapshot(options) {
       throw legacyError("LEGACY_SOURCE_CHANGED");
     return { snapshotPath, sourceIdentity };
   } catch (error) {
-    await fs15.promises.rm(snapshotPath, { recursive: true, force: true }).catch(() => void 0);
+    await fs16.promises.rm(snapshotPath, { recursive: true, force: true }).catch(() => void 0);
     throw error;
   }
 }
@@ -49574,19 +49976,19 @@ function abortError() {
   return legacyError("LEGACY_MIGRATION_CANCELLED");
 }
 async function allocateLoopbackPort() {
-  return new Promise((resolve10, reject) => {
+  return new Promise((resolve11, reject) => {
     const server = (0, import_net.createServer)();
     server.once("error", reject);
     server.listen(0, "127.0.0.1", () => {
       const address = server.address();
       const port = address && typeof address === "object" ? address.port : 0;
-      server.close((error) => error ? reject(error) : resolve10(port));
+      server.close((error) => error ? reject(error) : resolve11(port));
     });
   });
 }
 async function requestJsonDefault(input) {
   const payload = input.body === void 0 ? void 0 : JSON.stringify(input.body);
-  return new Promise((resolve10, reject) => {
+  return new Promise((resolve11, reject) => {
     const request5 = (0, import_http3.request)({
       hostname: "127.0.0.1",
       port: input.port,
@@ -49610,11 +50012,11 @@ async function requestJsonDefault(input) {
           return;
         }
         if (!body) {
-          resolve10(void 0);
+          resolve11(void 0);
           return;
         }
         try {
-          resolve10(JSON.parse(body));
+          resolve11(JSON.parse(body));
         } catch {
           reject(legacyError("LEGACY_CHROMA_RESPONSE_INVALID"));
         }
@@ -49643,7 +50045,7 @@ function compatibleLegacyVersion(value) {
 async function stopChild(child) {
   if (!child || child.exitCode !== null && child.exitCode !== void 0)
     return;
-  await new Promise((resolve10) => {
+  await new Promise((resolve11) => {
     let settled = false;
     let timer = null;
     const finish = () => {
@@ -49652,7 +50054,7 @@ async function stopChild(child) {
       settled = true;
       if (timer)
         clearTimeout(timer);
-      resolve10();
+      resolve11();
     };
     child.once("exit", finish);
     try {
@@ -49690,7 +50092,7 @@ var LegacyChromaRuntimeBridge = class {
     const port = await (this.options.allocatePort ?? allocateLoopbackPort)();
     if (!validPort(port))
       throw legacyError("LEGACY_CHROMA_PORT_INVALID");
-    const spawnHook = this.options.spawn ?? ((executable, args, options) => (0, import_child_process4.spawn)(executable, [...args], options));
+    const spawnHook = this.options.spawn ?? ((executable, args, options) => (0, import_child_process5.spawn)(executable, [...args], options));
     const spawnOptions = {
       shell: false,
       cwd: snapshot.snapshotPath
@@ -49735,7 +50137,7 @@ var LegacyChromaRuntimeBridge = class {
   }
   async waitUntilReady(port, signal) {
     const requestJson = this.options.requestJson ?? requestJsonDefault;
-    const wait = this.options.waitMs ?? ((milliseconds) => new Promise((resolve10) => setTimeout(resolve10, milliseconds)));
+    const wait = this.options.waitMs ?? ((milliseconds) => new Promise((resolve11) => setTimeout(resolve11, milliseconds)));
     const deadline = Date.now() + (this.options.startupTimeoutMs ?? 12e4);
     let lastError = null;
     while (Date.now() <= deadline) {
@@ -49812,18 +50214,18 @@ var LegacyChromaRuntimeBridge = class {
     this.snapshot = null;
     if (!snapshot)
       return;
-    const stagingRoot = path15.resolve(this.options.stagingRoot);
-    const target = path15.resolve(snapshot.snapshotPath);
+    const stagingRoot = path16.resolve(this.options.stagingRoot);
+    const target = path16.resolve(snapshot.snapshotPath);
     if (!isContained4(stagingRoot, target))
       throw legacyError("LEGACY_SNAPSHOT_PATH_UNSAFE");
-    await fs15.promises.rm(target, { recursive: true, force: true });
+    await fs16.promises.rm(target, { recursive: true, force: true });
   }
 };
 
 // src/runtime/legacy-vector-migration.ts
-var fs16 = __toESM(require("fs"));
-var path16 = __toESM(require("path"));
-var import_crypto12 = require("crypto");
+var fs17 = __toESM(require("fs"));
+var path17 = __toESM(require("path"));
+var import_crypto13 = require("crypto");
 function migrationError2(code, cause) {
   return Object.assign(new Error(code), { code, ...cause === void 0 ? {} : { cause } });
 }
@@ -49841,14 +50243,14 @@ function cloneSnapshot2(snapshot) {
   return { ...snapshot };
 }
 async function atomicWriteJson3(filename, value) {
-  await fs16.promises.mkdir(path16.dirname(filename), { recursive: true, mode: 448 });
-  const temporary = `${filename}.${process.pid}.${(0, import_crypto12.randomUUID)()}.tmp`;
+  await fs17.promises.mkdir(path17.dirname(filename), { recursive: true, mode: 448 });
+  const temporary = `${filename}.${process.pid}.${(0, import_crypto13.randomUUID)()}.tmp`;
   try {
-    await fs16.promises.writeFile(temporary, `${JSON.stringify(value)}
+    await fs17.promises.writeFile(temporary, `${JSON.stringify(value)}
 `, { encoding: "utf8", mode: 384 });
-    await fs16.promises.rename(temporary, filename);
+    await fs17.promises.rename(temporary, filename);
   } catch (error) {
-    await fs16.promises.rm(temporary, { force: true }).catch(() => void 0);
+    await fs17.promises.rm(temporary, { force: true }).catch(() => void 0);
     throw migrationError2("LEGACY_MIGRATION_CHECKPOINT_WRITE_FAILED", error);
   }
 }
@@ -49933,7 +50335,7 @@ function normalizeBatch(response, expectedDimension) {
 function addIdsToDigest(current, ids) {
   const accumulator = Buffer.from(current, "hex");
   for (const id of ids) {
-    const digest = (0, import_crypto12.createHash)("sha256").update(id, "utf8").digest();
+    const digest = (0, import_crypto13.createHash)("sha256").update(id, "utf8").digest();
     for (let index = 0; index < accumulator.length; index += 1)
       accumulator[index] ^= digest[index];
   }
@@ -50003,7 +50405,7 @@ var LegacyVectorMigration = class {
   async discard() {
     if (this.flight)
       throw migrationError2("LEGACY_MIGRATION_BUSY");
-    await fs16.promises.rm(this.options.checkpointPath, { force: true });
+    await fs17.promises.rm(this.options.checkpointPath, { force: true });
     this.snapshot = null;
   }
   begin(signal, resume) {
@@ -50047,7 +50449,7 @@ var LegacyVectorMigration = class {
       }
       this.snapshot = existing ?? {
         schemaVersion: 1,
-        migrationId: (0, import_crypto12.randomUUID)().replace(/-/g, ""),
+        migrationId: (0, import_crypto13.randomUUID)().replace(/-/g, ""),
         state: "preparing",
         sourceIdentity: this.options.source.snapshot.sourceIdentity.digest,
         sourceCollectionName: this.options.source.collectionName,
@@ -50158,7 +50560,7 @@ var LegacyVectorMigration = class {
   async readCheckpoint() {
     let body;
     try {
-      body = await fs16.promises.readFile(this.options.checkpointPath, "utf8");
+      body = await fs17.promises.readFile(this.options.checkpointPath, "utf8");
     } catch (error) {
       if (error.code === "ENOENT")
         return null;
@@ -50191,18 +50593,18 @@ var LegacyVectorMigration = class {
 };
 
 // main.ts
-var crypto6 = __toESM(require("crypto"));
-var fs17 = __toESM(require("fs"));
-var path17 = __toESM(require("path"));
+var crypto7 = __toESM(require("crypto"));
+var fs18 = __toESM(require("fs"));
+var path18 = __toESM(require("path"));
 function environmentCanStartServices(report) {
   return (report.chroma === "installed" || report.chroma === "running") && report.embeddingRuntime === "ready" && report.embeddingModel === "ready" && report.index === "ready" && (report.recommendedAction === "start-services" || report.recommendedAction === "none");
 }
 async function safeDirectoryBytes(root) {
   let total = 0;
   const visit = async (directory) => {
-    for (const name of await fs17.promises.readdir(directory)) {
-      const target = path17.join(directory, name);
-      const stat = await fs17.promises.lstat(target);
+    for (const name of await fs18.promises.readdir(directory)) {
+      const target = path18.join(directory, name);
+      const stat = await fs18.promises.lstat(target);
       if (stat.isSymbolicLink())
         throw new Error("LEGACY_DATA_PATH_UNSAFE");
       if (stat.isDirectory())
@@ -50331,7 +50733,7 @@ var Analogy = class extends import_obsidian9.Plugin {
     await this.loadSettings();
     setLocale(this.settings.uiLanguage || "en");
     const pluginDir = this.getPluginDir();
-    const buildId = "1.2.0+3ef0f79.1785858589432" ? "1.2.0+3ef0f79.1785858589432" : `${this.manifest.version}+dev`;
+    const buildId = "1.2.1+faacb1d.1785867579800" ? "1.2.1+faacb1d.1785867579800" : `${this.manifest.version}+dev`;
     this.diagnosticRecorder = new DiagnosticRecorder({
       pluginDir,
       pluginVersion: this.manifest.version,
@@ -50396,7 +50798,7 @@ var Analogy = class extends import_obsidian9.Plugin {
   }
   getVaultId() {
     const basePath = this.app.vault.adapter.basePath;
-    return crypto6.createHash("md5").update(basePath).digest("hex").slice(0, 12);
+    return crypto7.createHash("md5").update(basePath).digest("hex").slice(0, 12);
   }
   getPluginDir() {
     const basePath = this.app.vault.adapter.basePath;
@@ -50520,8 +50922,14 @@ var Analogy = class extends import_obsidian9.Plugin {
     this.runtimePaths = paths;
     const chromaDataMigration = new ChromaDataMigration({ runtimeStatePath: paths.runtimeState });
     this.chromaDataMigration = chromaDataMigration;
-    const chromaRuntimeManager = new ChromaRuntimeManager();
-    const buildId = "1.2.0+3ef0f79.1785858589432" ? "1.2.0+3ef0f79.1785858589432" : `${this.manifest.version}+dev`;
+    const chromaRuntimeManager = new ChromaRuntimeManager({
+      leaseStore: new ChromaProcessLeaseStore({
+        root: paths.root,
+        leasePath: paths.chromaProcessLease,
+        runtimeVaultId
+      })
+    });
+    const buildId = "1.2.1+faacb1d.1785867579800" ? "1.2.1+faacb1d.1785867579800" : `${this.manifest.version}+dev`;
     const workerBundleSource = true ? 'var __create = Object.create;\nvar __defProp = Object.defineProperty;\nvar __getOwnPropDesc = Object.getOwnPropertyDescriptor;\nvar __getOwnPropNames = Object.getOwnPropertyNames;\nvar __getProtoOf = Object.getPrototypeOf;\nvar __hasOwnProp = Object.prototype.hasOwnProperty;\nvar __copyProps = (to, from, except, desc) => {\n  if (from && typeof from === "object" || typeof from === "function") {\n    for (let key of __getOwnPropNames(from))\n      if (!__hasOwnProp.call(to, key) && key !== except)\n        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n  }\n  return to;\n};\nvar __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(\n  // If the importer is in node compatibility mode or this is not an ESM\n  // file that has been converted to a CommonJS file using a Babel-\n  // compatible transform (i.e. "__esModule" has not been set), then set\n  // "default" to the CommonJS "module.exports" for node compatibility.\n  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,\n  mod\n));\n\n// src/local-vector/embedding-worker-protocol.ts\nfunction encodeMessage(msg) {\n  return JSON.stringify(msg) + "\\n";\n}\nfunction decodeMessage(line) {\n  const trimmed = line.trim();\n  if (!trimmed)\n    return null;\n  try {\n    return JSON.parse(trimmed);\n  } catch {\n    return null;\n  }\n}\n\n// src/local-vector/embedding.ts\nvar http = __toESM(require("http"));\nvar https = __toESM(require("https"));\nfunction finiteNonNegative(value) {\n  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;\n}\nfunction sanitizeProgressFile(value) {\n  if (typeof value !== "string" || !value.trim())\n    return null;\n  const withoutQuery = value.trim().split(/[?#]/, 1)[0].replace(/\\\\/g, "/");\n  const basename = withoutQuery.slice(withoutQuery.lastIndexOf("/") + 1);\n  if (!basename || basename === "." || basename === "..")\n    return null;\n  try {\n    return decodeURIComponent(basename);\n  } catch {\n    return basename;\n  }\n}\nfunction normalizeEmbeddingInitializationProgress(progressInfo) {\n  if (!progressInfo || typeof progressInfo !== "object")\n    return null;\n  const progress = progressInfo;\n  const status = typeof progress.status === "string" ? progress.status.toLowerCase() : "";\n  let phase;\n  if (status === "ready")\n    phase = "ready";\n  else if (["progress", "download", "downloading", "initiate"].includes(status))\n    phase = "downloading";\n  else if (["done", "loading", "loaded"].includes(status))\n    phase = "loading";\n  else\n    return null;\n  const loadedBytes = finiteNonNegative(progress.loaded);\n  const totalCandidate = finiteNonNegative(progress.total);\n  const totalBytes = totalCandidate !== null && totalCandidate > 0 ? totalCandidate : null;\n  let percent = finiteNonNegative(progress.progress);\n  if (percent !== null && percent <= 1)\n    percent *= 100;\n  if (loadedBytes !== null && totalBytes !== null)\n    percent = loadedBytes / totalBytes * 100;\n  if (phase === "ready")\n    percent = 100;\n  if (percent !== null)\n    percent = Math.max(0, Math.min(100, Math.round(percent * 100) / 100));\n  return {\n    phase,\n    file: sanitizeProgressFile(progress.file),\n    loadedBytes,\n    totalBytes,\n    percent\n  };\n}\n\n// src/local-vector/embedding-worker.ts\nvar import_module = require("module");\nvar path = __toESM(require("path"));\nvar extractor = null;\nvar currentModelId = "";\nfunction logError(message, err) {\n  console.error(`[AnalogyWorker] ${message}`, err instanceof Error ? err.message : "");\n}\nasync function handleInitialize(req) {\n  try {\n    const moduleRoot = process.env.ANALOGY_RUNTIME_MODULE_ROOT;\n    if (!moduleRoot || !path.isAbsolute(moduleRoot)) {\n      throw new Error("ANALOGY_RUNTIME_MODULE_ROOT is required");\n    }\n    const runtimeRequire = (0, import_module.createRequire)(path.join(moduleRoot, "package.json"));\n    runtimeRequire(path.join(moduleRoot, "onnxruntime-node"));\n    const transformers = runtimeRequire(path.join(moduleRoot, "@huggingface", "transformers"));\n    if (req.modelHost) {\n      transformers.env.remoteHost = req.modelHost;\n      transformers.env.remotePathTemplate = "{model}/resolve/{revision}/";\n    }\n    transformers.env.cacheDir = req.cacheDir;\n    extractor = await transformers.pipeline("feature-extraction", req.modelId, {\n      dtype: req.dtype || "q8",\n      cache_dir: req.cacheDir,\n      ...req.modelRevision ? { revision: req.modelRevision } : {},\n      progress_callback: (progressInfo) => {\n        const progress = normalizeEmbeddingInitializationProgress(progressInfo);\n        if (!progress)\n          return;\n        const event = { id: req.id, type: "progress", progress };\n        process.stdout.write(encodeMessage(event));\n      }\n    });\n    currentModelId = req.modelId;\n    process.stdout.write(encodeMessage({\n      id: req.id,\n      type: "progress",\n      progress: {\n        phase: "ready",\n        file: null,\n        loadedBytes: null,\n        totalBytes: null,\n        percent: 100\n      }\n    }));\n    return { id: req.id, ok: true };\n  } catch (err) {\n    logError("initialize failed", err);\n    return {\n      id: req.id,\n      ok: false,\n      error: { code: "WORKER_INIT_FAILED", message: err.message }\n    };\n  }\n}\nasync function handleEmbed(req) {\n  if (!extractor) {\n    return {\n      id: req.id,\n      ok: false,\n      error: { code: "WORKER_NOT_INITIALIZED", message: "Worker not initialized" }\n    };\n  }\n  try {\n    const output = await extractor(req.texts, { pooling: "mean", normalize: true });\n    const dims = output.dims ?? [req.texts.length, output.data.length / req.texts.length];\n    const [batch, dim] = dims;\n    const embeddings = [];\n    for (let i = 0; i < batch; i++) {\n      const row = [];\n      for (let j = 0; j < dim; j++) {\n        row.push(output.data[i * dim + j]);\n      }\n      embeddings.push(row);\n    }\n    return { id: req.id, ok: true, embeddings, memoryUsage: getMemoryUsage() };\n  } catch (err) {\n    logError("embed failed", err);\n    return {\n      id: req.id,\n      ok: false,\n      error: { code: "WORKER_EMBED_FAILED", message: err.message }\n    };\n  }\n}\nasync function handleDispose(req) {\n  try {\n    if (extractor && typeof extractor.dispose === "function") {\n      await extractor.dispose();\n    }\n  } catch (err) {\n    logError("dispose failed", err);\n  }\n  extractor = null;\n  currentModelId = "";\n  return { id: req.id, ok: true };\n}\nfunction handleHealth(req) {\n  return { id: req.id, ok: true, memoryUsage: getMemoryUsage() };\n}\nfunction getMemoryUsage() {\n  const mu = process.memoryUsage();\n  return {\n    rss: Math.round(mu.rss / 1024 / 1024),\n    heapUsed: Math.round(mu.heapUsed / 1024 / 1024),\n    external: Math.round(mu.external / 1024 / 1024)\n  };\n}\nasync function handleRequest(req) {\n  switch (req.type) {\n    case "initialize":\n      return handleInitialize(req);\n    case "embed":\n      return handleEmbed(req);\n    case "dispose":\n      return handleDispose(req);\n    case "health":\n      return handleHealth(req);\n    default:\n      return {\n        id: req.id || "unknown",\n        ok: false,\n        error: { code: "WORKER_UNKNOWN_TYPE", message: "Unknown request type" }\n      };\n  }\n}\nvar buffer = "";\nprocess.stdin.setEncoding("utf-8");\nprocess.stdin.on("data", async (chunk) => {\n  buffer += chunk;\n  let lines = buffer.split("\\n");\n  buffer = lines.pop() || "";\n  for (const line of lines) {\n    const req = decodeMessage(line);\n    if (!req)\n      continue;\n    const response = await handleRequest(req);\n    process.stdout.write(encodeMessage(response));\n  }\n});\nprocess.stdin.on("end", () => {\n  if (buffer.trim()) {\n    const req = decodeMessage(buffer);\n    if (req) {\n      handleRequest(req).then((response) => {\n        process.stdout.write(encodeMessage(response));\n        process.exit(0);\n      });\n      return;\n    }\n  }\n  process.exit(0);\n});\nprocess.on("uncaughtException", (err) => {\n  logError("uncaughtException", err);\n  process.exit(1);\n});\n' : "";
     const embeddingRuntimeManager = new EmbeddingRuntimeManager({
       paths,
@@ -50578,7 +50986,7 @@ var Analogy = class extends import_obsidian9.Plugin {
       });
       if (report.index !== "legacy")
         return report;
-      const legacyDataPath2 = path17.join(this.getPluginDir(), "chroma_data", this.getVaultId());
+      const legacyDataPath2 = path18.join(this.getPluginDir(), "chroma_data", this.getVaultId());
       const legacyState = await createDeviceLocalIndexStateStore(
         paths.vaultRoot,
         "legacy",
@@ -50674,7 +51082,7 @@ var Analogy = class extends import_obsidian9.Plugin {
         const actualPort = this.chromaManager?.getPort() ?? (currentProcess.ownership === "analogy" ? currentProcess.port : this.runtimePort);
         const existingPending = await chromaDataMigration.resumePendingGeneration(
           paths.root,
-          path17.join(this.getPluginDir(), "chroma_data", this.getVaultId())
+          path18.join(this.getPluginDir(), "chroma_data", this.getVaultId())
         );
         const transition = existingPending?.modelShortName === modelConfig.shortName ? await chromaDataMigration.publishActiveLease({ ...existingPending, port: actualPort }) : await chromaDataMigration.begin(
           this.createActiveChromaGeneration(actualPort, modelConfig.shortName),
@@ -50749,7 +51157,7 @@ var Analogy = class extends import_obsidian9.Plugin {
     });
     const legacyMigration = {
       prepare: async (signal) => {
-        const legacyDataPath2 = path17.join(this.getPluginDir(), "chroma_data", this.getVaultId());
+        const legacyDataPath2 = path18.join(this.getPluginDir(), "chroma_data", this.getVaultId());
         const collectionName = `analogy_${this.getVaultId()}_${modelConfig.shortName}`;
         const candidate = await discoverLegacyRuntime({
           pluginDir: this.getPluginDir(),
@@ -50776,7 +51184,7 @@ var Analogy = class extends import_obsidian9.Plugin {
         );
         const managedRuntime = await embeddingRuntimeManager.resolve();
         legacyEmbeddingService = new EmbeddingService({
-          cacheDir: path17.join(paths.modelCache, modelConfig.shortName),
+          cacheDir: path18.join(paths.modelCache, modelConfig.shortName),
           pluginDir: this.getPluginDir(),
           remoteHost: this.settings.embeddingModelHost,
           modelConfig,
@@ -50797,14 +51205,14 @@ var Analogy = class extends import_obsidian9.Plugin {
           signal.addEventListener("abort", () => legacyBridgeController?.abort(), { once: true });
         const bridge = new LegacyChromaRuntimeBridge({
           candidate,
-          stagingRoot: path17.join(paths.vaultRoot, "legacy-migration"),
-          migrationId: crypto6.createHash("sha256").update(`${runtimeVaultId}:${modelConfig.shortName}`, "utf8").digest("hex").slice(0, 32),
+          stagingRoot: path18.join(paths.vaultRoot, "legacy-migration"),
+          migrationId: crypto7.createHash("sha256").update(`${runtimeVaultId}:${modelConfig.shortName}`, "utf8").digest("hex").slice(0, 32),
           collectionName,
           platform
         });
         legacySource = await bridge.prepare(legacyBridgeController.signal);
         legacyVectorMigration = new LegacyVectorMigration({
-          checkpointPath: path17.join(paths.vaultRoot, "legacy-vector-migration.json"),
+          checkpointPath: path18.join(paths.vaultRoot, "legacy-vector-migration.json"),
           source: legacySource,
           destination: {
             upsertRecords: (records) => legacyStagingStore.upsertRecords(records),
@@ -50864,8 +51272,8 @@ var Analogy = class extends import_obsidian9.Plugin {
           sourceBytes: legacySourceBytes
         }));
         try {
-          const checkpoint = path17.join(paths.vaultRoot, "legacy-vector-migration.json");
-          legacyCopyEvidence = fs17.existsSync(checkpoint) ? await legacyVectorMigration.resume(signal) : await legacyVectorMigration.start(signal);
+          const checkpoint = path18.join(paths.vaultRoot, "legacy-vector-migration.json");
+          legacyCopyEvidence = fs18.existsSync(checkpoint) ? await legacyVectorMigration.resume(signal) : await legacyVectorMigration.start(signal);
         } finally {
           unsubscribe();
         }
@@ -51002,7 +51410,7 @@ var Analogy = class extends import_obsidian9.Plugin {
       },
       chromaManager: chromaRuntimeManager,
       chromaStartOptions: (installed) => ({
-        executablePath: installed?.executablePath ?? path17.join(paths.chromaVersions, chromaAsset.id, chromaAsset.executableRelativePath),
+        executablePath: installed?.executablePath ?? path18.join(paths.chromaVersions, chromaAsset.id, chromaAsset.executableRelativePath),
         dataPath: paths.chromaDataV2,
         preferredPort: this.runtimePort,
         runtimeVersion: chromaAsset.version
@@ -51023,7 +51431,7 @@ var Analogy = class extends import_obsidian9.Plugin {
           this.chromaDataMigration = migration;
           const generation = await migration.resumePendingGeneration(
             paths.root,
-            path17.join(this.getPluginDir(), "chroma_data", this.getVaultId())
+            path18.join(this.getPluginDir(), "chroma_data", this.getVaultId())
           );
           if (!generation || generation.modelShortName !== modelConfig.shortName) {
             throw new Error("CHROMA_REBUILD_PENDING_MISSING");
@@ -51103,7 +51511,7 @@ var Analogy = class extends import_obsidian9.Plugin {
       const shell = require("electron")?.shell;
       if (!shell?.showItemInFolder)
         throw new Error("RUNTIME_REVEAL_UNAVAILABLE");
-      await fs17.promises.mkdir(paths.root, { recursive: true, mode: 448 });
+      await fs18.promises.mkdir(paths.root, { recursive: true, mode: 448 });
       shell.showItemInFolder(paths.root);
     };
     const trashItem = async (target) => {
@@ -51112,7 +51520,7 @@ var Analogy = class extends import_obsidian9.Plugin {
         throw new Error("RUNTIME_TRASH_UNAVAILABLE");
       await shell.trashItem(target);
     };
-    const legacyDataPath = path17.join(this.getPluginDir(), "chroma_data", this.getVaultId());
+    const legacyDataPath = path18.join(this.getPluginDir(), "chroma_data", this.getVaultId());
     const legacyCleanup = createLegacyCleanupManager({
       legacyDataPath,
       pluginDirectory: this.getPluginDir(),
@@ -51255,7 +51663,7 @@ var Analogy = class extends import_obsidian9.Plugin {
       resolveCollectionName: async () => serviceCollectionName,
       createVectorStore: () => new LocalVectorStore(),
       createEmbeddingService: (managedRuntime) => new EmbeddingService({
-        cacheDir: path17.join(input.paths.modelCache, modelConfig.shortName),
+        cacheDir: path18.join(input.paths.modelCache, modelConfig.shortName),
         pluginDir: this.getPluginDir(),
         remoteHost: this.settings.embeddingModelHost,
         modelConfig,
@@ -51330,7 +51738,7 @@ var Analogy = class extends import_obsidian9.Plugin {
       runtimeVaultId,
       modelShortName,
       port,
-      legacyDataPath: path17.join(this.getPluginDir(), "chroma_data", this.getVaultId())
+      legacyDataPath: path18.join(this.getPluginDir(), "chroma_data", this.getVaultId())
     });
   }
   async publishRuntimeState(port, modelShortName) {
@@ -51353,7 +51761,7 @@ var Analogy = class extends import_obsidian9.Plugin {
     this.chromaDataMigration = migration;
     const pending = await migration.resumePendingGeneration(
       this.runtimePaths.root,
-      path17.join(this.getPluginDir(), "chroma_data", this.getVaultId())
+      path18.join(this.getPluginDir(), "chroma_data", this.getVaultId())
     );
     const transition = pending?.modelShortName === modelConfig.shortName ? await migration.publishActiveLease({ ...pending, port }) : await migration.begin(
       this.createActiveChromaGeneration(port, modelConfig.shortName),
@@ -51588,7 +51996,7 @@ var Analogy = class extends import_obsidian9.Plugin {
     const coordinator = lifecycle.coordinator;
     if (!coordinator)
       return;
-    const buildId = "1.2.0+3ef0f79.1785858589432" ? "1.2.0+3ef0f79.1785858589432" : `${this.manifest.version}+dev`;
+    const buildId = "1.2.1+faacb1d.1785867579800" ? "1.2.1+faacb1d.1785867579800" : `${this.manifest.version}+dev`;
     const modal = new OnboardingModal(this.app, {
       coordinator,
       mode,
@@ -51728,8 +52136,8 @@ var Analogy = class extends import_obsidian9.Plugin {
       if (await store.load() === void 0)
         await store.save(state);
     }
-    const legacyDataPath = path17.join(this.getPluginDir(), "chroma_data", this.getVaultId());
-    if (!runtimeState && (fs17.existsSync(legacyDataPath) || Object.keys(migrated.legacyIndexStates).length > 0 || migrated.legacyPort !== null)) {
+    const legacyDataPath = path18.join(this.getPluginDir(), "chroma_data", this.getVaultId());
+    if (!runtimeState && (fs18.existsSync(legacyDataPath) || Object.keys(migrated.legacyIndexStates).length > 0 || migrated.legacyPort !== null)) {
       const modelKey = this.settings.embeddingModel || DEFAULT_MODEL_KEY;
       const modelConfig = EMBEDDING_MODELS[modelKey] || EMBEDDING_MODELS[DEFAULT_MODEL_KEY];
       await migration.writeLegacyPointerForMigration(
@@ -51786,8 +52194,8 @@ var Analogy = class extends import_obsidian9.Plugin {
       name: t("semanticWalk.command.currentDocument"),
       callback: () => {
         const file = this.app.workspace.getActiveFile();
-        const path18 = file instanceof import_obsidian9.TFile && file.extension.toLowerCase() === "md" ? file.path : "";
-        return this.activateSemanticWalk({ type: "current-document", path: path18 });
+        const path19 = file instanceof import_obsidian9.TFile && file.extension.toLowerCase() === "md" ? file.path : "";
+        return this.activateSemanticWalk({ type: "current-document", path: path19 });
       }
     });
     this.addCommand({

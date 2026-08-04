@@ -1,9 +1,11 @@
-import { spawn as nodeSpawn, type ChildProcess, type SpawnOptions } from "child_process";
+import { execFile, spawn as nodeSpawn, type ChildProcess, type SpawnOptions } from "child_process";
+import { randomUUID } from "crypto";
 import * as fs from "fs";
 import { request } from "http";
 import * as net from "net";
 import { StringDecoder } from "string_decoder";
 import { stripVTControlCharacters } from "util";
+import type { PersistedChromaProcessLease } from "./chroma-process-lease";
 
 export const PINNED_CHROMA_RUNTIME_VERSION = "cli-1.4.4";
 export const PINNED_CHROMA_WIRE_VERSION = "1.0.0";
@@ -63,6 +65,15 @@ export interface ChromaRuntimeManagerHooks {
   stopTimeoutMs?: number;
   healthRequestTimeoutMs?: number;
   startStableMs?: number;
+  leaseStore?: {
+    runtimeVaultId: string;
+    read(): Promise<PersistedChromaProcessLease | null>;
+    publish(lease: PersistedChromaProcessLease): Promise<void>;
+    clearIfTokenMatches(token: string): Promise<boolean>;
+    isolate(lease: PersistedChromaProcessLease): Promise<void>;
+  };
+  inspectProcessIdentity?: (lease: PersistedChromaProcessLease) => Promise<boolean>;
+  terminateProcess?: (pid: number) => Promise<void>;
 }
 
 interface ChildTerminal {
@@ -151,6 +162,37 @@ function defaultProcessExists(pid: number): boolean {
   }
 }
 
+function inspectDefaultProcessIdentity(
+  lease: PersistedChromaProcessLease,
+  platform: NodeJS.Platform,
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    const finish = (error: Error | null, stdout: string) => {
+      if (error) { resolve(false); return; }
+      const normalized = stdout.replace(/\\/g, "/");
+      const executable = fs.realpathSync.native?.(lease.executablePath)?.replace(/\\/g, "/")
+        ?? lease.executablePath.replace(/\\/g, "/");
+      const dataPath = fs.realpathSync.native?.(lease.dataPath)?.replace(/\\/g, "/")
+        ?? lease.dataPath.replace(/\\/g, "/");
+      resolve(normalized.includes(executable)
+        && /(?:^|\s)run(?:\s|$)/.test(normalized)
+        && normalized.includes(dataPath)
+        && normalized.includes("--host") && normalized.includes("127.0.0.1")
+        && normalized.includes("--port") && normalized.includes(String(lease.port)));
+    };
+    if (platform === "darwin") {
+      execFile("/bin/ps", ["-p", String(lease.pid), "-o", "command="], {
+        timeout: 2_000, maxBuffer: 32 * 1024,
+      }, finish);
+    } else if (platform === "win32") {
+      const script = "$p=Get-CimInstance Win32_Process -Filter ('ProcessId=' + $args[0]); if($p){$p.ExecutablePath; $p.CommandLine}";
+      execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script, String(lease.pid)], {
+        windowsHide: true, timeout: 2_000, maxBuffer: 32 * 1024,
+      }, finish);
+    } else resolve(false);
+  });
+}
+
 function finitePositive(value: number | undefined, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback;
 }
@@ -165,6 +207,7 @@ export class ChromaRuntimeManager {
   private state: ManagedProcessState = initialState();
   private activeLifecycle: ChildLifecycle | null = null;
   private activeConfigKey: string | null = null;
+  private activeLease: PersistedChromaProcessLease | null = null;
   private operationQueue: Promise<void> = Promise.resolve();
   private stopRequested = false;
   private stopWaiters = new Set<() => void>();
@@ -210,6 +253,16 @@ export class ChromaRuntimeManager {
       }
       if (expectedLease) this.requestStop();
       try {
+        if (this.activeLease && !await this.activeLeaseStillMatches()) {
+          await this.hooks.leaseStore?.isolate(this.activeLease);
+          this.activeLease = null;
+          this.clearActiveState(this.state.port);
+          return { stopped: false, reason: "lease-mismatch" };
+        }
+        if (this.activeLease && !this.activeLifecycle) {
+          await this.terminateAdoptedLease(this.activeLease);
+          return { stopped: true, reason: "stopped" };
+        }
         await this.stopActiveLifecycle(this.stopTimeoutMs);
         return { stopped: true, reason: "stopped" };
       } finally {
@@ -318,6 +371,9 @@ export class ChromaRuntimeManager {
       throw errorWithCode("CHROMA_EXECUTABLE_INVALID", "Windows Chroma runtime must be an .exe");
     }
 
+    const recovered = await this.recoverPersistedLease(options, preferredPort, configKey);
+    if (recovered) return recovered;
+
     const startedAt = this.now();
     const totalDeadline = startedAt + this.startTimeoutMs;
     const readinessDeadline = Math.max(startedAt, totalDeadline - this.stopTimeoutMs);
@@ -374,6 +430,26 @@ export class ChromaRuntimeManager {
           runtimeVersion: ownedContext.runtimeVersion,
           startedAt,
         };
+        if (this.hooks.leaseStore && this.state.pid) {
+          const lease: PersistedChromaProcessLease = {
+            schemaVersion: 1,
+            runtimeVaultId: this.hooks.leaseStore.runtimeVaultId,
+            pid: this.state.pid,
+            port,
+            executablePath: options.executablePath,
+            dataPath: options.dataPath,
+            runtimeVersion: ownedContext.runtimeVersion,
+            startedAt,
+            token: randomUUID(),
+          };
+          try {
+            await this.hooks.leaseStore.publish(lease);
+            this.activeLease = lease;
+          } catch (error) {
+            await this.stopActiveLifecycle(this.stopTimeoutMs);
+            throw errorWithCode("CHROMA_LEASE_PUBLISH_FAILED", (error as Error).message);
+          }
+        }
         return this.getState();
       }
 
@@ -702,6 +778,7 @@ export class ChromaRuntimeManager {
       throw failure;
     }
     this.releaseLifecycle(lifecycle);
+    await this.clearActiveLease();
     this.clearActiveState(port);
   }
 
@@ -709,7 +786,90 @@ export class ChromaRuntimeManager {
     if (this.activeLifecycle !== lifecycle || this.state.ownership !== "analogy") return;
     const port = this.state.port;
     this.releaseLifecycle(lifecycle);
+    void this.clearActiveLease();
     this.clearActiveState(port);
+  }
+
+  private processExists(pid: number): boolean {
+    return this.hooks.processExists ? this.hooks.processExists(pid) : defaultProcessExists(pid);
+  }
+
+  private async inspectLease(lease: PersistedChromaProcessLease): Promise<boolean> {
+    return this.hooks.inspectProcessIdentity
+      ? this.hooks.inspectProcessIdentity(lease)
+      : inspectDefaultProcessIdentity(lease, this.platform);
+  }
+
+  private async recoverPersistedLease(
+    options: ChromaStartOptions,
+    preferredPort: number,
+    configKey: string,
+  ): Promise<ManagedProcessState | null> {
+    const store = this.hooks.leaseStore;
+    if (!store) return null;
+    const lease = await store.read();
+    if (!lease) return null;
+    if (!this.processExists(lease.pid)) {
+      await store.clearIfTokenMatches(lease.token);
+      return null;
+    }
+    const expectedVersion = options.runtimeVersion ?? PINNED_CHROMA_RUNTIME_VERSION;
+    const configMatches = lease.executablePath === options.executablePath
+      && lease.dataPath === options.dataPath
+      && lease.runtimeVersion === expectedVersion
+      && lease.port >= preferredPort && lease.port <= LAST_SCANNED_PORT;
+    if (!configMatches || !await this.inspectLease(lease)) {
+      await store.isolate(lease);
+      return null;
+    }
+    const probe = await this.probeBefore(lease.port, this.now() + this.healthRequestTimeoutMs);
+    if (probe?.healthy && probe.compatible) {
+      this.activeLease = lease;
+      this.activeConfigKey = configKey;
+      this.state = {
+        ownership: "analogy",
+        pid: lease.pid,
+        executablePath: lease.executablePath,
+        port: lease.port,
+        runtimeVersion: lease.runtimeVersion,
+        startedAt: lease.startedAt,
+      };
+      return this.getState();
+    }
+    await this.terminateLeaseProcess(lease);
+    await store.clearIfTokenMatches(lease.token);
+    return null;
+  }
+
+  private async activeLeaseStillMatches(): Promise<boolean> {
+    const lease = this.activeLease;
+    const store = this.hooks.leaseStore;
+    if (!lease || !store) return true;
+    const current = await store.read();
+    return current?.token === lease.token && this.processExists(lease.pid) && await this.inspectLease(lease);
+  }
+
+  private async terminateLeaseProcess(lease: PersistedChromaProcessLease): Promise<void> {
+    if (this.hooks.terminateProcess) await this.hooks.terminateProcess(lease.pid);
+    else process.kill(lease.pid, this.platform === "win32" ? undefined : "SIGTERM");
+  }
+
+  private async terminateAdoptedLease(lease: PersistedChromaProcessLease): Promise<void> {
+    await this.terminateLeaseProcess(lease);
+    const deadline = this.now() + this.stopTimeoutMs;
+    while (this.processExists(lease.pid) && this.now() < deadline) {
+      await (this.hooks.waitMs?.(Math.min(100, deadline - this.now()))
+        ?? new Promise((resolve) => setTimeout(resolve, Math.min(100, deadline - this.now()))));
+    }
+    if (this.processExists(lease.pid)) throw errorWithCode("CHROMA_STOP_FAILED", `PID ${lease.pid} is still running`);
+    await this.clearActiveLease();
+    this.clearActiveState(lease.port);
+  }
+
+  private async clearActiveLease(): Promise<void> {
+    const lease = this.activeLease;
+    this.activeLease = null;
+    if (lease) await this.hooks.leaseStore?.clearIfTokenMatches(lease.token);
   }
 
   private releaseLifecycle(lifecycle: ChildLifecycle): void {

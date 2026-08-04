@@ -42,6 +42,7 @@ import {
 } from "./src/runtime/environment-detector";
 import {EmbeddingRuntimeManager} from "./src/runtime/embedding-runtime-manager";
 import {ChromaRuntimeManager} from "./src/runtime/chroma-runtime-manager";
+import {ChromaProcessLeaseStore} from "./src/runtime/chroma-process-lease";
 import {OnboardingStore, type OnboardingLoadResult} from "./src/onboarding/onboarding-store";
 import {OnboardingCoordinator} from "./src/onboarding/onboarding-coordinator";
 import {
@@ -443,7 +444,13 @@ export default class Analogy extends Plugin {
 		this.runtimePaths = paths;
 		const chromaDataMigration = new ChromaDataMigration({runtimeStatePath: paths.runtimeState});
 		this.chromaDataMigration = chromaDataMigration;
-		const chromaRuntimeManager = new ChromaRuntimeManager();
+		const chromaRuntimeManager = new ChromaRuntimeManager({
+			leaseStore: new ChromaProcessLeaseStore({
+				root: paths.root,
+				leasePath: paths.chromaProcessLease,
+				runtimeVaultId,
+			}),
+		});
 		const buildId = (typeof __ANALOGY_BUILD_ID__ !== "undefined" && __ANALOGY_BUILD_ID__)
 			? __ANALOGY_BUILD_ID__
 			: `${this.manifest.version}+dev`;

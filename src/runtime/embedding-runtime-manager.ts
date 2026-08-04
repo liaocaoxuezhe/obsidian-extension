@@ -1,7 +1,7 @@
 import * as crypto from "crypto";
 import * as fs from "fs";
 import * as path from "path";
-import { readCurrentRuntime } from "./atomic-runtime-installer";
+import { readCurrentRuntimeForAsset } from "./atomic-runtime-installer";
 import { getRuntimeAsset } from "./runtime-manifest";
 import { createRuntimePaths } from "./runtime-paths";
 import { EmbeddingWorkerClient } from "../local-vector/embedding-worker-client";
@@ -220,7 +220,7 @@ export class EmbeddingRuntimeManager {
     if (!asset.internalManifestSha256 || !/^[0-9a-f]{64}$/.test(asset.internalManifestSha256)) {
       throw runtimeError("EMBEDDING_RUNTIME_MANIFEST_BINDING_MISSING");
     }
-    const pointer = await readCurrentRuntime(this.paths, "embedding-runtime");
+    const pointer = await readCurrentRuntimeForAsset(this.paths, asset);
     if (!pointer) throw runtimeError("EMBEDDING_RUNTIME_NOT_INSTALLED");
     if (pointer.runtimeId !== asset.id || pointer.assetSha256 !== asset.sha256
       || pointer.installedPath !== path.join(this.paths.embeddingVersions, asset.id)) {

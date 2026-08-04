@@ -2,7 +2,7 @@ import * as crypto from "crypto";
 import * as fs from "fs";
 import * as http from "http";
 import * as path from "path";
-import { readCurrentRuntime } from "./atomic-runtime-installer";
+import { readCurrentRuntimeForAsset } from "./atomic-runtime-installer";
 import {
   PINNED_CHROMA_RUNTIME_VERSION,
   PINNED_CHROMA_WIRE_VERSION,
@@ -230,15 +230,15 @@ async function inspectChromaRuntime(
   assetResolver: (kind: RuntimeAssetKind, platform: SupportedPlatformKey) => RuntimeAsset | null,
 ): Promise<ChromaRuntimeInspection> {
   try {
-    const pointer = await readCurrentRuntime(paths, "chroma");
+    const asset = assetResolver("chroma", platform);
+    if (!asset || asset.kind !== "chroma") {
+      return { state: "corrupt", asset: null, executablePath: null, executableRealPath: null };
+    }
+    const pointer = await readCurrentRuntimeForAsset(paths, asset);
     if (!pointer) return { state: "missing", asset: null, executablePath: null, executableRealPath: null };
     const pointerPath = path.join(paths.current, "chroma.json");
     if (await assertPathChain(paths.root, pointerPath, false) === "missing") {
       return { state: "missing", asset: null, executablePath: null, executableRealPath: null };
-    }
-    const asset = assetResolver("chroma", platform);
-    if (!asset || asset.kind !== "chroma") {
-      return { state: "corrupt", asset: null, executablePath: null, executableRealPath: null };
     }
     const versionsRoot = paths.chromaVersions;
     const expectedRoot = path.join(versionsRoot, asset.id);
@@ -317,12 +317,12 @@ async function inspectEmbeddingRuntime(
   assetResolver: (kind: RuntimeAssetKind, platform: SupportedPlatformKey) => RuntimeAsset | null,
 ): Promise<EmbeddingRuntimeState> {
   try {
-    const pointer = await readCurrentRuntime(paths, "embedding-runtime");
+    const asset = assetResolver("embedding-runtime", platform);
+    if (!asset || asset.kind !== "embedding-runtime") return "corrupt";
+    const pointer = await readCurrentRuntimeForAsset(paths, asset);
     if (!pointer) return "missing";
     const pointerPath = path.join(paths.current, "embedding-runtime.json");
     if (await assertPathChain(paths.root, pointerPath, false) === "missing") return "missing";
-    const asset = assetResolver("embedding-runtime", platform);
-    if (!asset || asset.kind !== "embedding-runtime") return "corrupt";
     const expectedRoot = path.join(paths.embeddingVersions, asset.id);
     if (pointer.runtimeId !== asset.id || pointer.assetSha256 !== asset.sha256
       || pointer.installedPath !== expectedRoot) return "corrupt";

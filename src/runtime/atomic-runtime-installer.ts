@@ -22,6 +22,15 @@ export interface InstalledRuntime extends CurrentRuntimePointer {
   executablePath: string;
 }
 
+interface InstalledRuntimeRecord {
+  schemaVersion: 1;
+  kind: RuntimeAssetKind;
+  runtimeId: string;
+  installedPath: string;
+  assetSha256: string;
+  installedAt: number;
+}
+
 export interface InstallRuntimeInput {
   asset: RuntimeAsset;
   verifiedAssetPath: string;
@@ -75,6 +84,14 @@ function historyDirectory(paths: RuntimePaths, kind: RuntimeAssetKind): string {
 
 function historyFile(paths: RuntimePaths, kind: RuntimeAssetKind, runtimeId: string): string {
   return path.join(historyDirectory(paths, kind), `${runtimeId}.json`);
+}
+
+function installRecordDirectory(paths: RuntimePaths, kind: RuntimeAssetKind): string {
+  return path.join(paths.installRecords, kind);
+}
+
+function installRecordFile(paths: RuntimePaths, kind: RuntimeAssetKind, runtimeId: string): string {
+  return path.join(installRecordDirectory(paths, kind), `${runtimeId}.json`);
 }
 
 function recoveryDirectory(paths: RuntimePaths, kind: RuntimeAssetKind): string {
@@ -357,6 +374,110 @@ export async function readCurrentRuntime(
   kind: RuntimeAssetKind,
 ): Promise<CurrentRuntimePointer | null> {
   return readPointerFile(currentFile(paths, kind), paths, kind, true);
+}
+
+async function readLegacyCurrentRuntime(
+  paths: RuntimePaths,
+  kind: RuntimeAssetKind,
+): Promise<CurrentRuntimePointer | null> {
+  try {
+    return await readPointerFile(path.join(paths.legacyCurrent, `${kind}.json`), paths, kind, true);
+  } catch (error) {
+    if ((error as Error).message === "RUNTIME_CURRENT_INVALID") return null;
+    throw error;
+  }
+}
+
+function pointerMatchesAsset(pointer: CurrentRuntimePointer, paths: RuntimePaths, asset: RuntimeAsset): boolean {
+  return pointer.kind === asset.kind
+    && pointer.runtimeId === asset.id
+    && pointer.assetSha256 === asset.sha256
+    && pointer.installedPath === path.join(versionRoot(paths, asset.kind), asset.id);
+}
+
+export async function readCurrentRuntimeForAsset(
+  paths: RuntimePaths,
+  asset: RuntimeAsset,
+): Promise<CurrentRuntimePointer | null> {
+  const current = await readCurrentRuntime(paths, asset.kind);
+  if (current) return current;
+  const legacy = await readLegacyCurrentRuntime(paths, asset.kind);
+  if (!legacy || !pointerMatchesAsset(legacy, paths, asset)) return null;
+  await assertInstalledPointerTarget(paths, legacy, "RUNTIME_CURRENT_TARGET_INVALID");
+  await ensurePrivateDirectory(paths, paths.current);
+  const kindLock = await acquireKindLock(paths, asset.kind, Date.now());
+  try {
+    const existing = await readCurrentRuntime(paths, asset.kind);
+    if (existing) return existing;
+    await createImmutableHistory(paths, legacy);
+    await syncTree(paths.current);
+    await atomicWriteJson(currentFile(paths, asset.kind), legacy);
+    return legacy;
+  } finally {
+    await releaseLock(kindLock);
+  }
+}
+
+async function readInstallRecord(
+  paths: RuntimePaths,
+  kind: RuntimeAssetKind,
+  runtimeId: string,
+): Promise<InstalledRuntimeRecord | null> {
+  const filename = installRecordFile(paths, kind, runtimeId);
+  let handle: fs.promises.FileHandle;
+  try {
+    handle = await openRegularFile(filename, fs.constants.O_RDONLY, undefined, "RUNTIME_INSTALL_RECORD_INVALID");
+  } catch (error) {
+    if (lockErrorCode(error) === "ENOENT") return null;
+    throw error;
+  }
+  let value: unknown;
+  try {
+    value = JSON.parse(await handle.readFile("utf8"));
+  } catch (error) {
+    throw runtimeError("RUNTIME_INSTALL_RECORD_INVALID", error);
+  } finally {
+    await handle.close();
+  }
+  const record = value as Partial<InstalledRuntimeRecord>;
+  if (!record || record.schemaVersion !== 1 || record.kind !== kind || record.runtimeId !== runtimeId
+    || typeof record.installedPath !== "string" || typeof record.assetSha256 !== "string"
+    || !/^[0-9a-f]{64}$/.test(record.assetSha256)
+    || typeof record.installedAt !== "number" || !Number.isFinite(record.installedAt)
+    || record.installedPath !== path.join(versionRoot(paths, kind), runtimeId)) {
+    throw runtimeError("RUNTIME_INSTALL_RECORD_INVALID");
+  }
+  return record as InstalledRuntimeRecord;
+}
+
+async function createInstallRecord(
+  paths: RuntimePaths,
+  asset: RuntimeAsset,
+  installedPath: string,
+  installedAt: number,
+): Promise<InstalledRuntimeRecord> {
+  const directory = installRecordDirectory(paths, asset.kind);
+  await ensurePrivateDirectory(paths, directory);
+  const record: InstalledRuntimeRecord = {
+    schemaVersion: 1,
+    kind: asset.kind,
+    runtimeId: asset.id,
+    installedPath,
+    assetSha256: asset.sha256,
+    installedAt,
+  };
+  try {
+    await atomicCreateJson(installRecordFile(paths, asset.kind, asset.id), record);
+  } catch (error) {
+    if (lockErrorCode(error) !== "EEXIST") throw error;
+    const existing = await readInstallRecord(paths, asset.kind, asset.id);
+    if (!existing || existing.installedPath !== record.installedPath
+      || existing.assetSha256 !== record.assetSha256) {
+      throw runtimeError("RUNTIME_IDENTITY_CONFLICT", error);
+    }
+    return existing;
+  }
+  return record;
 }
 
 async function createImmutableHistory(paths: RuntimePaths, pointer: CurrentRuntimePointer): Promise<void> {
@@ -698,6 +819,83 @@ async function publishWithoutReplace(stagingPath: string, finalPath: string): Pr
   await fs.promises.rmdir(stagingPath);
 }
 
+async function publishVaultPointerLocked(
+  paths: RuntimePaths,
+  asset: RuntimeAsset,
+  finalPath: string,
+  installedAt: number,
+): Promise<CurrentRuntimePointer> {
+  const oldPointer = await readCurrentRuntime(paths, asset.kind);
+  if (oldPointer) {
+    await assertInstalledPointerTarget(paths, oldPointer, "RUNTIME_CURRENT_TARGET_INVALID");
+    await createImmutableHistory(paths, oldPointer);
+  }
+  const pointer: CurrentRuntimePointer = {
+    schemaVersion: 1,
+    kind: asset.kind,
+    runtimeId: asset.id,
+    installedPath: finalPath,
+    assetSha256: asset.sha256,
+    installedAt,
+    previousRuntimeId: oldPointer?.runtimeId ?? null,
+  };
+  await createImmutableHistory(paths, pointer);
+  await syncTree(paths.current);
+  await atomicWriteJson(currentFile(paths, asset.kind), pointer);
+  return pointer;
+}
+
+async function removeInstallRecord(paths: RuntimePaths, asset: RuntimeAsset): Promise<void> {
+  const filename = installRecordFile(paths, asset.kind, asset.id);
+  await fs.promises.unlink(filename).catch((error) => {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  });
+  if (fs.existsSync(path.dirname(filename))) await fsyncDirectory(path.dirname(filename));
+}
+
+async function reuseInstalledRuntime(
+  paths: RuntimePaths,
+  asset: RuntimeAsset,
+  finalPath: string,
+  finalExecutable: string,
+  smokeTest: (installedPath: string) => Promise<void>,
+  operationTime: number,
+): Promise<InstalledRuntime | null> {
+  let stat: fs.Stats;
+  try {
+    stat = await fs.promises.lstat(finalPath);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    if (await readInstallRecord(paths, asset.kind, asset.id)) await removeInstallRecord(paths, asset);
+    return null;
+  }
+  if (!stat.isDirectory() || stat.isSymbolicLink()) throw runtimeError("RUNTIME_VERSION_EXISTS");
+  let record = await readInstallRecord(paths, asset.kind, asset.id);
+  if (!record) {
+    const legacy = await readLegacyCurrentRuntime(paths, asset.kind);
+    if (!legacy || !pointerMatchesAsset(legacy, paths, asset)) {
+      throw runtimeError("RUNTIME_VERSION_EXISTS");
+    }
+    await assertInstalledPointerTarget(paths, legacy, "RUNTIME_CURRENT_TARGET_INVALID");
+    record = await createInstallRecord(paths, asset, finalPath, legacy.installedAt);
+  }
+  if (record.assetSha256 !== asset.sha256 || record.installedPath !== finalPath) {
+    throw runtimeError("RUNTIME_IDENTITY_CONFLICT");
+  }
+  try {
+    await smokeTest(finalPath);
+  } catch (error) {
+    throw runtimeError("RUNTIME_SMOKE_TEST_FAILED", error);
+  }
+  const kindLock = await acquireKindLock(paths, asset.kind, operationTime);
+  try {
+    const pointer = await publishVaultPointerLocked(paths, asset, finalPath, operationTime);
+    return { ...pointer, executablePath: finalExecutable };
+  } finally {
+    await releaseLock(kindLock);
+  }
+}
+
 export async function installRuntime(input: InstallRuntimeInput): Promise<InstalledRuntime> {
   const { asset, paths, smokeTest } = input;
   const operationTime = (input.now ?? Date.now)();
@@ -724,6 +922,10 @@ export async function installRuntime(input: InstallRuntimeInput): Promise<Instal
   let preSmokeRecovery = false;
   try {
     await reconcileRuntimeAttempt(paths, asset.kind, asset.id);
+    const reused = await reuseInstalledRuntime(
+      paths, asset, finalPath, finalExecutable, smokeTest, operationTime,
+    );
+    if (reused) return reused;
     await assertVersionAbsent(finalPath);
     await ensurePrivateDirectory(paths, stagingPath);
     stagingExists = true;
@@ -762,18 +964,17 @@ export async function installRuntime(input: InstallRuntimeInput): Promise<Instal
     }
 
     const kindLock = await acquireKindLock(paths, asset.kind, operationTime);
+    let installRecordCreated = false;
     try {
-      const oldPointer = await readCurrentRuntime(paths, asset.kind);
-      if (oldPointer) {
-        await assertInstalledPointerTarget(paths, oldPointer, "RUNTIME_CURRENT_TARGET_INVALID");
-        await createImmutableHistory(paths, oldPointer);
-      }
       const recovery: RecoveryState = { ...baseRecovery, state: "publishing" };
       await writeRecoveryState(paths, recovery);
       preSmokeRecovery = false;
+      await createInstallRecord(paths, asset, finalPath, operationTime);
+      installRecordCreated = true;
       try {
         await publishWithoutReplace(stagingPath, finalPath);
       } catch (error) {
+        if (installRecordCreated) await removeInstallRecord(paths, asset);
         if ((error as Error).message === "RUNTIME_VERSION_EXISTS") {
           await removeRecoveryState(paths, asset.kind, asset.id);
         }
@@ -786,18 +987,7 @@ export async function installRuntime(input: InstallRuntimeInput): Promise<Instal
       await fsyncDirectory(targetRoot);
       await writeRecoveryState(paths, { ...recovery, state: "published-not-current" });
 
-      const pointer: CurrentRuntimePointer = {
-        schemaVersion: 1,
-        kind: asset.kind,
-        runtimeId: asset.id,
-        installedPath: finalPath,
-        assetSha256: asset.sha256,
-        installedAt: operationTime,
-        previousRuntimeId: oldPointer?.runtimeId ?? null,
-      };
-      await createImmutableHistory(paths, pointer);
-      await syncTree(paths.current);
-      await atomicWriteJson(currentFile(paths, asset.kind), pointer);
+      const pointer = await publishVaultPointerLocked(paths, asset, finalPath, operationTime);
       await removeRecoveryState(paths, asset.kind, asset.id);
       return { ...pointer, executablePath: finalExecutable };
     } finally {

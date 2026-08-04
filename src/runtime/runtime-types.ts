@@ -45,6 +45,7 @@ export interface RuntimeManifest {
 }
 
 export interface RuntimePaths {
+  runtimeVaultId: string;
   root: string;
   downloads: string;
   staging: string;
@@ -52,8 +53,11 @@ export interface RuntimePaths {
   embeddingVersions: string;
   workerVersions: string;
   current: string;
+  legacyCurrent: string;
+  installRecords: string;
   modelCache: string;
   vaultRoot: string;
+  chromaProcessLease: string;
   onboardingState: string;
   runtimeState: string;
   chromaDataV2: string;
