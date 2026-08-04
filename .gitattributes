@@ -1,0 +1,2 @@
+# Keep reviewed source, manifests, lockfiles, and license texts byte-stable on every runner.
+* text=auto eol=lf
