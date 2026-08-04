@@ -3,7 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import {execFileSync} from "node:child_process";
-import {fileURLToPath, pathToFileURL} from "node:url";
+import {fileURLToPath} from "node:url";
 import {
   EXPECTED_PACKS, SMOKE_MODEL_CATALOG_SHA256, artifactNames, sha256File,
 } from "./runtime-package-validator.mjs";
@@ -74,9 +74,10 @@ export async function runNativeRuntimeSmoke({platform, input, output}) {
     const nodeExecutable = path.join(packRoot, ...manifest.executableRelativePath.split("/"));
     const modelRoot = path.join(tempRoot, "fresh-model-cache", "model");
     await downloadModel(model, modelRoot);
-    const transformersModule = path.join(packRoot, "node_modules", "@huggingface", "transformers", "dist", "transformers.node.mjs");
+    const transformersModule = path.join(packRoot, "node_modules", "@huggingface", "transformers", "dist", "transformers.node.cjs");
     const smokeProgram = `
-      const {env, pipeline} = await import(${JSON.stringify(pathToFileURL(transformersModule).href)});
+      const {createRequire} = await import("node:module");
+      const {env, pipeline} = createRequire(import.meta.url)(${JSON.stringify(transformersModule)});
       env.allowRemoteModels = false;
       env.allowLocalModels = true;
       const extractor = await pipeline("feature-extraction", ${JSON.stringify(modelRoot)}, {dtype:"fp32", local_files_only:true});
