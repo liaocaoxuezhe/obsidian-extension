@@ -12,7 +12,7 @@ export const SIGSTORE_TRUSTED_ROOT_MEDIA_TYPE = "application/vnd.dev.sigstore.tr
 
 const SCRIPT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const PRODUCTION_TRUST_PATH = path.resolve(SCRIPT_DIRECTORY, "..", "runtime-package", "native-smoke-trust.json");
-const PRODUCTION_TRUSTED_ROOT_SNAPSHOT = "sigstore-public-good-tuf-2026-08-04-v1";
+const PRODUCTION_TRUSTED_ROOT_SNAPSHOT = "sigstore-public-good-tuf-2026-08-05-v1";
 const PRODUCTION_REKOR_LOG_ID = "wNI9atQGlz+VWfO6LRygH4QUfY/8W4RFwiT5i5WRgB0=";
 const SHA256_HEX = /^[0-9a-f]{64}$/;
 
@@ -145,7 +145,7 @@ function productionTrustPolicy() {
     || productionLog?.logId?.keyId !== PRODUCTION_REKOR_LOG_ID
     || productionLog?.hashAlgorithm !== "SHA2_256"
     || productionLog?.publicKey?.keyDetails !== "PKIX_ECDSA_P256_SHA_256"
-    || productionLog?.checkpointOrigin !== "rekor.sigstore.dev - 2605736670972794746"
+    || productionLog?.checkpointOrigin !== "rekor.sigstore.dev - 1193050959916656506"
     || productionLog?.checkpointSignerName !== "rekor.sigstore.dev"
     || !Array.isArray(policy.certificateAuthorities) || policy.certificateAuthorities.length === 0) {
     throw new Error("Repository native smoke production trust policy is not the fixed GitHub workflow policy");

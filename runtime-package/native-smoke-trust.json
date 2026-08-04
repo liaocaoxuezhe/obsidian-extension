@@ -9,7 +9,7 @@
   "workflowIdentity": "https://github.com/liaocaoxuezhe/obsidian-extension/.github/workflows/obsidian-runtime-matrix.yml@refs/heads/main",
   "trustedRoot": {
     "mediaType": "application/vnd.dev.sigstore.trustedroot+json;version=0.1",
-    "snapshotVersion": "sigstore-public-good-tuf-2026-08-04-v1",
+    "snapshotVersion": "sigstore-public-good-tuf-2026-08-05-v1",
     "tlogs": [
       {
         "baseUrl": "https://rekor.sigstore.dev",
@@ -24,7 +24,7 @@
         "logId": {
           "keyId": "wNI9atQGlz+VWfO6LRygH4QUfY/8W4RFwiT5i5WRgB0="
         },
-        "checkpointOrigin": "rekor.sigstore.dev - 2605736670972794746",
+        "checkpointOrigin": "rekor.sigstore.dev - 1193050959916656506",
         "checkpointSignerName": "rekor.sigstore.dev"
       }
     ]
