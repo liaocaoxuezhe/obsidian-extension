@@ -167,7 +167,7 @@ async function expectRejected(promise, messagePattern) {
         ANALOGY_TEST_STATE_FILE: timeoutState,
       },
       {
-        timeoutMs: 40,
+        timeoutMs: 5_000,
         terminationGraceMs: 40,
         onUnexpectedExit: (info) => unexpectedExits.push(info),
       },
