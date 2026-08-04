@@ -227,7 +227,9 @@ function verifyRekorDsseBody(bodyBytes, envelope, leaf) {
   const rekorEnvelope = {
     payload: envelope.payload,
     payloadType: envelope.payloadType,
-    signatures: envelope.signatures.map((signature) => ({ sig: signature.sig, keyid: signature.keyid || "" })),
+    signatures: envelope.signatures.map((signature) => (
+      signature.keyid ? { keyid: signature.keyid, sig: signature.sig } : { sig: signature.sig }
+    )),
   };
   if (body.spec.envelopeHash.value !== sha256Bytes(Buffer.from(JSON.stringify(rekorEnvelope), "utf8")).toString("hex")) {
     throw new Error("Rekor canonicalized body is not bound to the current serialized DSSE envelope");

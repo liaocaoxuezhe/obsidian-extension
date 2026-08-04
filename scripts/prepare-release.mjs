@@ -4,7 +4,6 @@ import crypto from "crypto";
 import { execFileSync } from "child_process";
 import { fileURLToPath } from "node:url";
 import { assertGeneratedRuntimeBinding, computePublicRuntimeManifestSha256 } from "./runtime-manifest-binding.mjs";
-import { validateOrtNativeOverlayPayload } from "./runtime-native-overlay.mjs";
 import { EXPECTED_PACKS, RUNTIME_VERSIONS, validateRuntimeArtifactGroup } from "./runtime-package-validator.mjs";
 
 const root = process.cwd();
@@ -106,11 +105,11 @@ export function verifyRuntimeRelease(runtimeStaging, {
 		|| typeof runtimeManifest.baseUrl !== "string" || !runtimeManifest.baseUrl.startsWith("https://")) {
 		throw new Error("Invalid embedding-runtime-manifest.json header");
 	}
-	const expectedPlatforms = ["darwin-arm64", "darwin-x64", "win32-x64"];
+	const expectedPlatforms = ["darwin-arm64", "win32-x64"];
 	if (!Array.isArray(runtimeManifest.assets)
 		|| runtimeManifest.assets.length !== expectedPlatforms.length
 		|| JSON.stringify(runtimeManifest.assets.map((asset) => asset.platform)) !== JSON.stringify(expectedPlatforms)) {
-		throw new Error("Runtime release manifest must contain exactly one asset for darwin-arm64, darwin-x64, and win32-x64");
+		throw new Error("Runtime release manifest must contain exactly one asset for darwin-arm64 and win32-x64");
 	}
 
 	for (const asset of runtimeManifest.assets) {
@@ -162,13 +161,7 @@ export function verifyRuntimeRelease(runtimeStaging, {
 			throw new Error(`Runtime internal manifest mismatch for ${asset.fileName}`);
 		}
 		const ortOverlay = internalManifest.inputs?.onnxruntimeNativeOverlay;
-		if (asset.platform === "darwin-x64") {
-			try {
-				validateOrtNativeOverlayPayload(ortOverlay, asset.platform, internalManifest.files);
-			} catch (error) {
-				throw new Error(`darwin-x64 requires pinned ONNX Runtime source overlay provenance: ${error instanceof Error ? error.message : String(error)}`);
-			}
-		} else if (ortOverlay !== undefined) {
+		if (ortOverlay !== undefined) {
 			throw new Error(`Unexpected ONNX Runtime source overlay provenance for ${asset.platform}`);
 		}
 
@@ -324,7 +317,7 @@ const configuredRuntimeRoot = (process.env.ANALOGY_RUNTIME_ASSETS_DIR || "").tri
 const runtimeSourceRoot = path.resolve(configuredRuntimeRoot || path.join(root, "dist", "runtime"));
 let verifiedRuntimeManifest = null;
 if (!runtimeOptions.allowDevelopmentRuntimeFixture) {
-	// The default release is a single fail-closed gate: all three completed,
+	// The default release is a single fail-closed gate: all supported completed,
 	// archive-validated native generations must exist before release files mutate.
 	verifiedRuntimeManifest = verifyRuntimeRelease(runtimeSourceRoot, {
 		generatedManifestPath: generatedRuntimeManifestPath,

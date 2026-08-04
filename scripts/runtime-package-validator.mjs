@@ -16,7 +16,6 @@ export const RUNTIME_VERSIONS = Object.freeze({
 });
 export const EXPECTED_PACKS = Object.freeze([
   Object.freeze({ platform: "darwin-arm64", fileName: "analogy-embedding-runtime-node22-v1-darwin-arm64.tar.gz", archive: "tar.gz", internalExecutableRelativePath: "node/bin/node" }),
-  Object.freeze({ platform: "darwin-x64", fileName: "analogy-embedding-runtime-node22-v1-darwin-x64.tar.gz", archive: "tar.gz", internalExecutableRelativePath: "node/bin/node" }),
   Object.freeze({ platform: "win32-x64", fileName: "analogy-embedding-runtime-node22-v1-win32-x64.zip", archive: "zip", internalExecutableRelativePath: "node/bin/node.exe" }),
 ]);
 export const LICENSE_CATALOG_SHA256 = "71793f921ffbb1f286175e7823a842f0a8d1c92941702a759dbcd8aa348e2eaa";

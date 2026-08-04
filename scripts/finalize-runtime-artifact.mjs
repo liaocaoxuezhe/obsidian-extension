@@ -38,6 +38,7 @@ async function writeExclusive(filename, bytes) {
 }
 
 async function fsyncDirectory(directory) {
+  if (process.platform === "win32") return;
   const handle = await fs.promises.open(directory, "r");
   try { await handle.sync(); } finally { await handle.close(); }
 }
