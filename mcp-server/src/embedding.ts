@@ -13,6 +13,13 @@ export interface EmbeddingModelConfig {
 }
 
 export const EMBEDDING_MODELS: Record<string, EmbeddingModelConfig> = {
+  "bge-small-en-v1.5": {
+    id: "Xenova/bge-small-en-v1.5",
+    shortName: "bge-small-en-v1.5",
+    queryPrefix: "Represent this sentence for searching relevant passages: ",
+    dtype: "q8",
+    maxInputChars: 1500,
+  },
   "jina-nano": {
     id: "jinaai/jina-embeddings-v5-text-nano-retrieval",
     shortName: "jina-nano",

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "modelId": "hf-internal-testing/tiny-random-BertModel",
+  "revision": "fc08ad9cc33be9aef4f55cc80e16ef5ae3d5981c",
+  "dtype": "fp32",
+  "files": [
+    {
+      "path": "config.json",
+      "size": 631,
+      "sha256": "8feeb7fe8bdbc49754e178ae88da4a3f065c53a282a0398e2e384e230872faef"
+    },
+    {
+      "path": "onnx/model.onnx",
+      "size": 449599,
+      "sha256": "ebc3af0117e7fcc734a5c8b951d8b711dda1e21baaa3052daeddfbc15401bc77"
+    },
+    {
+      "path": "tokenizer.json",
+      "size": 23061,
+      "sha256": "912299631520e23e3df042e4a892221dcd5500d21f9bb89e692ef55be381a64b"
+    },
+    {
+      "path": "tokenizer_config.json",
+      "size": 409,
+      "sha256": "a5fe72be56a610b594743ae8452325de1267a62e1e856da901792163147f6893"
+    }
+  ]
+}

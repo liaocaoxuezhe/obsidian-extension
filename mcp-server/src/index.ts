@@ -3,7 +3,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
-import { loadConfig, McpConfig } from "./config";
+import { buildSafeVaultDescription, loadConfig, McpConfig } from "./config";
 import { ChromaClient, CollectionInfo } from "./chroma-client";
 import { EmbeddingService } from "./embedding";
 
@@ -42,7 +42,7 @@ async function ensureInitialized(): Promise<void> {
     if (!collectionInfo) {
       throw new Error(
         `Vector collection "${config.collectionName}" not found in ChromaDB. ` +
-          `This means either: (1) the Obsidian vault at "${config.vaultPath}" has not been indexed yet — ` +
+          "This means either: (1) this Obsidian vault has not been indexed yet — " +
           "open Obsidian and wait for the Analogy plugin to finish indexing, or " +
           `(2) the embedding model "${config.modelKey}" does not match what the plugin is using.`
       );
@@ -79,16 +79,7 @@ function isPathAllowed(filePath: string): boolean {
 }
 
 function buildVaultDescription(): string {
-  const vaultName = config.vaultPath.split("/").pop() || config.vaultPath;
-  const pathScope =
-    config.allowedPaths.length > 0
-      ? `Accessible paths: ${config.allowedPaths.join(", ")}`
-      : "Scope: entire vault (no path restrictions)";
-  return (
-    `Obsidian vault "${vaultName}" (id: ${config.vaultId}). ` +
-    `Embedding model: ${config.modelConfig.shortName}. ` +
-    pathScope
-  );
+  return buildSafeVaultDescription(config);
 }
 
 const server = new McpServer({
@@ -257,6 +248,8 @@ server.tool(
               type: "text" as const,
               text: JSON.stringify({
                 status: "not_indexed",
+                runtime_generation: config.runtimeGeneration,
+                chroma_port: config.chromaPort,
                 collection_name: config.collectionName,
                 message: "The vault has not been indexed yet. Open Obsidian and let the Analogy plugin complete indexing.",
               }, null, 2),
@@ -276,6 +269,7 @@ server.tool(
                 status: "ready",
                 vault: buildVaultDescription(),
                 collection_name: config.collectionName,
+                runtime_generation: config.runtimeGeneration,
                 total_chunks: count,
                 embedding_model: config.modelConfig.shortName,
                 chroma_port: config.chromaPort,

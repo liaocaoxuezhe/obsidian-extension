@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import { execSync } from "child_process";
 import crypto from "crypto";
+import { extractGeneratedRuntimeManifestSha256 } from "./scripts/runtime-manifest-binding.mjs";
 
 const banner =
 `/*
@@ -42,6 +43,14 @@ function computeBuildId() {
   if (!prod) {
     return `${version}+dev`;
   }
+  const requested = (process.env.ANALOGY_BUILD_ID || "").trim();
+  if (requested) {
+    const escapedVersion = version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (!new RegExp(`^${escapedVersion}\\+[a-z0-9][a-z0-9._-]{1,127}$`).test(requested)) {
+      throw new Error(`ANALOGY_BUILD_ID must start with ${version}+ and contain only lowercase release-safe characters`);
+    }
+    return requested;
+  }
   let sha = "";
   let runId = "";
   try {
@@ -60,6 +69,11 @@ function computeBuildId() {
 }
 
 const buildId = computeBuildId();
+const generatedRuntimeManifestSource = fs.readFileSync("src/runtime/generated-embedding-runtime-manifest.ts", "utf8");
+const embeddingRuntimePublicManifestSha256 = extractGeneratedRuntimeManifestSha256(generatedRuntimeManifestSource, {
+	allowExactDevelopmentFixture: true,
+});
+const embeddingRuntimeBuildBinding = `ANALOGY_EMBEDDING_RUNTIME_MANIFEST_SHA256:${embeddingRuntimePublicManifestSha256}`;
 const workerBuild = await esbuild.build({
 	entryPoints: ["src/local-vector/embedding-worker.ts"],
 	bundle: true,
@@ -83,7 +97,7 @@ for (const staleWorkerFile of ["embedding-worker.js", "embedding-worker.js.map"]
 
 const context = await esbuild.context({
 	banner: {
-		js: banner,
+		js: `${banner}const EMBEDDING_RUNTIME_BUILD_BINDING = "${embeddingRuntimeBuildBinding}";\n`,
 	},
 	entryPoints: {
 		main: "main.ts",
@@ -132,6 +146,7 @@ if (prod) {
 		mainJsSha256: sha256File("main.js"),
 		mainJsMapSha256: fs.existsSync("main.js.map") ? sha256File("main.js.map") : null,
 		embeddedWorkerSha256: sha256Value(workerSource),
+		embeddingRuntimePublicManifestSha256,
 	};
 	fs.writeFileSync(path.join(artifactsDir, "build-info.json"), JSON.stringify(buildInfo, null, 2));
 	fs.copyFileSync("main.js", path.join(artifactsDir, "main.js"));

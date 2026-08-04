@@ -6,7 +6,14 @@ import { Loading } from "./components/loading";
 import { Card, CardContent, CardHeader, CardTitle } from "./components/card";
 import { Notice } from "obsidian";
 import { useApp } from "./model/AppContext";
-import { searchInstance, subscribeServiceState, type ServiceState } from "./local-vector/search-instance";
+import {
+	onboardingInstance,
+	searchInstance,
+	subscribeOnboardingState,
+	subscribeServiceState,
+	type OnboardingState,
+	type ServiceState,
+} from "./local-vector/search-instance";
 import { LocalSearchResult } from "./local-vector/search";
 import { searchResultCache, type SearchResultCacheKey } from "./local-vector/search-result-cache";
 import {
@@ -20,6 +27,7 @@ import {
 	type SearchTab,
 } from "./search-tabs";
 import { onLocaleChange, t } from "./util/i18n";
+import { isLocalSearchRouteReady } from "./runtime/RuntimeControlPanel";
 
 const SEARCH_LOG_PREFIX = "[Analogy][Search]";
 const DEFAULT_TOP_K = 10;
@@ -27,15 +35,6 @@ const DEFAULT_TOP_K = 10;
 function compactSearchText(text: string): string {
 	const normalized = text.replace(/\s+/g, " ").trim();
 	return normalized.length <= 160 ? normalized : `${normalized.slice(0, 160)}...`;
-}
-
-function getServiceStatusMessage(state: ServiceState): string | null {
-	const status = state.status;
-	if (status === "ready") return null;
-	if (status === "error") return state.lastError || "Local vector service error. Check settings.";
-	if (status === "degraded") return "Local vector service degraded. Some features may be unavailable.";
-	if (state.embeddingStatus === "downloading") return "Embedding model downloading...";
-	return "Local vector service initializing...";
 }
 
 function createTabId(): string {
@@ -538,15 +537,16 @@ export function SearchResultCard({ result, serviceReady, onOpen, onExplore, onSe
 }
 
 // @ts-ignore
-export const SmartConnection = ({ activeFile }) => {
+export const SmartConnection = ({ activeFile, main }) => {
 	const [tabs, setTabs] = useState<SearchTab[]>(() => [createDefaultSearchTab(createTabId())]);
 	const [activeTabId, setActiveTabId] = useState<string>(() => "");
 	const [serviceState, setServiceState] = useState<ServiceState>({ ...searchInstance.state })
+	const [onboardingState, setOnboardingState] = useState<OnboardingState>({ ...onboardingInstance.state })
 	const [, setLocaleVersion] = useState(0)
 	// @ts-ignore
 	const app = useApp()
 	const workspace = app?.workspace;
-	const serviceReady = serviceState.status === "ready";
+	const serviceReady = isLocalSearchRouteReady(serviceState, onboardingState);
 	const activeTab = tabs.find((tab) => tab.id === activeTabId) || tabs[0];
 
 	useEffect(() => {
@@ -604,7 +604,7 @@ export const SmartConnection = ({ activeFile }) => {
 				mode: "unavailable",
 				reason: "Local search not initialized",
 			});
-			new Notice("Local search not initialized yet.");
+			main?.getRuntimeControlSurface?.()?.openOnboarding("repair");
 			return;
 		}
 
@@ -754,21 +754,16 @@ export const SmartConnection = ({ activeFile }) => {
 		});
 	}, []);
 
+	useEffect(() => subscribeOnboardingState(setOnboardingState), []);
+
 	useEffect(() => {
 		return onLocaleChange(() => {
 			setLocaleVersion((version) => version + 1);
 		});
 	}, []);
 
-	const statusMsg = getServiceStatusMessage(serviceState);
-
 	return (
 		<div className="px-2 animate-fade-in-up">
-			{statusMsg && (
-				<div className="mb-2 text-xs text-[#e74c3c] bg-[#fff5f5] p-2 rounded-md">
-					{statusMsg}
-				</div>
-			)}
 			<SearchTabBar
 				tabs={tabs}
 				activeTabId={activeTab?.id || ""}

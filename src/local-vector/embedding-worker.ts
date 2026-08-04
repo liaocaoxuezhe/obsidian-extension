@@ -7,7 +7,11 @@ import {
   type WorkerInitializeRequest,
   type WorkerRequest,
   type WorkerResponse,
+  type WorkerProgressResponse,
 } from "./embedding-worker-protocol";
+import { normalizeEmbeddingInitializationProgress } from "./embedding";
+import { createRequire } from "module";
+import * as path from "path";
 
 interface ExtractorLike {
   (
@@ -26,7 +30,13 @@ function logError(message: string, err?: unknown): void {
 
 async function handleInitialize(req: WorkerInitializeRequest): Promise<WorkerResponse> {
   try {
-    const transformers = require("@huggingface/transformers");
+    const moduleRoot = process.env.ANALOGY_RUNTIME_MODULE_ROOT;
+    if (!moduleRoot || !path.isAbsolute(moduleRoot)) {
+      throw new Error("ANALOGY_RUNTIME_MODULE_ROOT is required");
+    }
+    const runtimeRequire = createRequire(path.join(moduleRoot, "package.json"));
+    runtimeRequire(path.join(moduleRoot, "onnxruntime-node"));
+    const transformers = runtimeRequire(path.join(moduleRoot, "@huggingface", "transformers"));
     if (req.modelHost) {
       transformers.env.remoteHost = req.modelHost;
       transformers.env.remotePathTemplate = "{model}/resolve/{revision}/";
@@ -35,8 +45,26 @@ async function handleInitialize(req: WorkerInitializeRequest): Promise<WorkerRes
     extractor = await transformers.pipeline("feature-extraction", req.modelId, {
       dtype: req.dtype || "q8",
       cache_dir: req.cacheDir,
+      ...(req.modelRevision ? { revision: req.modelRevision } : {}),
+      progress_callback: (progressInfo: unknown) => {
+        const progress = normalizeEmbeddingInitializationProgress(progressInfo);
+        if (!progress) return;
+        const event: WorkerProgressResponse = { id: req.id, type: "progress", progress };
+        process.stdout.write(encodeMessage(event));
+      },
     });
     currentModelId = req.modelId;
+    process.stdout.write(encodeMessage({
+      id: req.id,
+      type: "progress",
+      progress: {
+        phase: "ready",
+        file: null,
+        loadedBytes: null,
+        totalBytes: null,
+        percent: 100,
+      },
+    }));
     return { id: req.id, ok: true };
   } catch (err) {
     logError("initialize failed", err);

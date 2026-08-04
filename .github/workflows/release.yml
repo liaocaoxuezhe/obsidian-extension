@@ -28,6 +28,7 @@ jobs:
     timeout-minutes: 30
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      RUNTIME_TAG: runtime-node22-v1
 
     steps:
       - name: Checkout release tag
@@ -56,6 +57,23 @@ jobs:
 
       - name: Run public regression tests
         run: npm run test:public
+
+      - name: Download verified managed runtime assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p dist/runtime
+          gh release download "$RUNTIME_TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --dir dist/runtime \
+            --pattern 'analogy-embedding-runtime-node22-v1-*' \
+            --pattern 'embedding-runtime-manifest.json'
+
+      - name: Bind plugin build to the published runtime manifest
+        run: npm run runtime:manifest
+
+      - name: Verify downloaded runtime assets
+        run: npm run runtime:release:verify
 
       - name: Prepare release directory
         run: npm run release:prepare

@@ -3,6 +3,10 @@ export type DiagnosticLevel = "debug" | "info" | "warn" | "error";
 export type DiagnosticStage =
   | "plugin.onload"
   | "plugin.layout-ready"
+  | "environment.detect"
+  | "onboarding.setup"
+  | "service.bootstrap"
+  | "search.readiness"
   | "runtime.check"
   | "runtime.install"
   | "chroma.start"
@@ -44,6 +48,21 @@ export interface DiagnosticEvent {
   message: string;
   context?: Record<string, string | number | boolean | null>;
   error?: SanitizedError;
+}
+
+export interface RuntimeSetupDiagnosticContext {
+  stage: string;
+  errorCode?: string;
+  platform?: string;
+  arch?: string;
+  runtimeId?: string;
+  durationMs?: number;
+  receivedBytes?: number;
+  retryCount?: number;
+  portConflict?: boolean;
+  copiedRecords?: number;
+  totalRecords?: number;
+  sourceBytes?: number;
 }
 
 export interface DiagnosticSessionMarker {

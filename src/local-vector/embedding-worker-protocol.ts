@@ -1,6 +1,14 @@
 export type WorkerRequestType = "initialize" | "embed" | "dispose" | "health";
 export type WorkerResponseType = "ok" | "error";
 
+export interface EmbeddingInitializationProgress {
+  phase: "downloading" | "loading" | "ready";
+  file: string | null;
+  loadedBytes: number | null;
+  totalBytes: number | null;
+  percent: number | null;
+}
+
 export interface WorkerInitializeRequest {
   id: string;
   type: "initialize";
@@ -8,6 +16,7 @@ export interface WorkerInitializeRequest {
   dtype: string;
   cacheDir: string;
   modelHost?: string;
+  modelRevision?: string;
 }
 
 export interface WorkerEmbedRequest {
@@ -52,7 +61,14 @@ export interface WorkerErrorResponse {
   };
 }
 
-export type WorkerResponse = WorkerOkResponse | WorkerErrorResponse;
+export interface WorkerProgressResponse {
+  id: string;
+  type: "progress";
+  progress: EmbeddingInitializationProgress;
+}
+
+export type WorkerTerminalResponse = WorkerOkResponse | WorkerErrorResponse;
+export type WorkerResponse = WorkerTerminalResponse | WorkerProgressResponse;
 
 export function encodeMessage(msg: WorkerRequest | WorkerResponse): string {
   return JSON.stringify(msg) + "\n";
@@ -69,7 +85,7 @@ export function decodeMessage(line: string): WorkerRequest | WorkerResponse | nu
 }
 
 export function validateResponse(
-  response: WorkerResponse | null,
+  response: WorkerTerminalResponse | null,
   expectedId: string
 ): { ok: boolean; result?: number[][]; memory?: WorkerOkResponse["memoryUsage"]; error?: string } {
   if (!response) {
@@ -82,6 +98,39 @@ export function validateResponse(
     return { ok: false, error: response.error?.message || "Worker error" };
   }
   return { ok: true, result: response.embeddings, memory: response.memoryUsage };
+}
+
+export function isWorkerProgressResponse(response: WorkerResponse): response is WorkerProgressResponse {
+  return "type" in response && response.type === "progress";
+}
+
+export function sanitizeWorkerProgress(
+  value: unknown,
+): EmbeddingInitializationProgress | null {
+  if (!value || typeof value !== "object") return null;
+  const progress = value as Partial<EmbeddingInitializationProgress>;
+  if (progress.phase !== "downloading" && progress.phase !== "loading" && progress.phase !== "ready") {
+    return null;
+  }
+  const sanitizeNumber = (candidate: unknown): number | null => (
+    typeof candidate === "number" && Number.isFinite(candidate) && candidate >= 0
+      ? candidate
+      : null
+  );
+  let file: string | null = null;
+  if (typeof progress.file === "string" && progress.file.trim()) {
+    const withoutQuery = progress.file.trim().split(/[?#]/, 1)[0].replace(/\\/g, "/");
+    const basename = withoutQuery.slice(withoutQuery.lastIndexOf("/") + 1);
+    if (basename && basename !== "." && basename !== "..") file = basename;
+  }
+  const percent = sanitizeNumber(progress.percent);
+  return {
+    phase: progress.phase,
+    file,
+    loadedBytes: sanitizeNumber(progress.loadedBytes),
+    totalBytes: sanitizeNumber(progress.totalBytes),
+    percent: percent === null ? null : Math.max(0, Math.min(100, percent)),
+  };
 }
 
 export function validateEmbeddings(

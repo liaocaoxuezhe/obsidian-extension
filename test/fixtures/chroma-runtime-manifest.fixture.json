@@ -1,0 +1,20 @@
+{
+  "version": "cli-1.4.4",
+  "assets": {
+    "darwin-arm64": {
+      "filename": "chroma-macos-arm64",
+      "size": 60527064,
+      "sha256": "3daa51a58f3792092e53b1a2ab574478665d07868fbd6cd6730a60a1794663e5"
+    },
+    "darwin-x64": {
+      "filename": "chroma-macos-intel",
+      "size": 63304056,
+      "sha256": "cdd321ef684e6b86226faae4023c7b07a68ec1363460cecf9ac3ce5a843cff57"
+    },
+    "win32-x64": {
+      "filename": "chroma-windows.exe",
+      "size": 55364096,
+      "sha256": "8697d3f5f55c4f982c6e114ac01cf006daa0c68d87e791d9b5558b8670f89d05"
+    }
+  }
+}

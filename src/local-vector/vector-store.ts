@@ -2,7 +2,6 @@ import { request } from "http";
 
 const TENANT = "default_tenant";
 const DATABASE = "default_database";
-type ChromaApiVersion = "v1" | "v2";
 
 export interface SearchResult {
   chunkId: string;
@@ -19,6 +18,12 @@ export interface DocumentChunk {
   chunkIndex: number;
   chunkCount: number;
   sectionLabel: string;
+}
+
+export interface DocumentMetadata {
+  title: string;
+  path: string;
+  mtime: number;
 }
 
 export interface ChromaGetOptions {
@@ -42,54 +47,57 @@ export interface IndexedDocumentEntry {
   chunkCount: number;
 }
 
+export interface ChromaVectorRecord {
+  id: string;
+  document: string | null;
+  metadata: Record<string, string | number | boolean> | null;
+  embedding: number[];
+}
+
 export class LocalVectorStore {
   private collectionId: string | null = null;
   private collectionName: string = "";
   private port: number = 8000;
-  private apiVersion: ChromaApiVersion = "v2";
 
-  async initialize(port: number = 8000, vaultId?: string, modelShortName?: string): Promise<void> {
+  async initialize(
+    port: number,
+    vaultId: string,
+    modelShortName: string,
+    explicitCollectionName?: string,
+  ): Promise<void> {
     this.port = port;
-    this.apiVersion = await this.detectApiVersion();
-    const suffix = modelShortName ? `_${modelShortName}` : "";
-    this.collectionName = vaultId
-      ? `analogy_${vaultId}${suffix}`
-      : `analogy_obsidian${suffix}`;
+    await this.ensureV2Available();
+    const suffix = `_${modelShortName}`;
+    const expectedPrefix = `analogy_${vaultId}${suffix}`;
+    if (explicitCollectionName !== undefined
+      && explicitCollectionName !== expectedPrefix
+      && !new RegExp(`^${expectedPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_[0-9a-f]{12}$`).test(explicitCollectionName)) {
+      throw new Error("INVALID_CHROMA_COLLECTION_NAME");
+    }
+    this.collectionName = explicitCollectionName ?? expectedPrefix;
     await this.ensureCollection(this.collectionName);
   }
 
   async ensureCollection(name: string): Promise<void> {
-    try {
-      const path = this.apiVersion === "v2"
-        ? `/api/v2/tenants/${TENANT}/databases/${DATABASE}/collections`
-        : "/api/v1/collections";
-      const body = this.apiVersion === "v2"
-        ? {
-            name,
-            configuration: null,
-            get_or_create: true,
-            metadata: { description: "Analogy Obsidian local vector store" },
-          }
-        : {
-            name,
-            get_or_create: true,
-            metadata: { description: "Analogy Obsidian local vector store" },
-          };
-      const collection = await this.requestJson<{ id: string }>(
-        "POST",
-        path,
-        body
-      );
-      this.collectionId = collection.id;
-    } catch (err) {
-      throw err;
-    }
+    const path = `/api/v2/tenants/${TENANT}/databases/${DATABASE}/collections`;
+    const body = {
+      name,
+      configuration: null,
+      get_or_create: true,
+      metadata: { description: "Analogy Obsidian local vector store" },
+    };
+    const collection = await this.requestJson<{ id: string }>(
+      "POST",
+      path,
+      body
+    );
+    this.collectionId = collection.id;
   }
 
   async upsertDocument(
     docId: string,
     chunks: DocumentChunk[],
-    metadata: { title: string; path: string; mtime: number }
+    metadata: DocumentMetadata
   ): Promise<void> {
     await this.ensureCollectionReady();
     if (chunks.length === 0) return;
@@ -108,9 +116,65 @@ export class LocalVectorStore {
     });
   }
 
+  async upsertRecords(records: readonly ChromaVectorRecord[]): Promise<void> {
+    await this.ensureCollectionReady();
+    if (records.length === 0) return;
+    if (records.length > 1024) throw new Error("CHROMA_VECTOR_BATCH_TOO_LARGE");
+    const dimension = records[0]?.embedding.length ?? 0;
+    if (dimension < 1) throw new Error("CHROMA_VECTOR_RECORD_INVALID");
+    for (const record of records) {
+      if (!record || typeof record.id !== "string" || record.id.length < 1 || record.id.length > 2048
+        || (record.document !== null && typeof record.document !== "string")
+        || !Array.isArray(record.embedding) || record.embedding.length < 1
+        || record.embedding.some((value) => !Number.isFinite(value))
+        || !this.validMigrationMetadata(record.metadata)) {
+        throw new Error("CHROMA_VECTOR_RECORD_INVALID");
+      }
+      if (record.embedding.length !== dimension) throw new Error("CHROMA_VECTOR_DIMENSION_MISMATCH");
+    }
+    await this.requestJson("POST", this.collectionPath("/upsert"), {
+      ids: records.map((record) => record.id),
+      documents: records.map((record) => record.document),
+      metadatas: records.map((record) => record.metadata),
+      embeddings: records.map((record) => record.embedding),
+    });
+  }
+
+  async getRecordIdentityPage(offset: number, limit: number): Promise<{ ids: string[] }> {
+    await this.ensureCollectionReady();
+    if (!Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(limit) || limit < 1 || limit > 1024) {
+      throw new Error("CHROMA_VECTOR_PAGE_INVALID");
+    }
+    const response = await this.requestJson<{ ids?: unknown }>("POST", this.collectionPath("/get"), {
+      offset,
+      limit,
+      include: [],
+    });
+    if (!response || !Array.isArray(response.ids)
+      || response.ids.some((id) => typeof id !== "string" || !id || id.length > 2048)) {
+      throw new Error("CHROMA_VECTOR_PAGE_INVALID");
+    }
+    return { ids: response.ids as string[] };
+  }
+
   async deleteDocument(docId: string): Promise<void> {
     await this.ensureCollectionReady();
     await this.requestJson("POST", this.collectionPath("/delete"), { where: { doc_id: docId } });
+  }
+
+  async deleteCollectionByName(port: number, name: string): Promise<void> {
+    if (!Number.isSafeInteger(port) || port < 1 || port > 65_535) {
+      throw new Error("INVALID_CHROMA_PORT");
+    }
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,255}$/.test(name)) {
+      throw new Error("INVALID_CHROMA_COLLECTION_NAME");
+    }
+    this.port = port;
+    await this.requestJson(
+      "DELETE",
+      `/api/v2/tenants/${TENANT}/databases/${DATABASE}/collections/${encodeURIComponent(name)}`,
+    );
+    if (this.collectionName === name) this.collectionId = null;
   }
 
   async search(queryEmbedding: number[], topK: number = 5): Promise<SearchResult[]> {
@@ -159,10 +223,8 @@ export class LocalVectorStore {
 
   async listIndexedDocs(): Promise<string[]> {
     await this.ensureCollectionReady();
-    const all = await this.requestJson<{ metadatas?: any[] | any[][] }>("POST", this.collectionPath("/get"), {});
     const docIds = new Set<string>();
-
-    for (const meta of this.normalizeMetadatas(all.metadatas)) {
+    for (const meta of await this.listAllMetadatas()) {
       if (meta?.doc_id) {
         docIds.add(meta.doc_id);
       }
@@ -172,10 +234,9 @@ export class LocalVectorStore {
 
   async listIndexedDocumentEntries(): Promise<IndexedDocumentEntry[]> {
     await this.ensureCollectionReady();
-    const all = await this.requestJson<{ metadatas?: any[] | any[][] }>("POST", this.collectionPath("/get"), {});
     const entries = new Map<string, IndexedDocumentEntry>();
 
-    for (const meta of this.normalizeMetadatas(all.metadatas)) {
+    for (const meta of await this.listAllMetadatas()) {
       const docId = typeof meta?.doc_id === "string" ? meta.doc_id : "";
       if (!docId) continue;
 
@@ -199,6 +260,27 @@ export class LocalVectorStore {
     return Array.from(entries.values());
   }
 
+  private async listAllMetadatas(): Promise<any[]> {
+    const total = await this.count();
+    const all: any[] = [];
+    const pageSize = 1024;
+    for (let offset = 0; offset < total; offset += pageSize) {
+      const limit = Math.min(pageSize, total - offset);
+      const page = await this.requestJson<{ ids?: unknown; metadatas?: any[] | any[][] }>(
+        "POST",
+        this.collectionPath("/get"),
+        { offset, limit, include: ["metadatas"] },
+      );
+      if (!Array.isArray(page.ids)) throw new Error("CHROMA_VECTOR_PAGE_INVALID");
+      const metadatas = this.normalizeMetadatas(page.metadatas);
+      if (page.ids.length !== metadatas.length || page.ids.length !== limit) {
+        throw new Error("CHROMA_VECTOR_PAGE_INVALID");
+      }
+      all.push(...metadatas);
+    }
+    return all;
+  }
+
   private async ensureCollectionReady(): Promise<void> {
     if (!this.collectionId) {
       await this.ensureCollection(this.collectionName);
@@ -209,10 +291,7 @@ export class LocalVectorStore {
     if (!this.collectionId) {
       throw new Error("Collection not initialized");
     }
-    if (this.apiVersion === "v2") {
-      return `/api/v2/tenants/${TENANT}/databases/${DATABASE}/collections/${this.collectionId}${suffix}`;
-    }
-    return `/api/v1/collections/${this.collectionId}${suffix}`;
+    return `/api/v2/tenants/${TENANT}/databases/${DATABASE}/collections/${this.collectionId}${suffix}`;
   }
 
   private normalizeMetadatas(metadatas: any[] | any[][] | null | undefined): any[] {
@@ -230,6 +309,18 @@ export class LocalVectorStore {
       return Number.isFinite(parsed) ? parsed : 0;
     }
     return 0;
+  }
+
+  private validMigrationMetadata(
+    value: Record<string, string | number | boolean> | null,
+  ): boolean {
+    if (value === null) return true;
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    const entries = Object.entries(value);
+    if (entries.length > 256) return false;
+    return entries.every(([key, item]) => key.length > 0 && key.length <= 256
+      && (typeof item === "string" || typeof item === "boolean"
+        || (typeof item === "number" && Number.isFinite(item))));
   }
 
   private async requestJson<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -286,10 +377,10 @@ export class LocalVectorStore {
     });
   }
 
-  private async detectApiVersion(): Promise<ChromaApiVersion> {
-    if (await this.isEndpointHealthy("/api/v2/heartbeat")) return "v2";
-    if (await this.isEndpointHealthy("/api/v1/heartbeat")) return "v1";
-    throw new Error("ChromaDB heartbeat failed on both /api/v2/heartbeat and /api/v1/heartbeat");
+  private async ensureV2Available(): Promise<void> {
+    if (!await this.isEndpointHealthy("/api/v2/heartbeat")) {
+      throw new Error("ChromaDB heartbeat failed on /api/v2/heartbeat");
+    }
   }
 
   private async isEndpointHealthy(path: string): Promise<boolean> {

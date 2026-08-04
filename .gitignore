@@ -21,6 +21,16 @@ test/tmp-transformers-cache/
 docs/
 test/
 
+# Public managed-runtime verification helpers are reviewed release assets.
+!test/
+test/*
+!test/helpers/
+test/helpers/*
+!test/helpers/download-pinned-chroma.js
+!test/fixtures/
+test/fixtures/*
+!test/fixtures/chroma-runtime-manifest.fixture.json
+
 # Private service and deployment assets must stay private.
 mcp-server/src/com*/
 mcp-server/Dockerfile.*

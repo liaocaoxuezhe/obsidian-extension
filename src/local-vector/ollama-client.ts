@@ -46,13 +46,34 @@ export class OllamaClient {
     return this.requestJson("POST", "/api/show", { model });
   }
 
-  async pullModel(model: string, onProgress?: (progress: OllamaPullProgress) => void): Promise<void> {
-    const response = await this.request("POST", "/api/pull", { model, stream: true });
-    const text = await response.text();
-    for (const line of text.split(/\n+/).filter(Boolean)) {
-      const event = JSON.parse(line) as OllamaPullProgress;
-      onProgress?.(event);
-    }
+  async pullModel(
+    model: string,
+    onProgress?: (progress: OllamaPullProgress) => void,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    await this.consumeResponse("POST", "/api/pull", { model, stream: true }, signal, async (response) => {
+      if (!response.body) throw new Error("Ollama pull response did not include a stream");
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const publish = (line: string) => {
+        const value = line.trim();
+        if (!value) return;
+        onProgress?.(JSON.parse(value) as OllamaPullProgress);
+      };
+      while (true) {
+        const {done, value} = await reader.read();
+        buffer += decoder.decode(value, {stream: !done});
+        let newline = buffer.indexOf("\n");
+        while (newline >= 0) {
+          publish(buffer.slice(0, newline));
+          buffer = buffer.slice(newline + 1);
+          newline = buffer.indexOf("\n");
+        }
+        if (done) break;
+      }
+      publish(buffer);
+    });
   }
 
   async generate(input: { model: string; prompt: string; options?: Record<string, unknown> }): Promise<string> {
@@ -66,12 +87,20 @@ export class OllamaClient {
   }
 
   private async requestJson(method: string, path: string, body?: unknown): Promise<any> {
-    const response = await this.request(method, path, body);
-    return response.json();
+    return this.consumeResponse(method, path, body, undefined, (response) => response.json());
   }
 
-  private async request(method: string, path: string, body?: unknown): Promise<Response> {
+  private async consumeResponse<T>(
+    method: string,
+    path: string,
+    body: unknown,
+    signal: AbortSignal | undefined,
+    consume: (response: Response) => Promise<T>,
+  ): Promise<T> {
     const controller = new AbortController();
+    const abort = () => controller.abort(signal?.reason);
+    if (signal?.aborted) abort();
+    else signal?.addEventListener("abort", abort, {once: true});
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
       const response = await fetch(`${this.host}${path}`, {
@@ -83,9 +112,10 @@ export class OllamaClient {
       if (!response.ok) {
         throw new Error(`Ollama ${method} ${path} failed: HTTP ${response.status}`);
       }
-      return response;
+      return await consume(response);
     } finally {
       clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
     }
   }
 }

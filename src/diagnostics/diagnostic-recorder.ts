@@ -9,11 +9,13 @@ import type {
   SemanticWalkExpandDiagnostic,
   SemanticWalkExpandErrorCategory,
   SemanticWalkExpandEventStage,
+  RuntimeSetupDiagnosticContext,
 } from "./diagnostic-types";
 import {
   createRedactor,
   generateReportSalt,
   redactDiagnosticReport,
+  sanitizeRuntimeSetupContext,
 } from "./diagnostic-redaction";
 import { DiagnosticStorage } from "./diagnostic-storage";
 
@@ -272,6 +274,25 @@ export class DiagnosticRecorder {
     context?: Record<string, string | number | boolean | null>
   ): void {
     this.recordEvent("debug", stage, code, message, context);
+  }
+
+  recordRuntimeSetup(details: RuntimeSetupDiagnosticContext): void {
+    try {
+      const context = sanitizeRuntimeSetupContext(details as unknown as Record<string, unknown>);
+      const errorCode = context.errorCode;
+      const code = errorCode
+        ? `runtime.${errorCode.toLowerCase()}`
+        : `onboarding.${context.stage}`;
+      this.recordEvent(
+        errorCode ? "error" : "info",
+        "onboarding.setup",
+        code,
+        errorCode ? "Runtime setup failed" : "Runtime setup stage changed",
+        context as unknown as Record<string, string | number | boolean | null>,
+      );
+    } catch {
+      // Setup diagnostics are best effort and reject non-allowlisted context.
+    }
   }
 
   recordSemanticWalkExpand(details: SemanticWalkExpandDiagnostic): void {

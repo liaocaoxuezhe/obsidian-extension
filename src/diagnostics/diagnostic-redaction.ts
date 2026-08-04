@@ -1,5 +1,6 @@
 import * as crypto from "crypto";
 import type { DiagnosticEvent, DiagnosticReport } from "./diagnostic-types";
+import type { RuntimeSetupDiagnosticContext } from "./diagnostic-types";
 
 export interface RedactionOptions {
   vaultPath?: string;
@@ -13,6 +14,48 @@ const TOKEN_QUERY_RE = /([?&])(token|api_key|apikey|key|auth|secret|license)=([^
 const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 const ABS_PATH_RE = /([A-Za-z]:\\[^\s"<>|:*?]+|\/[^\s"<>|:*?]+)/g;
 const ANONYMOUS_FILE_RE = /<file:([a-f0-9]{8,64})>/gi;
+const SETUP_CONTEXT_KEYS = new Set([
+  "stage", "errorCode", "platform", "arch", "runtimeId", "durationMs",
+  "receivedBytes", "retryCount", "portConflict",
+  "copiedRecords", "totalRecords", "sourceBytes",
+]);
+
+export function sanitizeRuntimeSetupContext(
+  input: Record<string, unknown>,
+): RuntimeSetupDiagnosticContext {
+  for (const key of Object.keys(input)) {
+    if (!SETUP_CONTEXT_KEYS.has(key)) throw new Error("DIAGNOSTIC_CONTEXT_FIELD_REJECTED");
+  }
+  const stage = typeof input.stage === "string" && /^[a-z0-9-]{1,64}$/.test(input.stage)
+    ? input.stage : "unknown";
+  const output: RuntimeSetupDiagnosticContext = {stage};
+  if (typeof input.errorCode === "string" && /^[A-Z][A-Z0-9_]{2,80}$/.test(input.errorCode)) {
+    output.errorCode = input.errorCode;
+  }
+  if (input.platform === "darwin" || input.platform === "win32" || input.platform === "linux") {
+    output.platform = input.platform;
+  }
+  if (input.arch === "arm64" || input.arch === "x64") output.arch = input.arch;
+  if (typeof input.runtimeId === "string" && /^[a-z0-9][a-z0-9._-]{0,127}$/.test(input.runtimeId)) {
+    output.runtimeId = input.runtimeId;
+  }
+  const finite = (value: unknown, max: number) => typeof value === "number" && Number.isFinite(value)
+    ? Math.min(max, Math.max(0, Math.floor(value))) : undefined;
+  const durationMs = finite(input.durationMs, 86_400_000);
+  const receivedBytes = finite(input.receivedBytes, Number.MAX_SAFE_INTEGER);
+  const retryCount = finite(input.retryCount, 100);
+  const copiedRecords = finite(input.copiedRecords, Number.MAX_SAFE_INTEGER);
+  const totalRecords = finite(input.totalRecords, Number.MAX_SAFE_INTEGER);
+  const sourceBytes = finite(input.sourceBytes, Number.MAX_SAFE_INTEGER);
+  if (durationMs !== undefined) output.durationMs = durationMs;
+  if (receivedBytes !== undefined) output.receivedBytes = receivedBytes;
+  if (retryCount !== undefined) output.retryCount = retryCount;
+  if (copiedRecords !== undefined) output.copiedRecords = copiedRecords;
+  if (totalRecords !== undefined) output.totalRecords = totalRecords;
+  if (sourceBytes !== undefined) output.sourceBytes = sourceBytes;
+  if (typeof input.portConflict === "boolean") output.portConflict = input.portConflict;
+  return output;
+}
 
 export function generateReportSalt(): string {
   return crypto.randomBytes(8).toString("hex");

@@ -3,6 +3,7 @@ import { SmartConnection } from "./SmartConnection";
 import { Badge } from "./components/badge";
 import { Button } from "./components/button";
 import { appVersion, icon } from "./model/Consts";
+import { RuntimeStatusCapsule } from "./runtime/RuntimeControlPanel";
 
 export const HomeView = ({ main }: { main: any }) => {
   const [activeFile, setActiveFile] = useState(() => {
@@ -24,12 +25,18 @@ export const HomeView = ({ main }: { main: any }) => {
             <span>· Analogy</span>
           </span>
         </div>
-        <Badge variant="secondary" className="text-xs text-[#444444] bg-[#f5f5f5]">
-          v{appVersion}
-        </Badge>
+        <div className="analogy-sidebar-header__meta">
+          <RuntimeStatusCapsule
+            control={main?.getRuntimeControlSurface?.() ?? null}
+            onOpenDetails={() => main?.openAnalogySettings?.()}
+          />
+          <Badge variant="secondary" className="text-xs text-[#444444] bg-[#f5f5f5] analogy-version-badge">
+            v{appVersion}
+          </Badge>
+        </div>
       </div>
       <div>
-        <SmartConnection activeFile={activeFile} />
+        <SmartConnection activeFile={activeFile} main={main} />
       </div>
     </div>
   );
