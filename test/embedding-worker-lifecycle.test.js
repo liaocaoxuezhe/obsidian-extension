@@ -35,8 +35,17 @@ function isProcessAlive(pid) {
   }
 }
 
-function readState(file) {
-  return JSON.parse(fs.readFileSync(file, "utf-8"));
+async function readState(file) {
+  let lastError = null;
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    try {
+      return JSON.parse(fs.readFileSync(file, "utf-8"));
+    } catch (error) {
+      lastError = error;
+      await wait(10);
+    }
+  }
+  throw lastError;
 }
 
 function makeClient(EmbeddingWorkerClient, root, env = {}, overrides = {}) {
@@ -55,7 +64,7 @@ function makeClient(EmbeddingWorkerClient, root, env = {}, overrides = {}) {
     moduleRoot,
     // The full suite runs several esbuild/Chrome harnesses in parallel. Keep
     // the normal worker deadline above that scheduler contention; the explicit
-    // timeout scenario below still overrides this with 40 ms.
+    // timeout scenario below still overrides this with 5 seconds.
     timeoutMs: 10_000,
     terminationGraceMs: 50,
     maxMessageBytes: 1024,
@@ -99,7 +108,7 @@ async function expectRejected(promise, messagePattern) {
     const third = concurrentClient.embed(["three"]);
     await Promise.all([first, second, third]);
     assert.strictEqual(
-      readState(concurrencyState).maxActive,
+      (await readState(concurrencyState)).maxActive,
       1,
       "client must serialize embedding requests",
     );
@@ -174,7 +183,7 @@ async function expectRejected(promise, messagePattern) {
     );
     clients.push(timeoutClient);
     await timeoutClient.initialize("test/model", "q8", path.join(tmpDir, "cache"));
-    const timeoutPid = readState(timeoutState).pid;
+    const timeoutPid = (await readState(timeoutState)).pid;
     try {
       await expectRejected(timeoutClient.embed(["hang"]), /timed out/i);
       await wait(120);
