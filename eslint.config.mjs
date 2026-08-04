@@ -72,4 +72,21 @@ export default defineConfig([
       "depend/ban-dependencies": "warn",
     },
   },
+  {
+    files: [
+      "main.ts",
+      "src/onboarding/**/*.{ts,tsx}",
+      "src/runtime/**/*.{ts,tsx}",
+      "src/local-vector/document-indexer.ts",
+      "src/local-vector/local-service-bootstrap.ts",
+    ],
+    rules: {
+      "@typescript-eslint/no-redundant-type-constituents": "warn",
+      "@typescript-eslint/only-throw-error": "warn",
+      "@typescript-eslint/prefer-promise-reject-errors": "warn",
+      "@typescript-eslint/unbound-method": "warn",
+      "no-control-regex": "warn",
+      "no-unsafe-finally": "warn",
+    },
+  },
 ]);

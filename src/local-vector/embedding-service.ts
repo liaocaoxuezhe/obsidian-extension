@@ -2,6 +2,9 @@ import type { DiagnosticRecorder } from "../diagnostics/diagnostic-recorder";
 import { EmbeddingServiceOptions, LocalEmbeddingService } from "./embedding";
 import { EmbeddingWorkerClient } from "./embedding-worker-client";
 import { SafeModeManager } from "./safe-mode";
+import * as path from "path";
+import type { ManagedEmbeddingRuntime } from "../runtime/embedding-runtime-manager";
+import type { EmbeddingInitializationProgress } from "./embedding-worker-protocol";
 
 export interface UnifiedEmbeddingServiceOptions extends EmbeddingServiceOptions {
   pluginVersion?: string;
@@ -11,7 +14,11 @@ export interface UnifiedEmbeddingServiceOptions extends EmbeddingServiceOptions 
   safeModeManager?: SafeModeManager | null;
   allowInProcessFallback?: boolean;
   onSafeModeEntered?: () => void | Promise<void>;
+  managedRuntime?: ManagedEmbeddingRuntime;
+  modelRevision?: string;
 }
+
+export type EmbeddingInitializationState = "idle" | "initializing" | "ready";
 
 export type EmbeddingServiceErrorCode =
   | "EMBEDDING_SAFE_MODE"
@@ -33,15 +40,17 @@ export class EmbeddingService {
   private worker: EmbeddingWorkerClient | null = null;
   private options: UnifiedEmbeddingServiceOptions;
   private useWorker = false;
-  private workerInitFailed = false;
+  private initializationState: EmbeddingInitializationState = "idle";
+  private initializationEpoch = 0;
+  private initializingWorkers = new Map<number, EmbeddingWorkerClient>();
 
   constructor(options: UnifiedEmbeddingServiceOptions) {
     this.options = options;
   }
 
   private shouldTryWorker(): boolean {
-    if (this.workerInitFailed) return false;
     if (!this.options.buildId) return false;
+    if (!this.options.managedRuntime) return false;
     return Boolean(this.options.workerBundleSource.trim());
   }
 
@@ -65,19 +74,51 @@ export class EmbeddingService {
     this.options.recorder?.[level]("embedding.worker-start", code, message, context as Record<string, string | number | boolean | null>);
   }
 
-  async initialize(onProgress?: (progress: number) => void): Promise<void> {
+  async initialize(onProgress?: (progress: EmbeddingInitializationProgress) => void): Promise<void> {
     this.assertSafeModeDisabled();
+    if (this.initializationState === "ready") return;
+    const epoch = ++this.initializationEpoch;
+    this.initializationState = "initializing";
     if (this.shouldTryWorker()) {
+      let attemptWorker: EmbeddingWorkerClient | null = null;
       try {
-        await this.initializeWorker(onProgress);
+        attemptWorker = this.createWorkerClient(epoch);
+        this.initializingWorkers.set(epoch, attemptWorker);
+        await attemptWorker.initialize(
+          this.options.modelConfig.id,
+          this.options.modelConfig.dtype,
+          this.options.cacheDir,
+          this.options.remoteHost,
+          this.options.modelRevision,
+          (progress) => {
+            if (epoch === this.initializationEpoch && this.initializationState === "initializing") {
+              onProgress?.(progress);
+            }
+          },
+        );
+        if (epoch !== this.initializationEpoch) {
+          throw new Error("EMBEDDING_INITIALIZATION_CANCELLED");
+        }
+        this.initializingWorkers.delete(epoch);
+        this.worker = attemptWorker;
+        attemptWorker = null;
         this.useWorker = true;
+        this.initializationState = "ready";
         this.record("info", "worker.ready", "Embedding worker initialized", {
           model: this.options.modelConfig.shortName,
         });
         return;
       } catch (err) {
-        this.workerInitFailed = true;
+        this.initializingWorkers.delete(epoch);
+        await attemptWorker?.dispose().catch((disposeError) => {
+          this.record("warn", "worker.init-cleanup.failed", (disposeError as Error).message);
+        });
+        if (epoch !== this.initializationEpoch) {
+          throw err;
+        }
         this.useWorker = false;
+        this.initializationState = "idle";
+        if (/EMBEDDING_INITIALIZATION_CANCELLED/.test((err as Error).message)) throw err;
         this.record("error", "worker.init.failed", (err as Error).message, {
           model: this.options.modelConfig.shortName,
         });
@@ -90,23 +131,47 @@ export class EmbeddingService {
       }
     }
     if (!this.options.allowInProcessFallback) {
+      this.initializationState = "idle";
       throw new EmbeddingServiceError(
         "EMBEDDING_WORKER_UNAVAILABLE",
         "Embedding worker bundle is unavailable. Reinstall the complete Analogy runtime.",
       );
     }
-    await this.getInProcessService().initialize(onProgress);
+    await this.getInProcessService().initialize((percent) => onProgress?.({
+      phase: percent >= 100 ? "ready" : "downloading",
+      file: null,
+      loadedBytes: null,
+      totalBytes: null,
+      percent,
+    }));
+    if (epoch !== this.initializationEpoch) throw new Error("EMBEDDING_INITIALIZATION_CANCELLED");
+    this.initializationState = "ready";
   }
 
-  private async initializeWorker(onProgress?: (progress: number) => void): Promise<void> {
-    this.worker = new EmbeddingWorkerClient({
-      pluginDir: this.options.pluginDir,
+  private createWorkerClient(epoch: number): EmbeddingWorkerClient {
+    const runtime = this.options.managedRuntime;
+    if (!runtime) throw new Error("Managed embedding runtime is unavailable");
+    let client: EmbeddingWorkerClient;
+    client = new EmbeddingWorkerClient({
+      pluginDir: runtime.root,
+      workerRoot: path.dirname(path.dirname(runtime.root)),
+      workerDir: path.join(path.dirname(path.dirname(runtime.root)), "worker"),
       buildId: this.options.buildId || `${this.options.pluginVersion || "unknown"}+dev`,
       workerBundleSource: this.options.workerBundleSource,
-      execPath: process.execPath,
+      execPath: runtime.nodeExecutable,
+      moduleRoot: runtime.moduleRoot,
+      spawnGuard: runtime.revalidate,
       recorder: this.options.recorder,
       onUnexpectedExit: (info) => {
+        const isPublishedClient = this.worker === client;
+        const isCurrentInitializingClient = epoch === this.initializationEpoch
+          && this.initializingWorkers.get(epoch) === client;
+        if (!isPublishedClient && !isCurrentInitializingClient) return;
+        if (isPublishedClient) this.worker = null;
+        this.initializingWorkers.delete(epoch);
         this.useWorker = false;
+        this.initializationEpoch += 1;
+        this.initializationState = "idle";
         const wasSafeModeEnabled = this.options.safeModeManager?.isEnabled() ?? false;
         this.options.safeModeManager?.recordWorkerExit();
         const isSafeModeEnabled = this.options.safeModeManager?.isEnabled() ?? false;
@@ -127,13 +192,21 @@ export class EmbeddingService {
         });
       },
     });
-    await this.worker.initialize(
-      this.options.modelConfig.id,
-      this.options.modelConfig.dtype,
-      this.options.cacheDir,
-      this.options.remoteHost
-    );
-    onProgress?.(100);
+    return client;
+  }
+
+  getInitializationState(): EmbeddingInitializationState {
+    return this.initializationState;
+  }
+
+  async cancelInitialization(): Promise<void> {
+    if (this.initializationState !== "initializing") return;
+    this.initializationEpoch += 1;
+    this.initializationState = "idle";
+    this.useWorker = false;
+    const workers = [...this.initializingWorkers.values()];
+    this.initializingWorkers.clear();
+    await Promise.all(workers.map((worker) => worker.cancelInitialization()));
   }
 
   isReady(): boolean {
@@ -152,7 +225,10 @@ export class EmbeddingService {
     if (this.useWorker && this.worker) {
       try {
         await this.worker.dispose();
-        await this.initializeWorker();
+        this.worker = null;
+        this.useWorker = false;
+        this.initializationState = "idle";
+        await this.initialize();
         return;
       } catch (err) {
         this.record("error", "worker.reset.failed", (err as Error).message);
@@ -230,6 +306,14 @@ export class EmbeddingService {
   }
 
   async dispose(): Promise<void> {
+    this.initializationEpoch += 1;
+    this.initializationState = "idle";
+    const initializingWorkers = [...this.initializingWorkers.values()];
+    this.initializingWorkers.clear();
+    await Promise.all(initializingWorkers.map(async (worker) => {
+      await worker.cancelInitialization().catch(() => undefined);
+      await worker.dispose().catch(() => undefined);
+    }));
     if (this.worker) {
       try {
         await this.worker.dispose();

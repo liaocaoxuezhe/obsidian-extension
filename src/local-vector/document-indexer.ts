@@ -22,6 +22,10 @@ const STARTUP_SUPPRESS_MS_BASE = 10_000;
 const STARTUP_SUPPRESS_MS_MAX = 120_000;
 const MAX_PENDING_AUTO_INDEX = 50;
 
+function normalizeDocumentPath(value: string): string {
+  return value.replace(/\\/g, "/").normalize("NFC");
+}
+
 export interface IndexStateEntry {
   path?: string;
   mtime: number;
@@ -55,9 +59,57 @@ export interface RebuildProgress {
   currentFile: string;
 }
 
+export interface RebuildVerificationEvidence {
+  expectedFileCount: number;
+  selectedDocuments: Array<{ docId: string; path: string; mtime: number }>;
+  indexState: IndexState;
+  collectionDocuments: Array<{ docId: string; path: string; mtime: number; chunkCount: number }>;
+  chunkCount: number;
+  smokeResults: readonly unknown[];
+}
+
+export interface MigratedDocumentEvidence {
+  docId: string;
+  path: string;
+  mtime: number;
+  chunkCount: number;
+  metadataComplete: boolean;
+}
+
+export type FileIndexErrorCategory =
+  | "deleted"
+  | "read"
+  | "chunk"
+  | "embedding"
+  | "vector-store"
+  | "unknown";
+
+export interface FileIndexResult {
+  path: string;
+  status: "indexed" | "skipped" | "failed";
+  chunkCount: number;
+  errorCategory?: FileIndexErrorCategory;
+}
+
+export interface IndexFilesResult {
+  requested: number;
+  indexed: number;
+  skipped: number;
+  failed: number;
+  chunkCount: number;
+  cancelled: boolean;
+  files: FileIndexResult[];
+}
+
+export interface IndexFilesOptions {
+  signal?: AbortSignal;
+  onProgress?: (progress: { current: number; total: number; currentFileName: string }) => void;
+  isFileAvailable?: (file: TFile) => boolean;
+}
+
 interface QueueItem {
   file: TFile;
-  resolve: () => void;
+  resolve: (result: FileIndexResult) => void;
   reject: (err: Error) => void;
 }
 
@@ -69,6 +121,10 @@ interface ChunkSentence {
 interface ChunkDraft {
   content: string;
   sectionLabel: string;
+}
+
+function boundedIndexerError(code: "INDEXER_MAINTENANCE_FAILED", cause: unknown): Error {
+  return Object.assign(new Error(code), { code, cause });
 }
 
 export class DocumentIndexer {
@@ -90,6 +146,7 @@ export class DocumentIndexer {
   private activeWorkers = 0;
   private queueProcessed = 0;
   private queueTotal = 0;
+  private queueDrainPromise: Promise<void> | null = null;
   private autoIndexTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private pendingActiveFiles = new Map<string, TFile>();
   private startupSuppressed = false;
@@ -204,7 +261,7 @@ export class DocumentIndexer {
     this.autoIndexTimers.clear();
     this.pendingActiveFiles.clear();
     for (const item of this.queue.splice(0)) {
-      item.resolve();
+      item.resolve({ path: item.file.path, status: "skipped", chunkCount: 0 });
     }
     while (this.activeWorkers > 0) {
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -224,7 +281,7 @@ export class DocumentIndexer {
   }
 
   buildDocId(file: TFile): string {
-    return file.path;
+    return normalizeDocumentPath(file.path);
   }
 
   isExcluded(file: TFile): boolean {
@@ -254,14 +311,14 @@ export class DocumentIndexer {
   }
 
   private buildLegacyDocId(file: TFile): string {
-    return `${file.path}::${file.stat.ctime}`;
+    return `${normalizeDocumentPath(file.path)}::${file.stat.ctime}`;
   }
 
   private markDocumentProcessed(file: TFile, chunkCount: number, skipReason?: string): void {
     const docId = this.buildDocId(file);
     const existing = this.indexState[docId];
     this.indexState[docId] = {
-      path: file.path,
+      path: normalizeDocumentPath(file.path),
       mtime: file.stat.mtime,
       chunkCount,
       muted: existing?.muted,
@@ -464,18 +521,30 @@ export class DocumentIndexer {
     return chunks;
   }
 
-  async indexDocument(file: TFile): Promise<void> {
-    if (this.stopped) return;
+  async indexDocument(file: TFile): Promise<FileIndexResult> {
+    const skipped = (errorCategory?: FileIndexErrorCategory): FileIndexResult => ({
+      path: file.path,
+      status: "skipped",
+      chunkCount: 0,
+      ...(errorCategory ? { errorCategory } : {}),
+    });
+    const failed = (errorCategory: FileIndexErrorCategory): FileIndexResult => ({
+      path: file.path,
+      status: "failed",
+      chunkCount: 0,
+      errorCategory,
+    });
+    if (this.stopped) return skipped();
     const docId = this.buildDocId(file);
     const existing = this.indexState[docId];
     if (this.isExcluded(file)) {
       if (existing) {
         await this.removeDocument(file);
       }
-      return;
+      return skipped();
     }
     if (existing && !this.isEntryOutdated(existing, file)) {
-      return;
+      return skipped();
     }
 
     if (file.stat.size > MAX_FILE_BYTES) {
@@ -484,22 +553,24 @@ export class DocumentIndexer {
         await this.vectorStore.deleteDocument(docId);
       }
       this.markDocumentProcessed(file, 0, reason);
-      return;
-    }
-
-    const content = await this.vault.adapter.read(file.path);
-    if (this.stopped) return;
-    if (content.length > MAX_FILE_SIZE) {
-      const reason = `oversized content: ${content.length} > ${MAX_FILE_SIZE}`;
-      if (existing) {
-        await this.vectorStore.deleteDocument(docId);
-      }
-      this.markDocumentProcessed(file, 0, reason);
-      return;
+      return skipped();
     }
 
     let chunkCount = 0;
+    let stage: FileIndexErrorCategory = "read";
     try {
+      const content = await this.vault.adapter.read(file.path);
+      if (this.stopped) return skipped();
+      if (content.length > MAX_FILE_SIZE) {
+        const reason = `oversized content: ${content.length} > ${MAX_FILE_SIZE}`;
+        if (existing) {
+          await this.vectorStore.deleteDocument(docId);
+        }
+        this.markDocumentProcessed(file, 0, reason);
+        return skipped();
+      }
+
+      stage = "chunk";
       const cleaned = cleanMarkdown(content);
       const sections = splitByHeaders(cleaned);
       if (sections.length === 0) {
@@ -507,21 +578,21 @@ export class DocumentIndexer {
           await this.vectorStore.deleteDocument(docId);
         }
         this.markDocumentProcessed(file, 0, "empty after markdown cleanup");
-        return;
+        return skipped();
       }
 
       const allChunks: ChunkDraft[] = [];
       for (const section of sections) {
-        if (this.stopped) return;
+        if (this.stopped) return skipped();
         const text = section.header
           ? `${section.header}\n${section.content}`
           : section.content;
 
         const subTexts = this.splitOversizedText(text, MAX_SECTION_CHARS);
         for (const sub of subTexts) {
-          if (this.stopped) return;
+          if (this.stopped) return skipped();
           const sectionChunks = await this.splitIntoChunks(sub);
-          if (this.stopped) return;
+          if (this.stopped) return skipped();
           allChunks.push(...this.mergeShortChunks(sectionChunks).map((content) => ({
             content,
             sectionLabel: section.header,
@@ -533,7 +604,7 @@ export class DocumentIndexer {
           await this.vectorStore.deleteDocument(docId);
         }
         this.markDocumentProcessed(file, 0, "no chunks generated");
-        return;
+        return skipped();
       }
       const chunks = allChunks.filter((chunk) => chunk.content.length >= 10);
       if (chunks.length === 0) {
@@ -541,10 +612,11 @@ export class DocumentIndexer {
           await this.vectorStore.deleteDocument(docId);
         }
         this.markDocumentProcessed(file, 0, "chunks below minimum length");
-        return;
+        return skipped();
       }
       chunkCount = chunks.length;
 
+      stage = "vector-store";
       if (existing) {
         await this.vectorStore.deleteDocument(docId);
       }
@@ -555,15 +627,16 @@ export class DocumentIndexer {
 
       const metadata = {
         title: file.name,
-        path: file.path,
+        path: normalizeDocumentPath(file.path),
         mtime: file.stat.mtime,
       };
 
       for (let i = 0; i < chunks.length; i += UPSERT_BATCH) {
-        if (this.stopped) return;
+        if (this.stopped) return skipped();
         const batch = chunks.slice(i, i + UPSERT_BATCH);
+        stage = "embedding";
         const embeddings = await this.embedding.embedBatch(batch.map((chunk) => chunk.content));
-        if (this.stopped) return;
+        if (this.stopped) return skipped();
         const chunkData = batch.map((chunk, j) => ({
           chunkId: `${docId}::chunk-${i + j}`,
           content: chunk.content,
@@ -572,6 +645,7 @@ export class DocumentIndexer {
           chunkCount: chunks.length,
           sectionLabel: chunk.sectionLabel,
         }));
+        stage = "vector-store";
         await this.vectorStore.upsertDocument(docId, chunkData, metadata);
         if (i + UPSERT_BATCH < chunks.length) {
           await new Promise((r) => setTimeout(r, 50));
@@ -585,10 +659,13 @@ export class DocumentIndexer {
       if (/Embedding .*timed out after/i.test(message)) {
         this.markDocumentProcessed(file, 0, `embedding timeout: ${message}`);
       }
-      return;
+      const code = (err as { code?: unknown })?.code;
+      if (code === "ENOENT") return skipped("deleted");
+      return failed(stage);
     }
 
     this.markDocumentProcessed(file, chunkCount);
+    return { path: file.path, status: "indexed", chunkCount };
   }
 
   async removeDocument(file: TFile): Promise<void> {
@@ -641,37 +718,58 @@ export class DocumentIndexer {
     }
   }
 
-  private enqueue(file: TFile): Promise<void> {
-    if (this.stopped) return Promise.resolve();
+  private enqueue(file: TFile): Promise<FileIndexResult> {
+    if (this.stopped) {
+      return Promise.resolve({ path: file.path, status: "skipped", chunkCount: 0 });
+    }
     return new Promise((resolve, reject) => {
       this.queue.push({ file, resolve, reject });
       this.queueTotal++;
-      this.drainQueue();
+      this.startQueueDrain();
     });
+  }
+
+  private startQueueDrain(): void {
+    if (this.queueDrainPromise || this.stopped || this.queue.length === 0) return;
+    const operation = this.drainQueue();
+    let tracked!: Promise<void>;
+    tracked = operation.finally(() => {
+      if (this.queueDrainPromise === tracked) this.queueDrainPromise = null;
+      if (!this.stopped && this.queue.length > 0) this.startQueueDrain();
+    });
+    this.queueDrainPromise = tracked;
+    // Queue callers receive their own bounded result/rejection; this observer
+    // prevents maintenance failures from becoming unhandled drain rejections.
+    void tracked.catch(() => undefined);
   }
 
   private async drainQueue(): Promise<void> {
     if (this.activeWorkers >= QUEUE_CONCURRENCY) return;
     this.activeWorkers++;
+    let maintenanceFailure: Error | null = null;
+    let currentItem: QueueItem | null = null;
 
     try {
       while (!this.stopped && this.queue.length > 0) {
-        const item = this.queue.shift()!;
+        currentItem = this.queue.shift()!;
+        let result: FileIndexResult;
         try {
-          await this.indexDocument(item.file);
-          this.queueProcessed++;
-
-          if (this.queueProcessed % PROGRESS_INTERVAL === 0 || this.queueProcessed === this.queueTotal) {
-            new Notice(
-              `[Analogy] 索引进度: ${this.queueProcessed} / ${this.queueTotal}`,
-              3000
-            );
-          }
-
-          item.resolve();
+          result = await this.indexDocument(currentItem.file);
         } catch {
-          this.queueProcessed++;
-          item.resolve();
+          result = {
+            path: currentItem.file.path,
+            status: "failed",
+            chunkCount: 0,
+            errorCategory: "unknown",
+          };
+        }
+        this.queueProcessed++;
+
+        if (this.queueProcessed % PROGRESS_INTERVAL === 0 || this.queueProcessed === this.queueTotal) {
+          new Notice(
+            `[Analogy] 索引进度: ${this.queueProcessed} / ${this.queueTotal}`,
+            3000
+          );
         }
 
         if (this.embedding.getInferenceCount() >= ONNX_RESET_INTERVAL) {
@@ -681,10 +779,84 @@ export class DocumentIndexer {
         } else {
           await new Promise((r) => setTimeout(r, 200));
         }
+        currentItem.resolve(result);
+        currentItem = null;
+      }
+    } catch (error) {
+      maintenanceFailure = boundedIndexerError("INDEXER_MAINTENANCE_FAILED", error);
+      currentItem?.reject(maintenanceFailure);
+      currentItem = null;
+      for (const pending of this.queue.splice(0)) {
+        pending.reject(maintenanceFailure);
       }
     } finally {
       this.activeWorkers--;
     }
+    if (maintenanceFailure) throw maintenanceFailure;
+  }
+
+  async indexFiles(files: TFile[], options: IndexFilesOptions = {}): Promise<IndexFilesResult> {
+    if (this.isIndexing) {
+      throw Object.assign(new Error("INDEXER_BUSY"), { code: "INDEXER_BUSY" });
+    }
+    this.beginIndexing();
+    const snapshot = files.slice();
+    const outcomes: FileIndexResult[] = [];
+    let cancelled = Boolean(options.signal?.aborted);
+
+    try {
+      for (const file of snapshot) {
+        if (options.signal?.aborted) {
+          cancelled = true;
+          break;
+        }
+        let outcome: FileIndexResult;
+        if (options.isFileAvailable && !options.isFileAvailable(file)) {
+          outcome = { path: file.path, status: "skipped", chunkCount: 0, errorCategory: "deleted" };
+        } else if (file.extension.toLowerCase() !== "md" || this.isExcluded(file)) {
+          outcome = { path: file.path, status: "skipped", chunkCount: 0 };
+        } else {
+          outcome = await this.enqueue(file);
+        }
+        outcomes.push(outcome);
+        options.onProgress?.({
+          current: outcomes.length,
+          total: snapshot.length,
+          currentFileName: file.name,
+        });
+        if (options.signal?.aborted) {
+          cancelled = true;
+          break;
+        }
+      }
+      if (cancelled) {
+        for (const file of snapshot.slice(outcomes.length)) {
+          outcomes.push({ path: file.path, status: "skipped", chunkCount: 0 });
+        }
+      }
+    } finally {
+      try {
+        try {
+          await this.flushState();
+        } catch (error) {
+          throw boundedIndexerError("INDEXER_MAINTENANCE_FAILED", error);
+        }
+      } finally {
+        this.isIndexing = false;
+        this.queueProcessed = 0;
+        this.queueTotal = 0;
+      }
+    }
+
+    return {
+      requested: snapshot.length,
+      indexed: outcomes.filter((outcome) => outcome.status === "indexed").length,
+      skipped: outcomes.filter((outcome) => outcome.status === "skipped").length,
+      failed: outcomes.filter((outcome) => outcome.status === "failed").length,
+      chunkCount: outcomes.reduce((sum, outcome) => sum + outcome.chunkCount, 0),
+      cancelled,
+      files: outcomes,
+    };
   }
 
   async rebuildIndex(
@@ -728,6 +900,190 @@ export class DocumentIndexer {
       this.queueProcessed = 0;
       this.queueTotal = 0;
     }
+  }
+
+  async rebuildIndexVerified(
+    files: TFile[],
+    options?: { force?: boolean; onProgress?: (progress: RebuildProgress) => void },
+  ): Promise<RebuildVerificationEvidence> {
+    const selectedDocuments = files
+      .filter((file) => file.extension === "md" && !this.isExcluded(file))
+      .map((file) => Object.freeze({
+        docId: this.buildDocId(file),
+        path: normalizeDocumentPath(file.path),
+        mtime: file.stat.mtime,
+      }));
+    const existingDocuments = await this.vectorStore.listIndexedDocumentEntries();
+    for (const document of existingDocuments) {
+      await this.vectorStore.deleteDocument(document.docId);
+    }
+    this.indexState = {};
+    await this.saveState();
+    await this.rebuildIndex(files, options);
+    return this.verifyCurrentGeneration(selectedDocuments);
+  }
+
+  async reconcileMigratedIndex(
+    files: TFile[],
+    migratedDocuments: readonly MigratedDocumentEvidence[],
+    options: IndexFilesOptions = {},
+  ): Promise<RebuildVerificationEvidence> {
+    if (this.isIndexing) throw Object.assign(new Error("INDEXER_BUSY"), { code: "INDEXER_BUSY" });
+    const selectedFiles = files.filter((file) => file.extension.toLowerCase() === "md" && !this.isExcluded(file));
+    const selectedDocuments = selectedFiles.map((file) => ({
+      docId: this.buildDocId(file),
+      path: normalizeDocumentPath(file.path),
+      mtime: file.stat.mtime,
+    }));
+    const selectedById = new Map(selectedDocuments.map((item, index) => [item.docId, {
+      evidence: item,
+      file: selectedFiles[index],
+    }]));
+    if (selectedById.size !== selectedDocuments.length) {
+      throw Object.assign(new Error("CHROMA_MIGRATION_DOCUMENT_EVIDENCE_INVALID"), {
+        code: "CHROMA_MIGRATION_DOCUMENT_EVIDENCE_INVALID",
+      });
+    }
+    const migratedById = new Map<string, MigratedDocumentEvidence>();
+    for (const raw of migratedDocuments) {
+      const docId = normalizeDocumentPath(raw.docId);
+      const itemPath = normalizeDocumentPath(raw.path);
+      if (!docId || !itemPath || migratedById.has(docId)
+        || !Number.isFinite(raw.mtime) || raw.mtime < 0
+        || !Number.isSafeInteger(raw.chunkCount) || raw.chunkCount < 1
+        || typeof raw.metadataComplete !== "boolean") {
+        throw Object.assign(new Error("CHROMA_MIGRATION_DOCUMENT_EVIDENCE_INVALID"), {
+          code: "CHROMA_MIGRATION_DOCUMENT_EVIDENCE_INVALID",
+        });
+      }
+      migratedById.set(docId, { ...raw, docId, path: itemPath });
+    }
+
+    this.indexState = {};
+    const reindex: TFile[] = [];
+    for (const [docId, migrated] of migratedById) {
+      if (!selectedById.has(docId)) {
+        await this.vectorStore.deleteDocument(docId);
+        continue;
+      }
+      const selected = selectedById.get(docId)!.evidence;
+      if (migrated.path === selected.path && migrated.mtime === selected.mtime && migrated.metadataComplete) {
+        this.indexState[docId] = {
+          path: migrated.path,
+          mtime: migrated.mtime,
+          chunkCount: migrated.chunkCount,
+          skipped: false,
+        };
+      } else {
+        await this.vectorStore.deleteDocument(docId);
+        reindex.push(selectedById.get(docId)!.file);
+      }
+    }
+    for (const [docId, selected] of selectedById) {
+      if (!migratedById.has(docId)) reindex.push(selected.file);
+    }
+    await this.saveState();
+    const result = await this.indexFiles(reindex, options);
+    if (result.cancelled) {
+      throw Object.assign(new Error("LEGACY_MIGRATION_CANCELLED"), { code: "LEGACY_MIGRATION_CANCELLED" });
+    }
+    if (result.failed > 0) {
+      throw Object.assign(new Error("CHROMA_MIGRATION_RECONCILIATION_FAILED"), {
+        code: "CHROMA_MIGRATION_RECONCILIATION_FAILED",
+      });
+    }
+    await this.flushState();
+    return this.verifyCurrentGeneration(selectedDocuments);
+  }
+
+  /**
+   * Adopts an exactly copied legacy collection without deleting or embedding any note.
+   * Current Vault files absent from, or newer than, this state remain visible as pending
+   * and are only processed when the user explicitly chooses Continue Index.
+   */
+  async adoptMigratedIndex(files: TFile[]): Promise<RebuildVerificationEvidence> {
+    if (this.isIndexing) throw Object.assign(new Error("INDEXER_BUSY"), { code: "INDEXER_BUSY" });
+    const collectionDocuments = await this.vectorStore.listIndexedDocumentEntries();
+    const nextState: IndexState = {};
+    for (const raw of collectionDocuments) {
+      const docId = normalizeDocumentPath(raw.docId);
+      const itemPath = normalizeDocumentPath(raw.path);
+      if (!docId || !itemPath || nextState[docId]
+        || !Number.isFinite(raw.mtime) || raw.mtime < 0
+        || !Number.isSafeInteger(raw.chunkCount) || raw.chunkCount < 1) {
+        throw Object.assign(new Error("CHROMA_MIGRATION_DOCUMENT_EVIDENCE_INVALID"), {
+          code: "CHROMA_MIGRATION_DOCUMENT_EVIDENCE_INVALID",
+        });
+      }
+      nextState[docId] = {
+        path: itemPath,
+        mtime: raw.mtime,
+        chunkCount: raw.chunkCount,
+        skipped: false,
+      };
+    }
+    this.indexState = nextState;
+    await this.saveState();
+
+    // Evaluate now so callers can immediately report an accurate per-model backlog.
+    // This is read-only: old metadata is still a valid embedding record and is not pending by itself.
+    this.getAllFileStatuses(files);
+
+    const chunkCount = await this.vectorStore.count();
+    const expectedChunks = collectionDocuments.reduce((sum, item) => sum + item.chunkCount, 0);
+    if (chunkCount !== expectedChunks) {
+      throw Object.assign(new Error("CHROMA_REBUILD_CHUNK_COUNT_MISMATCH"), {
+        code: "CHROMA_REBUILD_CHUNK_COUNT_MISMATCH",
+      });
+    }
+    return {
+      expectedFileCount: collectionDocuments.length,
+      selectedDocuments: collectionDocuments.map(({ docId, path: itemPath, mtime }) => ({
+        docId: normalizeDocumentPath(docId),
+        path: normalizeDocumentPath(itemPath),
+        mtime,
+      })),
+      indexState: JSON.parse(JSON.stringify(this.indexState)) as IndexState,
+      collectionDocuments: collectionDocuments.map((item) => ({
+        ...item,
+        docId: normalizeDocumentPath(item.docId),
+        path: normalizeDocumentPath(item.path),
+      })),
+      chunkCount,
+      smokeResults: [],
+    };
+  }
+
+  async verifyCurrentGeneration(
+    selection: number | readonly { docId: string; path: string; mtime: number }[],
+  ): Promise<RebuildVerificationEvidence> {
+    const selectedDocuments = typeof selection === "number"
+      ? Object.entries(this.indexState).slice(0, selection).map(([docId, entry]) => ({
+        docId,
+        path: entry.path ?? docId,
+        mtime: entry.mtime,
+      }))
+      : selection.map((item) => ({
+        ...item,
+        docId: normalizeDocumentPath(item.docId),
+        path: normalizeDocumentPath(item.path),
+      }));
+    const collectionDocuments = await this.vectorStore.listIndexedDocumentEntries();
+    const chunkCount = await this.vectorStore.count();
+    const smokeResults = await this.runSmokeQuery("Analogy 固定重建验证查询");
+    return {
+      expectedFileCount: selectedDocuments.length,
+      selectedDocuments,
+      indexState: JSON.parse(JSON.stringify(this.indexState)) as IndexState,
+      collectionDocuments,
+      chunkCount,
+      smokeResults,
+    };
+  }
+
+  async runSmokeQuery(query: string): Promise<readonly unknown[]> {
+    const queryEmbedding = await this.embedding.embedQuery(query);
+    return this.vectorStore.search(queryEmbedding, 1);
   }
 
   async clearState(): Promise<void> {

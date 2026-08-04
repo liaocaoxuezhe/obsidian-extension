@@ -1,0 +1,8 @@
+libvips 8.17.3 corresponding source offer
+
+The complete corresponding source for the unmodified libvips 8.17.3 library is available at:
+https://github.com/libvips/libvips/archive/refs/tags/v8.17.3.tar.gz
+
+Analogy does not distribute libvips after the image backend is pruned. If a future
+runtime pack includes libvips, this notice, its LGPL license, and a verified source
+archive hash must be included in that pack.

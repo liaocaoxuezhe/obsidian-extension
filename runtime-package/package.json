@@ -1,0 +1,12 @@
+{
+  "private": true,
+  "dependencies": {
+    "@huggingface/transformers": "4.2.0",
+    "onnxruntime-node": "1.26.0"
+  },
+  "overrides": {
+    "@huggingface/transformers": {
+      "onnxruntime-node": "$onnxruntime-node"
+    }
+  }
+}

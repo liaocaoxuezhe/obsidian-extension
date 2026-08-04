@@ -1,0 +1,39 @@
+{
+  "nodeVersion": "22.23.2",
+  "shasumsUrl": "https://nodejs.org/dist/v22.23.2/SHASUMS256.txt",
+  "assets": [
+    {
+      "platform": "darwin",
+      "arch": "arm64",
+      "platformKey": "darwin-arm64",
+      "fileName": "node-v22.23.2-darwin-arm64.tar.gz",
+      "archive": "tar.gz",
+      "url": "https://nodejs.org/dist/v22.23.2/node-v22.23.2-darwin-arm64.tar.gz",
+      "size": 50068815,
+      "sha256": "61130f394c1630d211dd50aecc4353d379480f36d3ac913cd85dbba1aed585c6",
+      "executableRelativePath": "bin/node"
+    },
+    {
+      "platform": "darwin",
+      "arch": "x64",
+      "platformKey": "darwin-x64",
+      "fileName": "node-v22.23.2-darwin-x64.tar.gz",
+      "archive": "tar.gz",
+      "url": "https://nodejs.org/dist/v22.23.2/node-v22.23.2-darwin-x64.tar.gz",
+      "size": 51246936,
+      "sha256": "58e99022c2ff89395576cc7fd4d98cea24bb68081475d5f88b801ee8729fb026",
+      "executableRelativePath": "bin/node"
+    },
+    {
+      "platform": "win32",
+      "arch": "x64",
+      "platformKey": "win32-x64",
+      "fileName": "node-v22.23.2-win-x64.zip",
+      "archive": "zip",
+      "url": "https://nodejs.org/dist/v22.23.2/node-v22.23.2-win-x64.zip",
+      "size": 35683585,
+      "sha256": "1177b4137ba5adaa56354ae40f1080c7450e8ae09cecb47da459d1c52ac99f97",
+      "executableRelativePath": "node.exe"
+    }
+  ]
+}

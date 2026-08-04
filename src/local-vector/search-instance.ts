@@ -2,19 +2,22 @@ import { EmbeddingService } from "./embedding-service";
 import { LocalVectorStore } from "./vector-store";
 import { LocalSemanticSearch } from "./search";
 import { DocumentIndexer } from "./document-indexer";
-import { ChromaProcessManager } from "./chroma-process";
+import type { ChromaProcessManager } from "./chroma-process";
 import type { DocumentSummarizer } from "./document-summarizer";
 import { searchResultCache } from "./search-result-cache";
+import type { EnvironmentReport, OnboardingSnapshot } from "../onboarding/onboarding-types";
 
-export type ServiceStatus = "initializing" | "ready" | "degraded" | "error";
+export type ServiceStatus = "idle" | "initializing" | "ready" | "degraded" | "error" | "stopping";
 type ServiceStateListener = (state: ServiceState) => void;
+type OnboardingStateListener = (state: OnboardingState) => void;
 
 const listeners = new Set<ServiceStateListener>();
+const onboardingListeners = new Set<OnboardingStateListener>();
 let indexRevision = 0;
 
 export interface ServiceState {
   status: ServiceStatus;
-  chromaManager: ChromaProcessManager | null;
+  chromaManager: ChromaProcessController | null;
   dbPath: string;
   port: number;
   embeddingStatus: "idle" | "loading" | "downloading" | "ready" | "error";
@@ -26,16 +29,27 @@ export interface ServiceState {
   summarySearchEnabled: boolean;
 }
 
+export interface OnboardingState {
+  visible: boolean;
+  environment: EnvironmentReport | null;
+  snapshot: Readonly<OnboardingSnapshot> | null;
+}
+
+export type ChromaProcessController = Pick<
+  ChromaProcessManager,
+  "isHealthy" | "stop" | "getLastError" | "getPort" | "getDbPath"
+>;
+
 export const searchInstance = {
   embeddingService: null as EmbeddingService | null,
   vectorStore: null as LocalVectorStore | null,
   localSearch: null as LocalSemanticSearch | null,
   documentIndexer: null as DocumentIndexer | null,
-  chromaManager: null as ChromaProcessManager | null,
+  chromaManager: null as ChromaProcessController | null,
   documentSummarizer: null as DocumentSummarizer | null,
   state: {
-    status: "initializing" as ServiceStatus,
-    chromaManager: null as ChromaProcessManager | null,
+    status: "idle" as ServiceStatus,
+    chromaManager: null as ChromaProcessController | null,
     dbPath: "",
     port: 8000,
     embeddingStatus: "idle" as "idle" | "downloading" | "ready" | "error",
@@ -46,6 +60,14 @@ export const searchInstance = {
     activeModel: "",
     summarySearchEnabled: false,
   } as ServiceState,
+};
+
+export const onboardingInstance = {
+  state: {
+    visible: false,
+    environment: null,
+    snapshot: null,
+  } as OnboardingState,
 };
 
 function notifyServiceState() {
@@ -63,11 +85,28 @@ export function subscribeServiceState(listener: ServiceStateListener): () => voi
   };
 }
 
+export function subscribeOnboardingState(listener: OnboardingStateListener): () => void {
+  onboardingListeners.add(listener);
+  listener({ ...onboardingInstance.state });
+  return () => {
+    onboardingListeners.delete(listener);
+  };
+}
+
+export function updateOnboardingState(updates: Partial<OnboardingState>): void {
+  Object.assign(onboardingInstance.state, updates);
+  const snapshot = { ...onboardingInstance.state };
+  for (const listener of [...onboardingListeners]) {
+    if (!onboardingListeners.has(listener)) continue;
+    try { listener(snapshot); } catch { /* onboarding observers are isolated */ }
+  }
+}
+
 export function initLocalVectorServices(
   embedding: EmbeddingService | null,
   store: LocalVectorStore | null,
   indexer: DocumentIndexer | null,
-  chromaManager: ChromaProcessManager | null,
+  chromaManager: ChromaProcessController | null,
   state: Partial<ServiceState>,
   maxInputChars?: number,
   summarizer?: DocumentSummarizer | null

@@ -28,11 +28,6 @@ import {EMBEDDING_MODELS, DEFAULT_MODEL_KEY} from "./local-vector/embedding";
 import {OllamaClient} from "./local-vector/ollama-client";
 import {DEFAULT_SUMMARY_PROMPT, DocumentSummarizer} from "./local-vector/document-summarizer";
 import {DEFAULT_SUMMARY_MODEL_KEY, formatModelBytes, SUMMARY_MODELS} from "./local-vector/summary-models";
-import {
-  getLocalRuntimeStatus,
-  installLocalRuntimeDependencies,
-  type LocalRuntimeStatus,
-} from "./local-vector/runtime-dependencies";
 import {setLocale, onLocaleChange, t, type Locale, SUPPORTED_LOCALES} from "./util/i18n";
 import {
   deactivateLicense,
@@ -53,19 +48,30 @@ import {
 import type {LicenseState} from "./license/license-types";
 import {getOrCreateDeviceId, getVaultId} from "./license/license-device";
 import {appVersion} from "./model/Consts";
+import type {
+  OnboardingError,
+  OnboardingSnapshot,
+  OnboardingStage,
+  QuickIndexScope,
+} from "./onboarding/onboarding-types";
+import type {SupportedPlatformKey} from "./runtime/runtime-types";
+import {RuntimeSettingsPanel} from "./runtime/RuntimeControlPanel";
 
 const SUPPORT_EMAIL = "analogypkm@gmail.com";
+const PINNED_CHROMA_RUNTIME_VERSION = "cli-1.4.4";
 
 declare const __ANALOGY_BUILD_ID__: string | undefined;
 
 export interface AnalogySettings {
-  chromaPort: number;
+  /** @deprecated Migration-only input; active port is device-local runtime state. */
+  chromaPort?: number;
   embeddingModelHost: string;
   excludedIndexPaths: string[];
   embeddingModel: string;
   licenseServerUrl: string;
   buyLicenseUrl: string;
   manageLicenseUrl: string;
+  /** @deprecated Migration-only input; active states are device-local and generation-scoped. */
   indexStates?: Record<string, IndexState>;
   /** UI language; only affects the React views. */
   uiLanguage: Locale;
@@ -77,17 +83,45 @@ export interface AnalogySettings {
   summaryMaxInputChars: number;
   summaryFallbackToOriginal: boolean;
   summaryPrompt: string;
+  /** @deprecated Task 8 migrates this device-local value to onboarding-state.json. */
+  onboardingState?: Partial<OnboardingSnapshot>;
+  /** @deprecated Task 8 migration-only data.json field. */
+  onboardingStage?: OnboardingStage;
+  /** @deprecated Task 8 migration-only data.json field. */
+  onboardingProgress?: number | null;
+  /** @deprecated Task 8 migration-only data.json field. */
+  onboardingCompletedBytes?: number | null;
+  /** @deprecated Task 8 migration-only data.json field. */
+  onboardingTotalBytes?: number | null;
+  /** @deprecated Task 8 migration-only data.json field. */
+  onboardingCurrentItem?: string;
+  /** @deprecated Task 8 migration-only data.json field. */
+  onboardingRuntimePlatform?: SupportedPlatformKey | null;
+  /** @deprecated Task 8 migration-only data.json field. */
+  onboardingChromaRuntimeId?: string | null;
+  /** @deprecated Task 8 migration-only data.json field. */
+  onboardingEmbeddingRuntimeId?: string | null;
+  /** @deprecated Task 8 migration-only data.json field. */
+  onboardingSelectedIndexScope?: QuickIndexScope | null;
+  /** @deprecated Task 8 migration-only data.json field. */
+  onboardingStartedAt?: number | null;
+  /** @deprecated Task 8 migration-only data.json field. */
+  onboardingUpdatedAt?: number;
+  /** @deprecated Task 8 migration-only data.json field. */
+  onboardingCompletedAt?: number | null;
+  /** @deprecated Task 8 migration-only data.json field. */
+  onboardingDismissedAt?: number | null;
+  /** @deprecated Task 8 migration-only data.json field. */
+  onboardingError?: OnboardingError | null;
 }
 
 export const DEFAULT_SETTINGS: AnalogySettings = {
-  chromaPort: 8000,
   embeddingModelHost: "https://hf-mirror.com/",
   excludedIndexPaths: [],
   embeddingModel: DEFAULT_MODEL_KEY,
   licenseServerUrl: DEFAULT_LICENSE_SERVER_URL,
   buyLicenseUrl: DEFAULT_BUY_LICENSE_URL,
   manageLicenseUrl: DEFAULT_MANAGE_LICENSE_URL,
-  indexStates: {},
   uiLanguage: "en",
   summarizeBeforeEmbedding: false,
   summaryModel: DEFAULT_SUMMARY_MODEL_KEY,
@@ -219,37 +253,11 @@ function formatDiagnosticValue(value: string): string {
   return value === "unknown" ? t("common.unknown") : value;
 }
 
-function getPluginDir(plugin: Analogy): string {
-  const path = require("path");
-  const basePath = (plugin.app.vault.adapter as any).basePath;
-  const manifestDir = (plugin.manifest as any).dir;
-  if (manifestDir) {
-    return path.resolve(basePath, manifestDir);
-  }
-  const configDir = (plugin.app.vault as any).configDir || ".obsidian";
-  return path.join(basePath, configDir, "plugins", plugin.manifest.id);
-}
-
-function readRuntimeVersions(pluginDir: string): {
-  transformers: string;
-  onnxruntime: string;
-  chroma: string;
-} {
-  try {
-    const fs = require("fs");
-    const path = require("path");
-    const pkgPath = path.join(pluginDir, "package.json");
-    const raw = fs.readFileSync(pkgPath, { encoding: "utf-8" });
-    const pkg = JSON.parse(raw);
-    return {
-      transformers: pkg.dependencies?.["@huggingface/transformers"] || "unknown",
-      onnxruntime: pkg.dependencies?.["onnxruntime-node"] || "unknown",
-      chroma: pkg.dependencies?.chromadb || "unknown",
-    };
-  } catch {
-    return { transformers: "unknown", onnxruntime: "unknown", chroma: "unknown" };
-  }
-}
+const RUNTIME_VERSIONS = {
+  transformers: "4.2.0",
+  onnxruntime: "1.26.0",
+  chroma: PINNED_CHROMA_RUNTIME_VERSION,
+} as const;
 
 function getBuildId(): string {
   if (typeof __ANALOGY_BUILD_ID__ !== "undefined") {
@@ -258,17 +266,23 @@ function getBuildId(): string {
   return "";
 }
 
+function SettingsSectionHeader({id, title, description}: {id: string; title: string; description: string}) {
+  return (
+    <header className="analogy-settings__section-header">
+      <h2 id={id} className="analogy-settings__section-title">{title}</h2>
+      <p className="analogy-settings__section-description">{description}</p>
+    </header>
+  );
+}
+
 function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySettingTab}) {
-  const pluginDir = useMemo(() => getPluginDir(plugin), [plugin]);
   const [chromaHealthy, setChromaHealthy] = useState(false);
   const [docCount, setDocCount] = useState(0);
   const [modelReady, setModelReady] = useState(false);
   const [modelProgress, setModelProgress] = useState(0);
   const [isRebuilding, setIsRebuilding] = useState(false);
   const [isStoppingIndex, setIsStoppingIndex] = useState(false);
-  const [isStartingChroma, setIsStartingChroma] = useState(false);
   const [rebuildProgress, setRebuildProgress] = useState<RebuildProgress | null>(null);
-  const [dbPath, setDbPath] = useState("");
   const [lastError, setLastError] = useState("");
   const [serviceStatus, setServiceStatus] = useState(searchInstance.state.status);
   const [diagnosticPreviewOpen, setDiagnosticPreviewOpen] = useState(false);
@@ -280,8 +294,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
   const [safeModeState, setSafeModeState] = useState(() => plugin.getSafeModeState());
   const [isRecoveringSafeMode, setIsRecoveringSafeMode] = useState(false);
   const recorder = useMemo(() => getDiagnosticRecorder(), []);
-  const runtimeVersions = useMemo(() => readRuntimeVersions(pluginDir), [pluginDir]);
-  const [portInput, setPortInput] = useState(String(plugin.settings.chromaPort || 8000));
+  const runtimeVersions = RUNTIME_VERSIONS;
   const [modelHostInput, setModelHostInput] = useState(plugin.settings.embeddingModelHost || DEFAULT_SETTINGS.embeddingModelHost);
   const [selectedModel, setSelectedModel] = useState(plugin.settings.embeddingModel || DEFAULT_MODEL_KEY);
   const [selectedSummaryModel, setSelectedSummaryModel] = useState(plugin.settings.summaryModel || DEFAULT_SUMMARY_MODEL_KEY);
@@ -290,6 +303,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
   const [summaryMaxInputChars, setSummaryMaxInputChars] = useState(String(plugin.settings.summaryMaxInputChars || DEFAULT_SETTINGS.summaryMaxInputChars));
   const [summaryPromptInput, setSummaryPromptInput] = useState(plugin.settings.summaryPrompt || DEFAULT_SETTINGS.summaryPrompt);
   const [ollamaStatus, setOllamaStatus] = useState<"idle" | "ready" | "error">("idle");
+  const [ollamaAvailable, setOllamaAvailable] = useState<boolean | null>(null);
   const [ollamaMessage, setOllamaMessage] = useState("");
   const [installedSummarySizes, setInstalledSummarySizes] = useState<Record<string, string>>({});
   const [isCheckingOllama, setIsCheckingOllama] = useState(false);
@@ -306,10 +320,6 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
   const [excludedPaths, setExcludedPaths] = useState<string[]>(plugin.settings.excludedIndexPaths || []);
   const [newPathInput, setNewPathInput] = useState("");
   const [language, setLanguage] = useState<Locale>(plugin.settings.uiLanguage || "en");
-  const [runtimeStatus, setRuntimeStatus] = useState<LocalRuntimeStatus>(() => getLocalRuntimeStatus(pluginDir));
-  const [isInstallingRuntime, setIsInstallingRuntime] = useState(false);
-  const [isRefreshingRuntime, setIsRefreshingRuntime] = useState(false);
-  const [runtimeInstallLog, setRuntimeInstallLog] = useState("");
 
   useEffect(() => {
     setLocale(plugin.settings.uiLanguage || "en");
@@ -324,10 +334,6 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     : activeModelConfig.description;
   const summaryModelNote = language === "zh" ? activeSummaryConfig.noteZh : activeSummaryConfig.noteEn;
   const activeSummarySize = installedSummarySizes[activeSummaryConfig.ollamaName] || activeSummaryConfig.estimatedSize;
-  const chromaBin = dbPath
-    ? `${dbPath.replace(/\/chroma_data\/[^/]+$/, "")}/chroma-venv/bin/chroma`
-    : "<plugin-data-dir>/chroma-venv/bin/chroma";
-  const manualChromaCommand = `"${chromaBin}" run --path "${dbPath || "<plugin-data-dir>/chroma_data/<vault-id>"}" --host 127.0.0.1 --port ${portInput || "8000"}`;
 
   const [fileStatuses, setFileStatuses] = useState<FileIndexStatus[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -339,7 +345,6 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     setServiceStatus(searchInstance.state.status);
     setModelReady(searchInstance.embeddingService?.isReady() ?? false);
     setModelProgress(searchInstance.state.modelDownloadProgress);
-    setDbPath(searchInstance.state.dbPath);
     setLastError(searchInstance.state.lastError);
 
     const healthy = await searchInstance.chromaManager?.isHealthy() ?? false;
@@ -364,29 +369,6 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
 
   const [displayLimit, setDisplayLimit] = useState(100);
 
-  function refreshRuntimeStatus() {
-    const nextStatus = getLocalRuntimeStatus(pluginDir);
-    setRuntimeStatus(nextStatus);
-    return nextStatus;
-  }
-
-  async function refreshRuntimeAndServices() {
-    setIsRefreshingRuntime(true);
-    try {
-      const nextStatus = refreshRuntimeStatus();
-      if (nextStatus.ready) {
-        await plugin.initLocalServices();
-      }
-      await refreshServiceStatus();
-      refreshFileStatuses();
-    } catch (err) {
-      const message = (err as Error).message;
-      setLastError(message);
-      new Notice(message);
-    } finally {
-      setIsRefreshingRuntime(false);
-    }
-  }
 
   function showUpgradePrompt(selectedCount: number, limit: number) {
     setUpgradePrompt(getPageLimitUpgradePrompt(selectedCount, limit, plugin.settings.buyLicenseUrl));
@@ -461,12 +443,9 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     setIsRebuilding(true);
     setRebuildProgress(null);
     try {
-      await searchInstance.documentIndexer.rebuildIndex(files, {
-        force: true,
-        onProgress: (p) => {
+      await plugin.rebuildManagedChromaData(files, (p) => {
           setRebuildProgress(p);
           updateServiceState({ rebuildProgress: p });
-        },
       });
       if (!stopRequestedRef.current) {
         new Notice(t("settings.actions.rebuildDone"));
@@ -520,10 +499,15 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     setIsRebuilding(true);
     setRebuildProgress(null);
     try {
-      await searchInstance.documentIndexer.continueIndex(allowedFiles, {
+      await searchInstance.documentIndexer.indexFiles(allowedFiles, {
         onProgress: (p) => {
-          setRebuildProgress(p);
-          updateServiceState({ rebuildProgress: p });
+          const progress = {
+            current: p.current,
+            total: p.total,
+            currentFile: p.currentFileName,
+          };
+          setRebuildProgress(progress);
+          updateServiceState({ rebuildProgress: progress });
         },
       });
       if (!stopRequestedRef.current) {
@@ -623,44 +607,6 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     );
   }
 
-  async function savePort() {
-    const val = parseInt(portInput, 10);
-    if (isNaN(val) || val < 1 || val > 65535) {
-      new Notice(t("settings.chroma.portInvalid"));
-      return;
-    }
-    plugin.settings.chromaPort = val;
-    await plugin.saveSettings();
-    new Notice(t("settings.chroma.portSaved", { port: val }));
-  }
-
-  async function startChromaFromSettings() {
-    const val = parseInt(portInput, 10);
-    if (isNaN(val) || val < 1 || val > 65535) {
-      new Notice(t("settings.chroma.portInvalid"));
-      return;
-    }
-    setIsStartingChroma(true);
-    try {
-      plugin.settings.chromaPort = val;
-      await plugin.saveSettings();
-      await plugin.initLocalServices();
-      await refreshServiceStatus();
-      refreshFileStatuses();
-      if (searchInstance.state.status === "ready") {
-        new Notice(t("settings.chroma.startDone"));
-      } else if (searchInstance.state.lastError) {
-        new Notice(searchInstance.state.lastError);
-      }
-    } catch (err) {
-      const message = (err as Error).message;
-      setLastError(message);
-      new Notice(message);
-    } finally {
-      setIsStartingChroma(false);
-    }
-  }
-
   async function saveModelHost() {
     const val = modelHostInput.trim();
     if (!/^https?:\/\/.+/i.test(val)) {
@@ -688,11 +634,13 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
       }
       setInstalledSummarySizes(sizes);
       const installed = models.some((m) => m.name === activeSummaryConfig.ollamaName);
+      setOllamaAvailable(true);
       setOllamaStatus(installed ? "ready" : "error");
       setOllamaMessage(installed ? t("settings.summary.modelInstalled") : t("settings.summary.modelMissing"));
-    } catch (err) {
+    } catch {
+      setOllamaAvailable(false);
       setOllamaStatus("error");
-      setOllamaMessage((err as Error).message);
+      setOllamaMessage(t("settings.summary.ollamaUnavailable"));
     } finally {
       setIsCheckingOllama(false);
     }
@@ -745,6 +693,10 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     } finally {
       setIsPullingSummaryModel(false);
     }
+  }
+
+  function openOllamaInstallDocs() {
+    window.open("https://ollama.com/download", "_blank", "noopener,noreferrer");
   }
 
   async function saveLicenseSettings() {
@@ -878,34 +830,6 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     }
   }
 
-  async function installRuntime() {
-    if (!confirm(t("settings.runtime.confirm"))) {
-      return;
-    }
-    setIsInstallingRuntime(true);
-    setRuntimeInstallLog("");
-    try {
-      await installLocalRuntimeDependencies(pluginDir, (line) => {
-        if (!line.trim()) return;
-        setRuntimeInstallLog((prev) => `${prev}${prev ? "\n" : ""}${line}`);
-      });
-      const nextStatus = refreshRuntimeStatus();
-      if (!nextStatus.ready) {
-        throw new Error(nextStatus.message);
-      }
-      new Notice(t("settings.runtime.installDone"));
-      await plugin.initLocalServices();
-      await refreshServiceStatus();
-      refreshFileStatuses();
-    } catch (err) {
-      const message = (err as Error).message;
-      setRuntimeInstallLog((prev) => `${prev}${prev ? "\n" : ""}${message}`);
-      new Notice(`${t("settings.runtime.installFailed")}: ${message}`);
-    } finally {
-      setIsInstallingRuntime(false);
-    }
-  }
-
   async function copySupportEmail() {
     try {
       await navigator.clipboard.writeText(SUPPORT_EMAIL);
@@ -918,10 +842,11 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
 
   function buildDiagnosticReport(userNote = diagnosticUserNote): DiagnosticReport | null {
     if (!recorder) return null;
+    const host = plugin.getDiagnosticHostInfo();
     return recorder.buildReport({
       obsidianVersion: (plugin.app as any).version || "unknown",
-      platform: typeof process !== "undefined" ? process.platform : "unknown",
-      arch: typeof process !== "undefined" ? process.arch : "unknown",
+      platform: host.platform,
+      arch: host.arch,
       locale: plugin.settings.uiLanguage || "en",
       model: plugin.settings.embeddingModel || DEFAULT_MODEL_KEY,
       transformersVersion: runtimeVersions.transformers,
@@ -1060,56 +985,31 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
   }
 
   return (
-    <div className="space-y-4 py-4">
-      <h2 className="font-serif text-xl font-bold text-[#0a0a0a] mb-4">{t("settings.localVectorStatus")}</h2>
+    <div className="analogy-settings">
+      <header className="analogy-settings__page-header">
+        <h1 className="analogy-settings__page-title">{t("settings.page.title")}</h1>
+        <p className="analogy-settings__page-description">{t("settings.page.description")}</p>
+      </header>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">{t("settings.runtime.title")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="text-sm text-[#444444]">{t("settings.runtime.desc")}</div>
-              <div className="text-xs text-[#888888] mt-1 break-all">{pluginDir}</div>
-            </div>
-            <Badge className={runtimeStatus.ready ? "bg-[#0a0a0a] text-white" : "bg-[#e74c3c] text-white"}>
-              {runtimeStatus.ready ? t("settings.runtime.ready") : t("settings.runtime.missing")}
-            </Badge>
-          </div>
+      <section className="analogy-settings__section" aria-labelledby="analogy-settings-general">
+        <SettingsSectionHeader
+          id="analogy-settings-general"
+          title={t("settings.section.general")}
+          description={t("settings.section.generalDescription")}
+        />
 
-          {!runtimeStatus.ready && (
-            <div className="mt-3 bg-[#fff8f2] border border-[#f2d6c1] rounded-md px-3 py-2">
-              <div className="text-sm text-[#7a3e16]">{t("settings.runtime.missingPackages")}: {runtimeStatus.missing.join(", ")}</div>
-              <div className="text-xs text-[#7a3e16] mt-1 leading-relaxed">{t("settings.runtime.installHint")}</div>
-              <div className="flex items-center gap-2 mt-3">
-                <Button size="sm" onClick={installRuntime} disabled={isInstallingRuntime}>
-                  {isInstallingRuntime ? t("settings.runtime.installing") : t("settings.runtime.install")}
-                </Button>
-                <Button size="sm" variant="secondary" onClick={refreshRuntimeAndServices} disabled={isInstallingRuntime || isRefreshingRuntime}>
-                  {isRefreshingRuntime ? t("settings.runtime.refreshing") : t("common.refresh")}
-                </Button>
-              </div>
-            </div>
-          )}
+      <RuntimeSettingsPanel control={plugin.getRuntimeControlSurface()} />
 
-          {runtimeInstallLog && (
-            <pre className="mt-3 max-h-[180px] overflow-auto whitespace-pre-wrap text-xs bg-[#0f172a] text-[#e5e7eb] rounded-md px-3 py-2 font-mono">
-{runtimeInstallLog}
-            </pre>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
+      <Card className="analogy-settings-card">
         <CardHeader>
           <CardTitle className="text-base">{t("settings.language.title")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
+          <div className="analogy-settings-row flex items-center justify-between">
             <span className="text-sm text-[#444444]">{t("settings.language.hint")}</span>
             <select
               className="text-sm border border-[#e5e5e5] rounded-md px-2 py-1"
+              aria-label={t("settings.language.title")}
               value={language}
               onChange={async (e) => {
                 const next = e.target.value as Locale;
@@ -1127,12 +1027,12 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="analogy-settings-card">
         <CardHeader>
           <CardTitle className="text-base">{t("settings.license.title")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
+          <div className="analogy-settings-row flex items-center justify-between">
             <span className="text-sm text-[#444444]">{t("settings.license.plan")}</span>
             <Badge className={licenseState.status === "active" ? "bg-[#0a0a0a] text-white" : "bg-[#f5f5f5] text-[#444444]"}>
               {licenseState.status === "active"
@@ -1140,25 +1040,29 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
                 : formatLicensePlan("free")}
             </Badge>
           </div>
-          <div className="flex items-center justify-between mt-2">
+          <div className="analogy-settings-row flex items-center justify-between mt-2">
             <span className="text-sm text-[#444444]">{t("settings.license.pageLimit")}</span>
             <span className="text-sm font-medium">{formatPageLimit(getCurrentPageLimit(licenseState))}</span>
           </div>
-          <div className="flex items-center justify-between mt-2">
+          <div className="analogy-settings-row flex items-center justify-between mt-2">
             <span className="text-sm text-[#444444]">{t("settings.license.freeLimit")}</span>
             <span className="text-sm font-medium">{FREE_PAGE_LIMIT}</span>
           </div>
           {licenseState.licenseKeyMasked && (
-            <div className="flex items-center justify-between mt-2">
+            <div className="analogy-settings-row flex items-center justify-between mt-2">
               <span className="text-sm text-[#444444]">{t("settings.license.key")}</span>
               <span className="text-sm font-medium">{licenseState.licenseKeyMasked}</span>
             </div>
           )}
 
-          <div className="flex items-center gap-2 mt-3 pt-3" style={{ borderTop: "1px solid #f5f5f5" }}>
+          <div className="analogy-settings-actions analogy-settings-actions--field mt-3 pt-3" style={{ borderTop: "1px solid var(--background-modifier-border)" }}>
             <input
               type="password"
               className="flex-1 text-sm border border-[#e5e5e5] rounded-md px-3 py-1.5"
+              aria-label={t("settings.license.key")}
+              name="analogy-license-key"
+              autoComplete="off"
+              spellCheck={false}
               placeholder={t("settings.license.keyPlaceholder")}
               value={licenseKeyInput}
               onChange={(e) => setLicenseKeyInput(e.target.value)}
@@ -1182,6 +1086,10 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
               <input
                 type="text"
                 className="w-full text-sm border border-[#e5e5e5] rounded-md px-3 py-1.5"
+                aria-label={t("settings.license.serverUrl")}
+                name="analogy-license-server-url"
+                autoComplete="off"
+                spellCheck={false}
                 placeholder={t("settings.license.serverUrl")}
                 value={licenseServerInput}
                 onChange={(e) => setLicenseServerInput(e.target.value)}
@@ -1189,6 +1097,10 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
               <input
                 type="text"
                 className="w-full text-sm border border-[#e5e5e5] rounded-md px-3 py-1.5"
+                aria-label={t("settings.license.buyUrl")}
+                name="analogy-license-buy-url"
+                autoComplete="off"
+                spellCheck={false}
                 placeholder={t("settings.license.buyUrl")}
                 value={buyLicenseInput}
                 onChange={(e) => setBuyLicenseInput(e.target.value)}
@@ -1196,11 +1108,15 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
               <input
                 type="text"
                 className="w-full text-sm border border-[#e5e5e5] rounded-md px-3 py-1.5"
+                aria-label={t("settings.license.manageUrl")}
+                name="analogy-license-manage-url"
+                autoComplete="off"
+                spellCheck={false}
                 placeholder={t("settings.license.manageUrl")}
                 value={manageLicenseInput}
                 onChange={(e) => setManageLicenseInput(e.target.value)}
               />
-              <div className="flex gap-2">
+              <div className="analogy-settings-actions">
                 <Button size="sm" onClick={saveLicenseSettings}>{t("common.save")}</Button>
                 {plugin.settings.buyLicenseUrl && (
                   <Button size="sm" variant="secondary" onClick={() => window.open(plugin.settings.buyLicenseUrl, "_blank")}>
@@ -1217,13 +1133,21 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
           </details>
         </CardContent>
       </Card>
+      </section>
 
-      <Card>
+      <section className="analogy-settings__section" aria-labelledby="analogy-settings-search">
+        <SettingsSectionHeader
+          id="analogy-settings-search"
+          title={t("settings.section.search")}
+          description={t("settings.section.searchDescription")}
+        />
+
+      <Card className="analogy-settings-card">
         <CardHeader>
           <CardTitle className="text-base">{t("settings.chroma.title")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between">
+          <div className="analogy-settings-row flex items-center justify-between">
             <span className="text-sm text-[#444444]">{t("settings.chroma.status")}</span>
             {chromaHealthy ? (
               <Badge className="bg-[#0a0a0a] text-white">{t("settings.chroma.running")}</Badge>
@@ -1231,7 +1155,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
               <Badge className="bg-[#e74c3c] text-white">{t("settings.chroma.stopped")}</Badge>
             )}
           </div>
-          <div className="flex items-center justify-between mt-2">
+          <div className="analogy-settings-row flex items-center justify-between mt-2">
             <span className="text-sm text-[#444444]">{t("settings.chroma.serviceStatus")}</span>
             <Badge className={
               serviceStatus === "ready"
@@ -1243,50 +1167,30 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
               {formatServiceStatus(serviceStatus)}
             </Badge>
           </div>
-          <div className="flex items-center justify-between mt-2">
+          <div className="analogy-settings-row flex items-center justify-between mt-2">
             <span className="text-sm text-[#444444]">{t("settings.chroma.indexedChunks")}</span>
             <span className="text-sm font-medium">{docCount}</span>
           </div>
-          <div className="flex items-center justify-between mt-2">
+          <div className="analogy-settings-row flex items-center justify-between mt-2">
             <span className="text-sm text-[#444444]">{t("settings.chroma.indexedFiles")}</span>
             <span className="text-sm font-medium">{statusCounts.indexed} / {statusCounts.total}</span>
           </div>
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-sm text-[#444444]">{t("settings.chroma.storagePath")}</span>
-            <span className="text-sm font-medium truncate max-w-[200px]" title={dbPath}>{dbPath}</span>
+          <div className="analogy-settings-row flex items-center justify-between mt-2">
+            <span className="text-sm text-[#444444]">{t("settings.chroma.pendingFiles")}</span>
+            <span className="text-sm font-medium">{statusCounts.outdated + statusCounts.unindexed}</span>
           </div>
-          {!chromaHealthy && (
-            <div className="mt-3 text-xs text-[#666666] bg-[#fafafa] border border-[#f0f0f0] rounded-md px-3 py-2">
-              <div className="mb-2">{t("settings.chroma.manualStart")}</div>
-              <Button size="sm" onClick={startChromaFromSettings} disabled={isStartingChroma} className="mb-2">
-                {isStartingChroma ? t("settings.chroma.starting") : t("settings.chroma.start")}
-              </Button>
-              <code className="block whitespace-pre-wrap break-all font-mono text-[#333333]">{manualChromaCommand}</code>
-            </div>
-          )}
-          <div className="flex items-center justify-between mt-3 pt-3" style={{ borderTop: "1px solid #f5f5f5" }}>
-            <span className="text-sm text-[#444444]">{t("settings.chroma.port")}</span>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                className="text-sm border border-[#e5e5e5] rounded-md px-2 py-1 w-20"
-                value={portInput}
-                min={1}
-                max={65535}
-                onChange={(e) => setPortInput(e.target.value)}
-              />
-              <Button size="sm" onClick={savePort}>{t("common.save")}</Button>
-            </div>
+          <div className="text-xs text-[#888888] mt-2 leading-relaxed">
+            {t("settings.chroma.modelScopeHint")}
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="analogy-settings-card">
         <CardHeader>
           <CardTitle className="text-base">{t("settings.embedding.title")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-start justify-between gap-3">
+          <div className="analogy-settings-row flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <span className="text-sm text-[#444444]">{t("settings.embedding.model")}</span>
               <div className="text-xs text-[#888888] mt-0.5">{t("settings.embedding.runHint")}</div>
@@ -1294,6 +1198,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
             <div className="flex items-center gap-2 shrink-0">
               <select
                 className="text-sm border border-[#e5e5e5] rounded-md px-2 py-1 max-w-[260px]"
+                aria-label={t("settings.embedding.model")}
                 value={selectedModel}
                 onChange={(e) => setSelectedModel(e.target.value)}
               >
@@ -1335,7 +1240,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
               {t("settings.embedding.switchWarning")}
             </div>
           )}
-          <div className="flex items-center justify-between mt-2">
+          <div className="analogy-settings-row flex items-center justify-between mt-2">
             <span className="text-sm text-[#444444]">{t("settings.embedding.statusLabel")}</span>
             {modelReady ? (
               <Badge className="bg-[#0a0a0a] text-white">{t("settings.embedding.ready")}</Badge>
@@ -1365,12 +1270,12 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
         </CardContent>
       </Card>
 
-      <Card>
+      <Card id="analogy-settings-summary" tabIndex={-1} className="analogy-settings-card">
         <CardHeader>
           <CardTitle className="text-base">{t("settings.summary.title")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <label className="flex items-center justify-between gap-3">
+          <label className="analogy-settings-row flex items-center justify-between gap-3">
             <span className="text-sm text-[#444444]">{t("settings.summary.enable")}</span>
             <input
               type="checkbox"
@@ -1383,17 +1288,21 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
             />
           </label>
 
-          <div className="flex items-start justify-between gap-3 mt-3">
+          <div className="analogy-settings-row flex items-start justify-between gap-3 mt-3">
             <div className="flex-1 min-w-0">
               <span className="text-sm text-[#444444]">{t("settings.summary.model")}</span>
               <div className="text-xs text-[#888888] mt-0.5">{t("settings.summary.modelHint")}</div>
             </div>
             <select
               className="text-sm border border-[#e5e5e5] rounded-md px-2 py-1 max-w-[260px]"
+              aria-label={t("settings.summary.model")}
               value={selectedSummaryModel}
               onChange={async (e) => {
                 const next = e.target.value;
                 setSelectedSummaryModel(next);
+                setOllamaAvailable(null);
+                setOllamaStatus("idle");
+                setOllamaMessage("");
                 plugin.settings.summaryModel = next;
                 await plugin.saveSettings();
                 await applySummarySettings();
@@ -1410,24 +1319,31 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
             <div className="text-xs text-[#888888] mt-1">{t("settings.summary.size")}: {activeSummarySize}</div>
           </div>
 
-          <div className="flex items-center justify-between gap-3 mt-3">
+          <div className="analogy-settings-row flex items-center justify-between gap-3 mt-3">
             <span className="text-sm text-[#444444]">{t("settings.summary.ollamaHost")}</span>
             <input
               type="text"
               className="text-sm border border-[#e5e5e5] rounded-md px-2 py-1 w-[260px] max-w-full"
+              aria-label={t("settings.summary.ollamaHost")}
+              name="analogy-summary-ollama-host"
+              autoComplete="off"
+              spellCheck={false}
               value={summaryHostInput}
               onChange={(e) => setSummaryHostInput(e.target.value)}
               onBlur={async () => {
                 const next = summaryHostInput.trim() || DEFAULT_SETTINGS.summaryOllamaHost;
                 plugin.settings.summaryOllamaHost = next.replace(/\/+$/, "");
                 setSummaryHostInput(plugin.settings.summaryOllamaHost);
+                setOllamaAvailable(null);
+                setOllamaStatus("idle");
+                setOllamaMessage("");
                 await plugin.saveSettings();
                 await applySummarySettings();
               }}
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2 mt-3">
+          <div className="analogy-settings-grid mt-3">
             <label className="text-sm text-[#444444]">
               {t("settings.summary.timeout")}
               <input
@@ -1481,19 +1397,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
             </div>
           </label>
 
-          <div className="flex items-center justify-between gap-3 mt-3">
-            <label className="flex items-center gap-2 text-sm text-[#444444]">
-              <input
-                type="checkbox"
-                checked={plugin.settings.summaryAutoPullModel}
-                onChange={async (e) => {
-                  plugin.settings.summaryAutoPullModel = e.target.checked;
-                  await plugin.saveSettings();
-                  await applySummarySettings();
-                }}
-              />
-              {t("settings.summary.autoPull")}
-            </label>
+          <div className="analogy-settings-row flex items-center justify-between gap-3 mt-3">
             <label className="flex items-center gap-2 text-sm text-[#444444]">
               <input
                 type="checkbox"
@@ -1508,13 +1412,20 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
             </label>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 mt-3 pt-3" style={{ borderTop: "1px solid #f5f5f5" }}>
+          <div className="analogy-settings-actions mt-3 pt-3" style={{ borderTop: "1px solid var(--background-modifier-border)" }}>
             <Button size="sm" onClick={checkOllama} disabled={isCheckingOllama}>
               {isCheckingOllama ? t("settings.summary.checking") : t("settings.summary.check")}
             </Button>
-            <Button size="sm" variant="secondary" onClick={pullSummaryModel} disabled={isPullingSummaryModel}>
-              {isPullingSummaryModel ? t("settings.summary.pulling") : t("settings.summary.pull")}
-            </Button>
+            {ollamaAvailable === false ? (
+              <Button size="sm" variant="secondary" onClick={openOllamaInstallDocs}>
+                {t("settings.summary.installOllama")}
+              </Button>
+            ) : null}
+            {ollamaAvailable === true && ollamaStatus === "error" ? (
+              <Button size="sm" variant="secondary" onClick={pullSummaryModel} disabled={isPullingSummaryModel}>
+                {isPullingSummaryModel ? t("settings.summary.pulling") : t("settings.summary.pull")}
+              </Button>
+            ) : null}
             <Badge className={
               ollamaStatus === "ready"
                 ? "bg-[#0a0a0a] text-white"
@@ -1539,8 +1450,17 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
         </div>
       )}
 
+      </section>
+
+      <section className="analogy-settings__section" aria-labelledby="analogy-settings-index">
+        <SettingsSectionHeader
+          id="analogy-settings-index"
+          title={t("settings.section.index")}
+          description={t("settings.section.indexDescription")}
+        />
+
       {upgradePrompt && (
-        <Card>
+        <Card className="analogy-settings-card">
           <CardContent className="pt-4">
             <div className="whitespace-pre-line text-sm text-[#0a0a0a]">
               {t("settings.license.upgradePrompt", {
@@ -1562,7 +1482,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
         </Card>
       )}
 
-      <Card>
+      <Card className="analogy-settings-card">
         <CardHeader>
           <CardTitle className="text-base">{t("settings.exclude.title")}</CardTitle>
         </CardHeader>
@@ -1570,10 +1490,13 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
           <div className="text-sm text-[#444444] mb-2">
             {t("settings.exclude.hint")}
           </div>
-          <div className="flex items-center gap-2 mb-3">
+          <div className="analogy-settings-actions analogy-settings-actions--field mb-3">
             <input
               type="text"
               className="flex-1 text-sm border border-[#e5e5e5] rounded-md px-3 py-1.5"
+              aria-label={t("settings.exclude.title")}
+              name="analogy-excluded-path"
+              autoComplete="off"
               placeholder={t("settings.exclude.placeholder")}
               value={newPathInput}
               onChange={(e) => setNewPathInput(e.target.value)}
@@ -1588,15 +1511,17 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
           ) : (
             <div className="border border-[#e5e5e5] rounded-md divide-y divide-[#f0f0f0]">
               {excludedPaths.map((p) => (
-                <div key={p} className="flex items-center justify-between px-3 py-2 text-sm hover:bg-[#fafafa]">
+                <div key={p} className="analogy-settings-row flex items-center justify-between px-3 py-2 text-sm hover:bg-[#fafafa]">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="shrink-0 text-[#888888]">{p.endsWith(".md") ? "📄" : "📁"}</span>
                     <span className="truncate" title={p}>{p}</span>
                   </div>
                   <button
+                    type="button"
                     onClick={() => removeExcludedPath(p)}
                     className="shrink-0 ml-2 text-[#888888] hover:text-[#e74c3c] text-base leading-none px-1"
                     title={t("common.remove")}
+                    aria-label={`${t("common.remove")}: ${p}`}
                   >
                     ×
                   </button>
@@ -1611,9 +1536,9 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
       </Card>
 
       {isRebuilding && rebuildProgress && (
-        <Card>
+        <Card className="analogy-settings-card">
           <CardContent className="pt-4">
-            <div className="flex items-center justify-between mb-2">
+            <div className="analogy-settings-row flex items-center justify-between mb-2">
               <span className="text-sm font-medium">{t("settings.rebuild.progress")}</span>
               <span className="text-sm text-[#444444]">
                 {rebuildProgress.current} / {rebuildProgress.total}
@@ -1632,37 +1557,52 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
         </Card>
       )}
 
-      <div className="flex gap-2 pt-2">
-        {isRebuilding ? (
-          <Button onClick={stopIndexing} disabled={isStoppingIndex} variant="destructive" className="flex-1">
-            {isStoppingIndex ? t("settings.actions.stoppingIndex") : t("settings.actions.stopIndex")}
-          </Button>
-        ) : (
-          <Button onClick={continueIndex} className="flex-1">
-            {t("settings.actions.continueIndex")}
-          </Button>
-        )}
-        <Button onClick={rebuildIndex} disabled={isRebuilding} className="flex-1">
-          {isRebuilding
-            ? rebuildProgress
-              ? `${t("settings.actions.indexing").replace("...","")} ${Math.round((rebuildProgress.current / rebuildProgress.total) * 100)}%`
-              : t("settings.actions.indexing")
-            : t("settings.actions.rebuildIndex")}
-        </Button>
-        <Button onClick={clearIndex} variant="destructive" className="flex-1">
-          {t("settings.actions.clearIndex")}
-        </Button>
-      </div>
-
-      <Card className="mt-4">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">{t("settings.docs.title")}</CardTitle>
-          <Button size="sm" variant="secondary" onClick={() => refreshFileStatuses()}>
-            {t("common.refresh")}
-          </Button>
+      <Card className="analogy-settings-card">
+        <CardHeader>
+          <CardTitle className="text-base">{t("settings.actions.title")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-3 mb-3">
+          <div className="analogy-index-actions">
+            <div>
+              <p className="m-0 text-sm text-[#444444]">{t("settings.actions.description")}</p>
+              <div className="analogy-index-actions__primary mt-3">
+                {isRebuilding ? (
+                  <Button onClick={stopIndexing} disabled={isStoppingIndex} variant="destructive">
+                    {isStoppingIndex ? t("settings.actions.stoppingIndex") : t("settings.actions.stopIndex")}
+                  </Button>
+                ) : (
+                  <Button onClick={continueIndex}>
+                    {t("settings.actions.continueIndex")}
+                  </Button>
+                )}
+                <Button onClick={rebuildIndex} disabled={isRebuilding} variant="secondary">
+                  {isRebuilding
+                    ? rebuildProgress
+                      ? `${t("settings.actions.indexing").replace("...","")} ${Math.round((rebuildProgress.current / rebuildProgress.total) * 100)}%`
+                      : t("settings.actions.indexing")
+                    : t("settings.actions.rebuildIndex")}
+                </Button>
+              </div>
+            </div>
+            <div className="analogy-index-actions__danger">
+              <p className="analogy-index-actions__danger-copy">
+                {t("settings.actions.dangerDescription")}
+              </p>
+              <Button onClick={clearIndex} variant="destructive" size="sm">
+                {t("settings.actions.clearIndex")}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="analogy-settings-card">
+        <CardHeader>
+          <CardTitle className="text-base">{t("settings.docs.title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="analogy-doc-toolbar">
+            <div className="analogy-doc-toolbar__filters">
             <button
               onClick={() => setStatusFilter("all")}
               className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
@@ -1703,12 +1643,19 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
             >
               {t("settings.docs.filter.unindexed")} ({statusCounts.unindexed})
             </button>
+            </div>
+            <Button size="sm" variant="secondary" onClick={() => refreshFileStatuses()}>
+              {t("common.refresh")}
+            </Button>
           </div>
 
           <input
             type="text"
             placeholder={t("settings.docs.searchPlaceholder")}
             className="w-full text-sm border border-[#e5e5e5] rounded-md px-3 py-1.5 mb-3"
+            aria-label={t("settings.docs.searchPlaceholder")}
+            name="analogy-document-search"
+            autoComplete="off"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -1720,8 +1667,8 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
               filteredFiles.slice(0, displayLimit).map((file) => (
                 <div
                   key={file.path}
-                  className="flex items-center justify-between px-3 py-2 text-sm hover:bg-[#fafafa]"
-                  style={{ borderBottom: "1px solid #f0f0f0" }}
+                  className="analogy-settings-row analogy-document-row flex items-center justify-between px-3 py-2 text-sm hover:bg-[#fafafa]"
+                  style={{ borderBottom: "1px solid var(--background-modifier-border)" }}
                 >
                   <div className="flex-1 min-w-0 mr-3">
                     <div className="font-medium truncate" title={file.path}>{file.name}</div>
@@ -1764,7 +1711,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
               ))
             )}
             {filteredFiles.length > displayLimit && (
-              <div className="text-center py-2" style={{ borderTop: "1px solid #f0f0f0" }}>
+              <div className="text-center py-2" style={{ borderTop: "1px solid var(--background-modifier-border)" }}>
                 <button
                   onClick={() => setDisplayLimit((prev) => prev + 100)}
                   className="text-xs text-[#444444] hover:text-[#0a0a0a]"
@@ -1784,8 +1731,16 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
           )}
         </CardContent>
       </Card>
+      </section>
 
-      <Card className="mt-4">
+      <section className="analogy-settings__section" aria-labelledby="analogy-settings-support">
+        <SettingsSectionHeader
+          id="analogy-settings-support"
+          title={t("settings.section.support")}
+          description={t("settings.section.supportDescription")}
+        />
+
+      <Card className="analogy-settings-card">
         <CardHeader>
           <CardTitle className="text-base">{t("settings.diagnostics.title")}</CardTitle>
         </CardHeader>
@@ -1862,7 +1817,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
               </div>
             );
           })()}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="analogy-settings-grid">
             <button
               type="button"
               onClick={openDiagnosticPreview}
@@ -1904,6 +1859,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
           </div>
         </CardContent>
       </Card>
+      </section>
 
       <Dialog open={diagnosticPreviewOpen} onOpenChange={setDiagnosticPreviewOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -1918,7 +1874,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
             }
             return (
               <div className="space-y-3 text-sm">
-                <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="analogy-settings-grid text-xs">
                   <div>{t("settings.diagnostics.fieldPlugin")}: {report.plugin.version}</div>
                   <div>{t("settings.diagnostics.fieldBuild")}: {report.plugin.build_id || t("common.development")}</div>
                   <div>{t("settings.diagnostics.fieldObsidian")}: {formatDiagnosticValue(report.host.obsidian_version)}</div>

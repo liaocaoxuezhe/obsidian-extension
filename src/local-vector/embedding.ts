@@ -1,5 +1,7 @@
 import * as http from "http";
 import * as https from "https";
+import type { EmbeddingInitializationProgress } from "./embedding-worker-protocol";
+import type { ManagedEmbeddingRuntime } from "../runtime/embedding-runtime-manager";
 
 const DEFAULT_MODEL_HOST = "https://hf-mirror.com/";
 const EMBEDDING_TIMEOUT_MS = 300_000; // 5 min for large models (e.g. 239M jina-nano)
@@ -121,6 +123,52 @@ export const EMBEDDING_MODELS: Record<string, EmbeddingModelConfig> = {
 };
 
 export const DEFAULT_MODEL_KEY = "bge-small-en-v1.5";
+
+function finiteNonNegative(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+function sanitizeProgressFile(value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim()) return null;
+  const withoutQuery = value.trim().split(/[?#]/, 1)[0].replace(/\\/g, "/");
+  const basename = withoutQuery.slice(withoutQuery.lastIndexOf("/") + 1);
+  if (!basename || basename === "." || basename === "..") return null;
+  try {
+    return decodeURIComponent(basename);
+  } catch {
+    return basename;
+  }
+}
+
+export function normalizeEmbeddingInitializationProgress(
+  progressInfo: unknown,
+): EmbeddingInitializationProgress | null {
+  if (!progressInfo || typeof progressInfo !== "object") return null;
+  const progress = progressInfo as Record<string, unknown>;
+  const status = typeof progress.status === "string" ? progress.status.toLowerCase() : "";
+  let phase: EmbeddingInitializationProgress["phase"];
+  if (status === "ready") phase = "ready";
+  else if (["progress", "download", "downloading", "initiate"].includes(status)) phase = "downloading";
+  else if (["done", "loading", "loaded"].includes(status)) phase = "loading";
+  else return null;
+
+  const loadedBytes = finiteNonNegative(progress.loaded);
+  const totalCandidate = finiteNonNegative(progress.total);
+  const totalBytes = totalCandidate !== null && totalCandidate > 0 ? totalCandidate : null;
+  let percent = finiteNonNegative(progress.progress);
+  if (percent !== null && percent <= 1) percent *= 100;
+  if (loadedBytes !== null && totalBytes !== null) percent = (loadedBytes / totalBytes) * 100;
+  if (phase === "ready") percent = 100;
+  if (percent !== null) percent = Math.max(0, Math.min(100, Math.round(percent * 100) / 100));
+
+  return {
+    phase,
+    file: sanitizeProgressFile(progress.file),
+    loadedBytes,
+    totalBytes,
+    percent,
+  };
+}
 
 type TransformersModule = typeof import("@huggingface/transformers");
 
@@ -390,18 +438,12 @@ async function loadTransformers(pluginDir: string): Promise<TransformersModule> 
   try {
     transformers = pluginRequire("@huggingface/transformers") as TransformersModule;
   } catch (err) {
-    ensureEmbeddingRuntime(pluginDir);
-    try {
-      transformers = pluginRequire("@huggingface/transformers") as TransformersModule;
-    } catch (retryErr) {
-      const message = (retryErr as Error).message || String(retryErr);
-      throw new Error(
-        "Missing local RAG runtime dependency @huggingface/transformers. " +
-          "Analogy tried to install the embedding runtime automatically. " +
-          "If this keeps failing, run `npm run setup:local` in the plugin folder. " +
-          `Original error: ${message}`
-      );
-    }
+    const message = (err as Error).message || String(err);
+    throw new Error(
+      "Missing managed embedding runtime dependency @huggingface/transformers. " +
+        "Open Analogy runtime onboarding to prepare or repair the managed runtime. " +
+        `Original error: ${message}`,
+    );
   }
 
   // The transformers library captures `globalThis.fetch` at module-load time
@@ -415,93 +457,14 @@ async function loadTransformers(pluginDir: string): Promise<TransformersModule> 
   return transformers;
 }
 
-const EMBEDDING_RUNTIME_PACKAGE = {
-  name: "analogy-rag-runtime",
-  version: "1.0.8",
-  private: true,
-  scripts: {
-    "setup:local": "npm install --omit=dev",
-  },
-  dependencies: {
-    "@huggingface/transformers": "^4.2.0",
-    "onnxruntime-node": "^1.26.0",
-  },
-};
-
-interface RuntimeInstallHooks {
-  canLoad?: (pluginDir: string) => boolean;
-  install?: (pluginDir: string) => void;
-}
-
-export function ensureEmbeddingRuntime(pluginDir: string, hooks: RuntimeInstallHooks = {}): void {
-  const canLoad = hooks.canLoad || canLoadEmbeddingRuntime;
-  if (canLoad(pluginDir)) return;
-
-  writeEmbeddingRuntimePackage(pluginDir);
-  const install = hooks.install || installEmbeddingRuntimeDependencies;
-  install(pluginDir);
-
-  if (!canLoad(pluginDir)) {
-    throw new Error("Embedding runtime install finished, but @huggingface/transformers still cannot be loaded.");
-  }
-}
-
-function canLoadEmbeddingRuntime(pluginDir: string): boolean {
-  const path = require("path");
-  const Module = require("module");
-  const pluginRequire = Module.createRequire(path.join(pluginDir, "main.js"));
-  try {
-    pluginRequire("@huggingface/transformers");
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function writeEmbeddingRuntimePackage(pluginDir: string): void {
-  const fs = require("fs");
-  const path = require("path");
-  const packagePath = path.join(pluginDir, "package.json");
-  let pkg = { ...EMBEDDING_RUNTIME_PACKAGE };
-
-  if (fs.existsSync(packagePath)) {
-    try {
-      const existing = JSON.parse(fs.readFileSync(packagePath, "utf8"));
-      pkg = {
-        ...existing,
-        private: existing.private ?? true,
-        scripts: {
-          ...(existing.scripts || {}),
-          "setup:local": existing.scripts?.["setup:local"] || "npm install --omit=dev",
-        },
-        dependencies: {
-          ...(existing.dependencies || {}),
-          ...EMBEDDING_RUNTIME_PACKAGE.dependencies,
-        },
-      };
-    } catch {
-      pkg = { ...EMBEDDING_RUNTIME_PACKAGE };
-    }
-  }
-
-  fs.writeFileSync(packagePath, JSON.stringify(pkg, null, "\t") + "\n", "utf8");
-}
-
-export function installEmbeddingRuntimeDependencies(pluginDir: string): void {
-  const { spawnSync } = require("child_process");
-  const result = spawnSync("/bin/zsh", ["-lc", "npm install --omit=dev"], {
-    cwd: pluginDir,
-    encoding: "utf8",
-    stdio: "pipe",
-  });
-
-  if (result.error) {
-    throw result.error;
-  }
-  if (result.status !== 0) {
-    const details = `${result.stdout || ""}\n${result.stderr || ""}`.trim();
-    throw new Error(`npm install --omit=dev failed${details ? `: ${details}` : ""}`);
-  }
+export function ensureEmbeddingRuntime(runtime: ManagedEmbeddingRuntime | null | undefined): void {
+  if (runtime && typeof runtime === "object" && runtime.versions
+    && runtime.versions.node === "22.23.2"
+    && runtime.versions.transformers === "4.2.0"
+    && runtime.versions.onnxruntime === "1.26.0") return;
+  throw new Error(
+    "The managed embedding runtime is not ready. Use Analogy runtime onboarding; automatic npm installation is disabled.",
+  );
 }
 
 /**
@@ -554,11 +517,11 @@ export function getEmbeddingErrorMessage(err: unknown): string {
   }
 
   if (/Cannot read properties of undefined \(reading 'create'\)/i.test(message)) {
-    return "Embedding model failed to load: ONNX runtime backend failed to initialize. Run `npm run setup:local` in the plugin folder and reload Obsidian.";
+    return "Embedding model failed to load: the managed ONNX runtime backend failed to initialize. Repair the Analogy embedding runtime and retry.";
   }
 
-  if (/Missing local RAG runtime dependency|Cannot find module '@huggingface\/transformers'|Cannot find module 'onnxruntime-node'/i.test(message)) {
-    return "Embedding model failed to load: local RAG runtime dependencies are missing or not installed. Analogy will try to install them automatically with `npm install --omit=dev`. If this keeps failing, check that npm is available and run `npm run setup:local` in the plugin folder, then reload Obsidian.";
+  if (/Missing managed embedding runtime dependency|Cannot find module '@huggingface\/transformers'|Cannot find module 'onnxruntime-node'/i.test(message)) {
+    return "Embedding model failed to load: managed runtime dependencies are missing or invalid. Open Analogy runtime onboarding to repair them.";
   }
 
   return `Embedding model failed to load: ${causeMessage || message}`;

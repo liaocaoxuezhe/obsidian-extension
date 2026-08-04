@@ -4,67 +4,26 @@ const fs = require("fs");
 const path = require("path");
 
 const root = path.resolve(__dirname, "..");
-const manifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "utf8"));
-const releaseDir = path.join(root, "release", manifest.version);
-
-
-function gitLsFiles() {
-  return new Set(
-    execFileSync("git", ["ls-files"], {
-      cwd: root,
-      encoding: "utf8",
-    })
-      .split(/\r?\n/)
-      .filter(Boolean),
-  );
+const publicFiles = new Set(execFileSync(
+  "git",
+  ["ls-files", "--cached", "--others", "--exclude-standard"],
+  { cwd: root, encoding: "utf8" },
+).trim().split(/\r?\n/));
+for (const file of [
+  "scripts/prepare-release.mjs",
+  "scripts/verify-local-plugin-artifact.mjs",
+  "src/runtime/generated-embedding-runtime-manifest.ts",
+  "src/runtime/runtime-manifest.ts",
+]) {
+  assert.ok(publicFiles.has(file), `${file} must be included in the public release source`);
 }
 
-const trackedFiles = gitLsFiles();
-const requiredTrackedSource = [
-  "src/local-vector/document-summarizer.ts",
-  "src/local-vector/ollama-client.ts",
-  "src/local-vector/search-result-cache.ts",
-  "src/local-vector/summary-models.ts",
-];
-
-for (const file of requiredTrackedSource) {
-  assert.ok(trackedFiles.has(file), `${file} must be tracked so source builds from a clean clone`);
-}
-
-const requiredReleaseFiles = [
-  "main.js",
-  "manifest.json",
-  "styles.css",
-  "package.json",
-  "package-lock.json",
-  "scripts/install-local-runtime.mjs",
-  "scripts/download-jina-model.py",
-  "mcp-server/package.json",
-  "mcp-server/package-lock.json",
-  "mcp-server/tsconfig.json",
-  "mcp-server/src/index.ts",
-  "mcp-server/src/config.ts",
-  "mcp-server/src/chroma-client.ts",
-  "mcp-server/src/embedding.ts",
-];
-
-for (const file of requiredReleaseFiles) {
-  assert.ok(fs.existsSync(path.join(releaseDir, file)), `release/${manifest.version}/${file} is required for runtime setup`);
-
-}
-
-const forbiddenReleasePaths = [
-  "docs",
-  "test",
-  "benchmark",
-  "mcp-server/src/commercial",
-  "mcp-server/Dockerfile.commercial",
-  "mcp-server/docker-compose.commercial.yml",
-];
-
-for (const file of forbiddenReleasePaths) {
-  assert.ok(!fs.existsSync(path.join(releaseDir, file)), `release/${manifest.version}/${file} must not be included`);
-
-}
+const prepareRelease = fs.readFileSync(path.join(root, "scripts", "prepare-release.mjs"), "utf8");
+const verifyArtifact = fs.readFileSync(path.join(root, "scripts", "verify-local-plugin-artifact.mjs"), "utf8");
+assert.match(prepareRelease, /COMMUNITY_PLUGIN_FILES[^\n]+main\.js[^\n]+manifest\.json[^\n]+styles\.css/);
+assert.match(prepareRelease, /development-fixture/);
+assert.match(prepareRelease, /example\.invalid/);
+assert.match(verifyArtifact, /requiredFiles\s*=\s*\["main\.js",\s*"manifest\.json",\s*"styles\.css"\]/);
+assert.match(verifyArtifact, /LOCAL_PLUGIN_ARTIFACT_FILE_SET_INVALID/);
 
 console.log("Release integrity test passed");

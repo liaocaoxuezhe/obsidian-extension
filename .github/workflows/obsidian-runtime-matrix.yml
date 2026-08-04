@@ -1,0 +1,172 @@
+name: Obsidian managed runtime matrix
+
+on:
+  pull_request:
+    paths:
+      - "main.ts"
+      - "src/**"
+      - "scripts/**"
+      - "runtime-package/**"
+      - "package.json"
+      - "package-lock.json"
+      - "test/**"
+      - ".github/workflows/obsidian-runtime-matrix.yml"
+  push:
+    branches: [main]
+    paths:
+      - "main.ts"
+      - "src/**"
+      - "scripts/**"
+      - "runtime-package/**"
+      - "package.json"
+      - "package-lock.json"
+      - "test/**"
+      - ".github/workflows/obsidian-runtime-matrix.yml"
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the verified runtime release after all three native jobs pass
+        type: boolean
+        default: false
+      runtime_tag:
+        description: Immutable runtime release tag
+        required: true
+        default: runtime-node22-v1
+
+permissions:
+  contents: read
+
+concurrency:
+  group: obsidian-runtime-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  native-runtime:
+    name: ${{ matrix.platform }} native pack and contracts
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            platform: darwin
+            arch: arm64
+            key: darwin-arm64
+          - os: macos-15-intel
+            platform: darwin
+            arch: x64
+            key: darwin-x64
+          - os: windows-2025
+            platform: win32
+            arch: x64
+            key: win32-x64
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.23.2
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install reviewed plugin dependencies
+        run: npm ci --ignore-scripts
+      - name: Download and verify pinned Chroma CLI 1.4.4
+        shell: bash
+        run: |
+          if [ "${{ runner.os }}" = "Windows" ]; then output="test/.runtime/chroma.exe"; else output="test/.runtime/chroma"; fi
+          node test/helpers/download-pinned-chroma.js --version cli-1.4.4 --output "$output"
+          echo "ANALOGY_CHROMA_BIN=${{ github.workspace }}/$output" >> "$GITHUB_ENV"
+      - name: Build Community plugin
+        run: npm run build
+      - name: Run unit, contract, worker, Chroma and Community harnesses
+        run: npm run test:runtime
+      - name: Build pinned ONNX Runtime 1.26.0 Intel overlay
+        if: matrix.key == 'darwin-x64'
+        shell: bash
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/microsoft/onnxruntime "$RUNNER_TEMP/onnxruntime"
+          git -C "$RUNNER_TEMP/onnxruntime" checkout 8c546c37b43caaca1fa25db430dab94b901cf277
+          git -C "$RUNNER_TEMP/onnxruntime" submodule update --init --recursive --depth 1
+          "$RUNNER_TEMP/onnxruntime/build.sh" --config Release --parallel --skip_tests --build_shared_lib --build_nodejs --cmake_extra_defines CMAKE_OSX_ARCHITECTURES=x86_64
+          node scripts/package-ort-native-overlay.mjs --input "$RUNNER_TEMP/onnxruntime/build" --output "$RUNNER_TEMP/ort-overlay"
+      - name: Build native embedding runtime
+        if: matrix.key != 'darwin-x64'
+        run: node scripts/build-embedding-runtime.mjs --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --node-version 22.23.2 --output dist/runtime
+      - name: Build native embedding runtime with Intel overlay
+        if: matrix.key == 'darwin-x64'
+        run: node scripts/build-embedding-runtime.mjs --platform darwin --arch x64 --node-version 22.23.2 --output dist/runtime --ort-native-overlay ${{ runner.temp }}/ort-overlay
+      - name: Run fresh-cache native inference smoke
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: node scripts/run-native-runtime-smoke.mjs --platform ${{ matrix.key }} --input dist/runtime --output dist/runtime/native-smoke-statement.json
+      - uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          cosign-release: v3.0.2
+      - name: Sign native smoke statement with GitHub OIDC and Rekor
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        shell: bash
+        env:
+          COSIGN_YES: "true"
+        run: |
+          archive=$(node -e "const p=require('./runtime-package/package.json'); const key='${{ matrix.key }}'; const ext=key==='win32-x64'?'.zip':'.tar.gz'; process.stdout.write('dist/runtime/analogy-embedding-runtime-node22-v1-'+key+ext)")
+          bundle="$archive.smoke-attestation.json"
+          cosign attest-blob --yes --new-bundle-format=true --statement dist/runtime/native-smoke-statement.json --bundle "$bundle" "$archive"
+          node scripts/finalize-runtime-artifact.mjs --platform ${{ matrix.key }} --input dist/runtime --attestation "$bundle"
+          rm dist/runtime/native-smoke-statement.json
+      - name: Upload completed native generation
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: completed-runtime-${{ matrix.key }}
+          path: dist/runtime/analogy-embedding-runtime-node22-v1-${{ matrix.key }}*
+          if-no-files-found: error
+          retention-days: 14
+
+  release-gate:
+    name: Merge, publish and redownload-verify all native generations
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish
+    needs: [native-runtime]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.23.2
+      - name: Install reviewed plugin dependencies
+        run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: completed-runtime-*
+          path: dist/runtime
+          merge-multiple: true
+      - name: Merge and validate the exact three-platform manifest
+        run: |
+          node scripts/generate-runtime-manifest.mjs --input dist/runtime --output src/runtime/generated-embedding-runtime-manifest.ts --base-url "https://github.com/${{ github.repository }}/releases/download/${{ inputs.runtime_tag }}"
+          node scripts/prepare-release.mjs --runtime-only --runtime-staging dist/runtime
+      - name: Publish immutable runtime assets only after the matrix gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh release view "${{ inputs.runtime_tag }}" >/dev/null 2>&1 || gh release create "${{ inputs.runtime_tag }}" --title "Analogy managed runtime ${{ inputs.runtime_tag }}" --notes "Native runner verified runtime assets."
+          gh release upload "${{ inputs.runtime_tag }}" dist/runtime/analogy-embedding-runtime-node22-v1-* dist/runtime/embedding-runtime-manifest.json --clobber
+      - name: Redownload published assets and re-verify every SHA and attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir redownload
+          gh release download "${{ inputs.runtime_tag }}" --dir redownload
+          node scripts/prepare-release.mjs --runtime-only --runtime-staging redownload
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: published-runtime-manifest-${{ inputs.runtime_tag }}
+          path: |
+            src/runtime/generated-embedding-runtime-manifest.ts
+            dist/runtime/embedding-runtime-manifest.json
+          if-no-files-found: error

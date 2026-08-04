@@ -2,7 +2,6 @@ import { request } from "http";
 
 const TENANT = "default_tenant";
 const DATABASE = "default_database";
-type ChromaApiVersion = "v1" | "v2";
 
 export interface SearchResult {
   chunkId: string;
@@ -19,27 +18,21 @@ export interface CollectionInfo {
 
 export class ChromaClient {
   private port: number;
-  private apiVersion: ChromaApiVersion | null = null;
 
   constructor(port: number) {
+    if (!Number.isSafeInteger(port) || port < 1 || port > 65_535) {
+      throw new Error("INVALID_CHROMA_PORT");
+    }
     this.port = port;
   }
 
   async healthCheck(): Promise<boolean> {
-    const version = await this.detectApiVersion();
-    if (version) {
-      this.apiVersion = version;
-      return true;
-    }
-    return false;
+    return this.isEndpointHealthy("/api/v2/heartbeat");
   }
 
   async listCollections(): Promise<CollectionInfo[]> {
-    await this.ensureApiVersion();
-    const path = this.apiVersion === "v2"
-      ? `/api/v2/tenants/${TENANT}/databases/${DATABASE}/collections`
-      : "/api/v1/collections";
-    return this.requestJson<CollectionInfo[]>("GET", path);
+    await this.ensureV2Available();
+    return this.requestJson<CollectionInfo[]>("GET", `/api/v2/tenants/${TENANT}/databases/${DATABASE}/collections`);
   }
 
   async getCollectionByName(name: string): Promise<CollectionInfo | null> {
@@ -87,25 +80,13 @@ export class ChromaClient {
     if (!/^[a-f0-9-]+$/i.test(collectionId)) {
       throw new Error(`Invalid collection ID: "${collectionId}". Expected UUID format.`);
     }
-    if (this.apiVersion === "v2") {
-      return `/api/v2/tenants/${TENANT}/databases/${DATABASE}/collections/${collectionId}${suffix}`;
-    }
-    return `/api/v1/collections/${collectionId}${suffix}`;
+    return `/api/v2/tenants/${TENANT}/databases/${DATABASE}/collections/${collectionId}${suffix}`;
   }
 
-  private async ensureApiVersion(): Promise<void> {
-    if (this.apiVersion) return;
-    const version = await this.detectApiVersion();
-    if (!version) {
-      throw new Error("ChromaDB heartbeat failed on both /api/v2/heartbeat and /api/v1/heartbeat");
+  private async ensureV2Available(): Promise<void> {
+    if (!await this.isEndpointHealthy("/api/v2/heartbeat")) {
+      throw new Error("ChromaDB heartbeat failed on /api/v2/heartbeat");
     }
-    this.apiVersion = version;
-  }
-
-  private async detectApiVersion(): Promise<ChromaApiVersion | null> {
-    if (await this.isEndpointHealthy("/api/v2/heartbeat")) return "v2";
-    if (await this.isEndpointHealthy("/api/v1/heartbeat")) return "v1";
-    return null;
   }
 
   private async isEndpointHealthy(path: string): Promise<boolean> {

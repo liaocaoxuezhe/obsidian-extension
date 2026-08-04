@@ -35,6 +35,10 @@ Enable the plugin in Obsidian Settings -> Community plugins.
 
 Obsidian only installs the three plugin assets above. Open Analogy settings and use the Local RAG runtime installer to install the embedding runtime in the plugin folder. Analogy also creates a small runtime `package.json`, installs the embedding runtime, and starts ChromaDB automatically when possible.
 
+On first launch, the guided onboarding flow detects the local environment, downloads the pinned ChromaDB and embedding runtimes, verifies their checksums and signed release metadata, installs them atomically, and builds a small first index. Managed runtime downloads currently support macOS on Apple Silicon or Intel, and Windows on x64. The Ollama summary model is optional and can be skipped without blocking local semantic search.
+
+Existing compatible Chroma indexes are migrated into the managed runtime without re-embedding. If migration or setup is interrupted, onboarding resumes from its saved recovery state; setup, repair, diagnostics, and rebuild controls remain available in Analogy settings.
+
 
 If automatic installation fails, run the setup command inside the installed plugin folder:
 
