@@ -24,8 +24,10 @@ async function main() {
   const body = await createDeterministicRuntimeArchive(packParent, packRoot, options.kind);
   const handle = await fs.promises.open(output, "wx", 0o600);
   try { await handle.writeFile(body); await handle.sync(); } finally { await handle.close(); }
-  const directory = await fs.promises.open(path.dirname(output), "r");
-  try { await directory.sync(); } finally { await directory.close(); }
+  if (process.platform !== "win32") {
+    const directory = await fs.promises.open(path.dirname(output), "r");
+    try { await directory.sync(); } finally { await directory.close(); }
+  }
   process.stdout.write(`${JSON.stringify({ node: process.version, zlib: process.versions.zlib, bytes: body.length })}\n`);
 }
 
