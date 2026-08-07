@@ -272,12 +272,16 @@ export class DocumentIndexer {
     this.unwatchVault();
   }
 
-  private beginIndexing(): void {
+  private async beginIndexing(queueTotal = 0): Promise<void> {
     this.stopped = false;
     this.isIndexing = true;
+    const activeDrain = this.queueDrainPromise;
+    if (activeDrain) {
+      await activeDrain.catch(() => undefined);
+    }
     this.queue = [];
     this.queueProcessed = 0;
-    this.queueTotal = 0;
+    this.queueTotal = queueTotal;
   }
 
   buildDocId(file: TFile): string {
@@ -718,13 +722,13 @@ export class DocumentIndexer {
     }
   }
 
-  private enqueue(file: TFile): Promise<FileIndexResult> {
+  private enqueue(file: TFile, countTowardTotal = true): Promise<FileIndexResult> {
     if (this.stopped) {
       return Promise.resolve({ path: file.path, status: "skipped", chunkCount: 0 });
     }
     return new Promise((resolve, reject) => {
       this.queue.push({ file, resolve, reject });
-      this.queueTotal++;
+      if (countTowardTotal) this.queueTotal++;
       this.startQueueDrain();
     });
   }
@@ -763,14 +767,7 @@ export class DocumentIndexer {
             errorCategory: "unknown",
           };
         }
-        this.queueProcessed++;
-
-        if (this.queueProcessed % PROGRESS_INTERVAL === 0 || this.queueProcessed === this.queueTotal) {
-          new Notice(
-            `[Analogy] 索引进度: ${this.queueProcessed} / ${this.queueTotal}`,
-            3000
-          );
-        }
+        this.markQueueItemProcessed();
 
         if (this.embedding.getInferenceCount() >= ONNX_RESET_INTERVAL) {
           await this.flushState();
@@ -795,12 +792,32 @@ export class DocumentIndexer {
     if (maintenanceFailure) throw maintenanceFailure;
   }
 
+  private markQueueItemProcessed(): void {
+    this.queueProcessed++;
+    if (this.queueProcessed % PROGRESS_INTERVAL === 0 || this.queueProcessed === this.queueTotal) {
+      new Notice(
+        `[Analogy] 索引进度: ${this.queueProcessed} / ${this.queueTotal}`,
+        3000
+      );
+    }
+  }
+
   async indexFiles(files: TFile[], options: IndexFilesOptions = {}): Promise<IndexFilesResult> {
     if (this.isIndexing) {
       throw Object.assign(new Error("INDEXER_BUSY"), { code: "INDEXER_BUSY" });
     }
-    this.beginIndexing();
     const snapshot = files.slice();
+    const queueFiles = new Set<TFile>();
+    const unavailableFiles = new Set<TFile>();
+    for (const file of snapshot) {
+      if (file.extension.toLowerCase() !== "md" || this.isExcluded(file)) continue;
+      if (options.isFileAvailable && !options.isFileAvailable(file)) {
+        unavailableFiles.add(file);
+      } else {
+        queueFiles.add(file);
+      }
+    }
+    await this.beginIndexing(queueFiles.size);
     const outcomes: FileIndexResult[] = [];
     let cancelled = Boolean(options.signal?.aborted);
 
@@ -811,12 +828,15 @@ export class DocumentIndexer {
           break;
         }
         let outcome: FileIndexResult;
-        if (options.isFileAvailable && !options.isFileAvailable(file)) {
+        if (unavailableFiles.has(file)) {
           outcome = { path: file.path, status: "skipped", chunkCount: 0, errorCategory: "deleted" };
-        } else if (file.extension.toLowerCase() !== "md" || this.isExcluded(file)) {
+        } else if (!queueFiles.has(file)) {
           outcome = { path: file.path, status: "skipped", chunkCount: 0 };
+        } else if (options.isFileAvailable && !options.isFileAvailable(file)) {
+          outcome = { path: file.path, status: "skipped", chunkCount: 0, errorCategory: "deleted" };
+          this.markQueueItemProcessed();
         } else {
-          outcome = await this.enqueue(file);
+          outcome = await this.enqueue(file, false);
         }
         outcomes.push(outcome);
         options.onProgress?.({
@@ -863,8 +883,8 @@ export class DocumentIndexer {
     files: TFile[],
     options?: { force?: boolean; onProgress?: (progress: RebuildProgress) => void }
   ): Promise<void> {
-    this.beginIndexing();
     const mdFiles = files.filter((f) => f.extension === "md" && !this.isExcluded(f));
+    await this.beginIndexing(mdFiles.length);
 
     try {
       const promises: Promise<void>[] = [];
@@ -880,7 +900,7 @@ export class DocumentIndexer {
         }
 
         const p = (async () => {
-          await this.enqueue(file);
+          await this.enqueue(file, false);
           if (this.stopped) return;
           options?.onProgress?.({
             current: this.queueProcessed,
@@ -1226,20 +1246,20 @@ export class DocumentIndexer {
     files: TFile[],
     options?: { onProgress?: (progress: RebuildProgress) => void }
   ): Promise<void> {
-    this.beginIndexing();
     const pending = files.filter((f) => {
       if (f.extension !== "md" || this.isExcluded(f)) return false;
       const docId = this.buildDocId(f);
       const entry = this.indexState[docId];
       return !entry || this.isEntryOutdated(entry, f);
     });
+    await this.beginIndexing(pending.length);
 
     try {
       const promises: Promise<void>[] = [];
       for (const file of pending) {
         if (this.stopped) break;
         const p = (async () => {
-          await this.enqueue(file);
+          await this.enqueue(file, false);
           if (this.stopped) return;
           options?.onProgress?.({
             current: this.queueProcessed,

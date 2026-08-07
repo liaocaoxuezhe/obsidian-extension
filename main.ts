@@ -290,7 +290,7 @@ export default class Analogy extends Plugin {
 
 		this.registerView(
 			VIEW_TYPE_INDEX,
-			(leaf) => new IndexView(leaf)
+			(leaf) => new IndexView(leaf, this.manifest.version)
 		)
 		this.registerSemanticWalkFeatures();
 

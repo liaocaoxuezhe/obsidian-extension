@@ -2,10 +2,10 @@ import { useEffect, useState } from "react"
 import { SmartConnection } from "./SmartConnection";
 import { Badge } from "./components/badge";
 import { Button } from "./components/button";
-import { appVersion, icon } from "./model/Consts";
+import { icon } from "./model/Consts";
 import { RuntimeStatusCapsule } from "./runtime/RuntimeControlPanel";
 
-export const HomeView = ({ main }: { main: any }) => {
+export const HomeView = ({ main, pluginVersion }: { main: any; pluginVersion: string }) => {
   const [activeFile, setActiveFile] = useState(() => {
     return main.app.workspace.getActiveFile()
   })
@@ -31,7 +31,7 @@ export const HomeView = ({ main }: { main: any }) => {
             onOpenDetails={() => main?.openAnalogySettings?.()}
           />
           <Badge variant="secondary" className="text-xs text-[#444444] bg-[#f5f5f5] analogy-version-badge">
-            v{appVersion}
+            v{pluginVersion}
           </Badge>
         </div>
       </div>

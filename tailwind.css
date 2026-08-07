@@ -1227,14 +1227,6 @@
 		box-shadow: 0 0 0 3px color-mix(in srgb, var(--interactive-accent) 18%, transparent), var(--shadow-l);
 	}
 
-	.semantic-walk-node.is-focus::before {
-		content: "";
-		position: absolute;
-		inset: 0 auto 0 0;
-		width: 3px;
-		background: var(--interactive-accent);
-	}
-
 	.semantic-walk-node.is-visited {
 		color: var(--text-normal);
 	}
@@ -1273,7 +1265,7 @@
 
 	.semantic-walk-node__source {
 		display: inline-flex;
-		align-items: flex-start;
+		align-items: center;
 		flex: 1 1 auto;
 		gap: 7px;
 		min-width: 0;
@@ -1310,7 +1302,6 @@
 
 	.semantic-walk-node__source-mark {
 		flex: 0 0 auto;
-		margin-top: 3px;
 		width: 8px;
 		height: 8px;
 		border: 2px solid var(--text-muted);
@@ -1968,6 +1959,7 @@
 		flex-direction: column;
 		align-items: flex-start;
 		gap: 5px;
+		min-width: 0;
 		min-height: 84px;
 		padding: 13px;
 		text-align: left;
@@ -1979,9 +1971,12 @@
 	}
 
 	.semantic-walk-empty__entries span {
+		max-width: 100%;
 		color: var(--text-faint);
 		font-size: var(--font-ui-smaller);
 		line-height: 1.35;
+		overflow-wrap: anywhere;
+		white-space: normal;
 	}
 
 	.semantic-walk-picker {
@@ -1993,7 +1988,7 @@
 		display: flex;
 		flex-direction: column;
 		box-sizing: border-box;
-		width: min(380px, calc(100% - 20px));
+		width: min(520px, calc(100% - 20px));
 		overflow: hidden;
 		border: 1px solid var(--background-modifier-border);
 		border-radius: var(--radius-l);
@@ -2036,14 +2031,16 @@
 
 	.semantic-walk-picker__tabs {
 		display: grid;
-		grid-template-columns: repeat(3, 1fr);
+		grid-template-columns: repeat(3, minmax(0, 1fr));
 		padding: 8px;
 		border-bottom: 1px solid var(--background-modifier-border);
 	}
 
 	.semantic-walk-picker__tabs button {
+		min-width: 0;
 		border-radius: 0;
 		font-size: var(--font-ui-smaller);
+		white-space: normal;
 	}
 
 	.semantic-walk-picker__tabs button[aria-pressed="true"] {
@@ -2076,11 +2073,45 @@
 	}
 
 	.semantic-walk-picker__search form {
-		gap: 6px;
+		width: 100%;
 	}
 
-	.semantic-walk-picker__search form button {
-		flex: 0 0 auto;
+	.semantic-walk-picker__search-field {
+		position: relative;
+		width: 100%;
+	}
+
+	.semantic-walk-picker .semantic-walk-picker__search-input {
+		box-sizing: border-box;
+		width: 100%;
+		height: 40px;
+		padding: 8px 56px 8px 12px;
+		border: 1px solid #e5e5e5;
+		border-radius: var(--radius);
+		background: var(--background-primary);
+		box-shadow: none;
+		color: var(--text-normal);
+		font-size: var(--font-ui-small);
+	}
+
+	.semantic-walk-picker .semantic-walk-picker__search-input:focus-visible {
+		outline: none;
+		border-color: #0a0a0a;
+		box-shadow: 0 0 0 1px #0a0a0a;
+	}
+
+	.semantic-walk-picker__search-shortcut {
+		position: absolute;
+		top: 50%;
+		right: 12px;
+		color: var(--text-muted);
+		font-size: var(--font-ui-smaller);
+		pointer-events: none;
+		transform: translateY(-50%);
+	}
+
+	.semantic-walk-picker__hint {
+		text-align: left;
 	}
 
 	.semantic-walk-picker__hint,

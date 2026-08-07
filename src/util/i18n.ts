@@ -517,6 +517,24 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
     en: "e.g. Daily or Archive/old-note.md",
     zh: "例如 每日创作 或 Archive/old-note.md",
   },
+  "settings.exclude.chooseFolder": { en: "Choose folder", zh: "选择文件夹" },
+  "settings.exclude.chooseFolderTitle": { en: "Choose a vault folder", zh: "选择 vault 内的文件夹" },
+  "settings.exclude.chooseUnavailable": {
+    en: "Native folder selection is unavailable",
+    zh: "当前环境无法使用原生文件夹选择器",
+  },
+  "settings.exclude.chooseFailed": {
+    en: "Failed to open the folder selector",
+    zh: "打开文件夹选择器失败",
+  },
+  "settings.exclude.outsideVault": {
+    en: "Choose a folder inside the current vault",
+    zh: "请选择当前 vault 内的文件夹",
+  },
+  "settings.exclude.vaultRoot": {
+    en: "Choose a subfolder instead of the vault root",
+    zh: "请选择 vault 的子文件夹，不能选择 vault 根目录",
+  },
   "settings.exclude.pathsCount": {
     en: "paths excluded",
     zh: "条路径已排除",

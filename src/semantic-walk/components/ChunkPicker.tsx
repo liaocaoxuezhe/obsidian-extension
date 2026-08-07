@@ -113,8 +113,6 @@ function ChunkActions({ chunkId, onSelect, disabled }: {
 }): JSX.Element {
   return (
     <div className="semantic-walk-picker__actions">
-      <button type="button" disabled={disabled} onClick={() => onSelect(chunkId, "add")}>{t("semanticWalk.picker.add")}</button>
-      <button type="button" disabled={disabled} onClick={() => onSelect(chunkId, "add-expand")}>{t("semanticWalk.picker.addExpand")}</button>
       <button type="button" disabled={disabled} onClick={() => onSelect(chunkId, "start")}>{t("semanticWalk.picker.setStart")}</button>
     </div>
   );
@@ -148,11 +146,6 @@ function ChunkRow({
       <p>{chunk.content}</p>
       {validity !== "valid" ? <p role="status">{t(validity === "missing" ? "semanticWalk.fileMissing" : "semanticWalk.fileStale")}</p> : null}
       <ChunkActions chunkId={chunk.chunkId} onSelect={onSelect} disabled={unavailable} />
-      {fileBridge ? (
-        <button type="button" disabled={validity !== "valid"} onClick={() => { void fileBridge.openDocument(chunk.path); }}>
-          {t("semanticWalk.openSource")}
-        </button>
-      ) : null}
     </li>
   );
 }
@@ -357,8 +350,10 @@ export function ChunkPicker({
       {mode === "search" ? (
         <div className="semantic-walk-picker__search">
           <form onSubmit={submitSearch}>
-            <input disabled={busy} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("semanticWalk.picker.searchPlaceholder")} aria-label={t("semanticWalk.searchChunks")} />
-            <button type="submit" disabled={busy || searchLoading || !query.trim()}>{t("semanticWalk.picker.search")}</button>
+            <div className="semantic-walk-picker__search-field">
+              <input className="semantic-walk-picker__search-input" type="search" disabled={busy || searchLoading} value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("semanticWalk.picker.searchPlaceholder")} aria-label={t("semanticWalk.searchChunks")} />
+              <span className="semantic-walk-picker__search-shortcut" aria-hidden="true">Enter ↵</span>
+            </div>
           </form>
           <p className="semantic-walk-picker__hint">{t("semanticWalk.picker.searchHint")}</p>
           <ol className="semantic-walk-picker__chunks">

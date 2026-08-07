@@ -11,7 +11,7 @@ export const VIEW_TYPE_INDEX = 'analogy-view';
 export class IndexView extends ItemView {
 	root: Root | null = null;
 
-	constructor(leaf: WorkspaceLeaf) {
+	constructor(leaf: WorkspaceLeaf, private readonly pluginVersion: string) {
 		super(leaf);
 	}
 
@@ -56,7 +56,7 @@ export class IndexView extends ItemView {
 					}}
 				>
 					<AppContext.Provider value={this.app}>
-						<HomeView main={this}/>
+						<HomeView main={this} pluginVersion={this.pluginVersion}/>
 					</AppContext.Provider>
 				</AnalogyErrorBoundary>
 			</StrictMode>

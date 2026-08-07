@@ -1,4 +1,4 @@
-import {App, Notice, PluginSettingTab, Setting, TFile} from "obsidian";
+import {App, FileSystemAdapter, Notice, PluginSettingTab, Setting, TFile} from "obsidian";
 import Analogy from "../main";
 import {createRoot, Root} from "react-dom/client";
 import {StrictMode, useCallback, useEffect, useMemo, useRef, useState} from "react";
@@ -24,6 +24,7 @@ import { generateReportFileName, sendDiagnosticReport } from "./diagnostics/diag
 import { DiagnosticReportSnapshot } from "./diagnostics/diagnostic-report-snapshot";
 import type { FileIndexStatus, IndexState, RebuildProgress } from "./local-vector/document-indexer";
 import {normalizeExcludedIndexPaths} from "./local-vector/excluded-paths";
+import {openVaultFolderDialog} from "./local-vector/vault-folder-selection";
 import {EMBEDDING_MODELS, DEFAULT_MODEL_KEY} from "./local-vector/embedding";
 import {OllamaClient} from "./local-vector/ollama-client";
 import {DEFAULT_SUMMARY_PROMPT, DocumentSummarizer} from "./local-vector/document-summarizer";
@@ -799,6 +800,42 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     new Notice(t("settings.exclude.added", { path: pathToAdd }));
   }
 
+  async function chooseExcludedFolder() {
+    const adapter = plugin.app.vault.adapter;
+    if (!(adapter instanceof FileSystemAdapter)) {
+      new Notice(t("settings.exclude.chooseUnavailable"));
+      return;
+    }
+
+    try {
+      const remote = require("electron")?.remote;
+      if (!remote?.dialog?.showOpenDialog || !remote?.getCurrentWindow) {
+        new Notice(t("settings.exclude.chooseUnavailable"));
+        return;
+      }
+
+      const selection = await openVaultFolderDialog({
+        dialog: remote.dialog,
+        parentWindow: remote.getCurrentWindow(),
+        vaultBasePath: adapter.getBasePath(),
+        platform: process.platform,
+        title: t("settings.exclude.chooseFolderTitle"),
+      });
+      if (!selection) return;
+      if (!selection.ok) {
+        new Notice(t(selection.reason === "vault-root"
+          ? "settings.exclude.vaultRoot"
+          : "settings.exclude.outsideVault"));
+        return;
+      }
+
+      setNewPathInput(selection.path);
+    } catch (err) {
+      console.error("[Analogy] Failed to choose no-index folder:", err);
+      new Notice(t("settings.exclude.chooseFailed"));
+    }
+  }
+
   async function removeExcludedPath(pathToRemove: string) {
     const updated = excludedPaths.filter((p) => p !== pathToRemove);
     await syncExcludedPaths(updated);
@@ -1502,6 +1539,9 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
               onChange={(e) => setNewPathInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") addExcludedPath(); }}
             />
+            <Button size="sm" variant="secondary" onClick={chooseExcludedFolder}>
+              {t("settings.exclude.chooseFolder")}
+            </Button>
             <Button size="sm" onClick={addExcludedPath}>{t("common.add")}</Button>
           </div>
           {excludedPaths.length === 0 ? (
@@ -1627,7 +1667,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
               onClick={() => setStatusFilter("outdated")}
               className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
                 statusFilter === "outdated"
-                  ? "bg-[#f59e0b] text-white border-[#f59e0b]"
+                  ? "bg-[#0a0a0a] text-white border-[#0a0a0a]"
                   : "bg-white text-[#444444] border-[#e5e5e5] hover:border-[#aaa]"
               }`}
             >
@@ -1637,7 +1677,7 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
               onClick={() => setStatusFilter("unindexed")}
               className={`text-xs px-2.5 py-1 rounded-full border transition-colors ${
                 statusFilter === "unindexed"
-                  ? "bg-[#e74c3c] text-white border-[#e74c3c]"
+                  ? "bg-[#0a0a0a] text-white border-[#0a0a0a]"
                   : "bg-white text-[#444444] border-[#e5e5e5] hover:border-[#aaa]"
               }`}
             >
