@@ -14,6 +14,10 @@ const SCRIPT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const PRODUCTION_TRUST_PATH = path.resolve(SCRIPT_DIRECTORY, "..", "runtime-package", "native-smoke-trust.json");
 const PRODUCTION_TRUSTED_ROOT_SNAPSHOT = "sigstore-public-good-tuf-2026-08-05-v1";
 const PRODUCTION_REKOR_LOG_ID = "wNI9atQGlz+VWfO6LRygH4QUfY/8W4RFwiT5i5WRgB0=";
+const PRODUCTION_REKOR_CHECKPOINT_ORIGINS = Object.freeze([
+  "rekor.sigstore.dev - 2605736670972794746",
+  "rekor.sigstore.dev - 1193050959916656506",
+]);
 const SHA256_HEX = /^[0-9a-f]{64}$/;
 
 function githubCertificateExtensionOidDer(extension) {
@@ -145,7 +149,7 @@ function productionTrustPolicy() {
     || productionLog?.logId?.keyId !== PRODUCTION_REKOR_LOG_ID
     || productionLog?.hashAlgorithm !== "SHA2_256"
     || productionLog?.publicKey?.keyDetails !== "PKIX_ECDSA_P256_SHA_256"
-    || productionLog?.checkpointOrigin !== "rekor.sigstore.dev - 1193050959916656506"
+    || JSON.stringify(productionLog?.checkpointOrigins) !== JSON.stringify(PRODUCTION_REKOR_CHECKPOINT_ORIGINS)
     || productionLog?.checkpointSignerName !== "rekor.sigstore.dev"
     || !Array.isArray(policy.certificateAuthorities) || policy.certificateAuthorities.length === 0) {
     throw new Error("Repository native smoke production trust policy is not the fixed GitHub workflow policy");
@@ -162,8 +166,13 @@ function trustedRekorLog(policy, logId) {
   const matches = root.tlogs.filter((candidate) => candidate?.logId?.keyId === logId);
   if (matches.length !== 1) throw new Error("Sigstore transparency log ID is not present exactly once in the fixed trusted root");
   const log = matches[0];
+  const checkpointOrigins = Array.isArray(log.checkpointOrigins)
+    ? log.checkpointOrigins
+    : [log.checkpointOrigin];
   if (log.hashAlgorithm !== "SHA2_256" || log.publicKey?.keyDetails !== "PKIX_ECDSA_P256_SHA_256"
-    || typeof log.checkpointOrigin !== "string" || !log.checkpointOrigin) {
+    || checkpointOrigins.length === 0
+    || checkpointOrigins.some((origin) => typeof origin !== "string" || !origin)
+    || new Set(checkpointOrigins).size !== checkpointOrigins.length) {
     throw new Error("Sigstore transparency log trust metadata is unsupported");
   }
   const publicKeyRawBytes = strictBase64(log.publicKey.rawBytes, "Rekor public key");
@@ -175,7 +184,7 @@ function trustedRekorLog(policy, logId) {
   if (publicKey.asymmetricKeyType !== "ec" || publicKey.asymmetricKeyDetails?.namedCurve !== "prime256v1") {
     throw new Error("Rekor trusted log key must be ECDSA P-256");
   }
-  return { log, publicKey, publicKeyRawBytes, logIdBytes: actualLogId };
+  return { log, checkpointOrigins, publicKey, publicKeyRawBytes, logIdBytes: actualLogId };
 }
 
 function assertTrustedTime(integratedTime, leaf, trustedLog) {
@@ -227,9 +236,10 @@ function verifyRekorDsseBody(bodyBytes, envelope, leaf) {
   const rekorEnvelope = {
     payload: envelope.payload,
     payloadType: envelope.payloadType,
-    signatures: envelope.signatures.map((signature) => (
-      signature.keyid ? { keyid: signature.keyid, sig: signature.sig } : { sig: signature.sig }
-    )),
+    signatures: envelope.signatures.map((signature) => ({
+      sig: signature.sig,
+      keyid: signature.keyid || "",
+    })),
   };
   if (body.spec.envelopeHash.value !== sha256Bytes(Buffer.from(JSON.stringify(rekorEnvelope), "utf8")).toString("hex")) {
     throw new Error("Rekor canonicalized body is not bound to the current serialized DSSE envelope");
@@ -256,7 +266,7 @@ function verifyCheckpoint(checkpoint, proof, trustedLog) {
     throw new Error("Rekor checkpoint signature verification failed");
   }
   const lines = note.split("\n");
-  if (lines.length !== 4 || lines[0] !== trustedLog.log.checkpointOrigin || lines[3] !== "") {
+  if (lines.length !== 4 || !trustedLog.checkpointOrigins.includes(lines[0]) || lines[3] !== "") {
     throw new Error("Rekor checkpoint origin or format is not the fixed trusted log checkpoint");
   }
   const checkpointSize = safeDecimal(lines[1], "Rekor checkpoint tree size", { minimum: 1 });

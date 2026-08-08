@@ -11,7 +11,6 @@ interface NativeFolderDialogResult {
 
 interface NativeFolderDialog {
   showOpenDialog(
-    parentWindow: unknown,
     options: {
       title: string;
       defaultPath: string;
@@ -22,7 +21,6 @@ interface NativeFolderDialog {
 
 interface OpenVaultFolderDialogOptions {
   dialog: NativeFolderDialog;
-  parentWindow: unknown;
   vaultBasePath: string;
   platform: NodeJS.Platform;
   title: string;
@@ -54,7 +52,6 @@ export function toVaultRelativeFolderPath(
 
 export async function openVaultFolderDialog({
   dialog,
-  parentWindow,
   vaultBasePath,
   platform,
   title,
@@ -62,7 +59,7 @@ export async function openVaultFolderDialog({
   const properties = platform === "darwin"
     ? ["openDirectory", "createDirectory"]
     : ["openDirectory", "dontAddToRecent"];
-  const result = await dialog.showOpenDialog(parentWindow, {
+  const result = await dialog.showOpenDialog({
     title,
     defaultPath: vaultBasePath,
     properties,

@@ -1,6 +1,6 @@
 {
 	"name": "analogy-rag-in-your-vault",
-	"version": "1.2.2",
+	"version": "1.2.3",
 	"description": "Obsidian plugin for local vault RAG with semantic search and MCP access.",
 	"main": "main.js",
 	"scripts": {
@@ -9,7 +9,7 @@
 		"build:styles": "tailwindcss -i ./tailwind.css -o ./styles.css --minify",
 		"lint": "eslint main.ts src package.json",
 		"typecheck": "tsc --noEmit",
-		"test:public": "node test/embedding-worker-materialization.test.js && node test/embedding-service-safety.test.js && node test/embedding-worker-lifecycle.test.js && node test/community-worker-bundle.test.js && node test/release-version.test.js && node test/release-integrity.test.js",
+		"test:public": "node test/embedding-model-behavior.test.js && node test/embedding-worker-materialization.test.js && node test/embedding-service-safety.test.js && node test/embedding-worker-lifecycle.test.js && node test/community-worker-bundle.test.js && node test/release-version.test.js && node test/release-integrity.test.js",
 		"check": "npm run lint && npm run typecheck && npm run test:public && npm run build",
 		"runtime:build": "node scripts/build-embedding-runtime.mjs",
 		"runtime:manifest": "node scripts/generate-runtime-manifest.mjs --input dist/runtime --output src/runtime/generated-embedding-runtime-manifest.ts --base-url https://github.com/liaocaoxuezhe/obsidian-extension/releases/download/runtime-node22-v1",
@@ -21,7 +21,7 @@
 		"setup:local": "node scripts/install-local-runtime.mjs",
 		"release:prepare": "npm run build && node scripts/prepare-release.mjs",
 		"release:prepare:development": "npm run build && node scripts/prepare-release.mjs --allow-development-runtime-fixture",
-		"release:verify:local-plugin": "node scripts/verify-local-plugin-artifact.mjs release/1.2.2/community",
+		"release:verify:local-plugin": "node scripts/verify-local-plugin-artifact.mjs release/1.2.3/community",
 		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
 	"keywords": [

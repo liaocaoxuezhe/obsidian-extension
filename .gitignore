@@ -24,6 +24,7 @@ test/
 # Public managed-runtime verification helpers are reviewed release assets.
 !test/
 test/*
+!test/embedding-model-behavior.test.js
 !test/helpers/
 test/helpers/*
 !test/helpers/download-pinned-chroma.js

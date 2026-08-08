@@ -24,7 +24,10 @@
         "logId": {
           "keyId": "wNI9atQGlz+VWfO6LRygH4QUfY/8W4RFwiT5i5WRgB0="
         },
-        "checkpointOrigin": "rekor.sigstore.dev - 1193050959916656506",
+        "checkpointOrigins": [
+          "rekor.sigstore.dev - 2605736670972794746",
+          "rekor.sigstore.dev - 1193050959916656506"
+        ],
         "checkpointSignerName": "rekor.sigstore.dev"
       }
     ]

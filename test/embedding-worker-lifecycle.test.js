@@ -101,7 +101,7 @@ async function expectRejected(promise, messagePattern) {
       },
     );
     clients.push(concurrentClient);
-    await concurrentClient.initialize("test/model", "q8", path.join(tmpDir, "cache"));
+    await concurrentClient.initialize("test/model", "q8", "mean", path.join(tmpDir, "cache"));
     const first = concurrentClient.embed(["one"]);
     await wait(10);
     const second = concurrentClient.embed(["two"]);
@@ -127,7 +127,7 @@ async function expectRejected(promise, messagePattern) {
       { ANALOGY_TEST_WORKER_MODE: "malformed" },
     );
     clients.push(malformedClient);
-    await malformedClient.initialize("test/model", "q8", path.join(tmpDir, "cache"));
+    await malformedClient.initialize("test/model", "q8", "mean", path.join(tmpDir, "cache"));
     await expectRejected(
       malformedClient.embed(["one", "two"]),
       /dimension/i,
@@ -142,7 +142,7 @@ async function expectRejected(promise, messagePattern) {
       { maxMessageBytes: 256 },
     );
     clients.push(requestLimitClient);
-    await requestLimitClient.initialize("m", "q8", "c");
+    await requestLimitClient.initialize("m", "q8", "mean", "c");
     await expectRejected(
       requestLimitClient.embed(["x".repeat(1024)]),
       /too large/i,
@@ -157,7 +157,7 @@ async function expectRejected(promise, messagePattern) {
       { maxMessageBytes: 512 },
     );
     clients.push(outputLimitClient);
-    await outputLimitClient.initialize("m", "q8", "c");
+    await outputLimitClient.initialize("m", "q8", "mean", "c");
     await expectRejected(
       outputLimitClient.embed(["x"]),
       /too large/i,
@@ -182,7 +182,7 @@ async function expectRejected(promise, messagePattern) {
       },
     );
     clients.push(timeoutClient);
-    await timeoutClient.initialize("test/model", "q8", path.join(tmpDir, "cache"));
+    await timeoutClient.initialize("test/model", "q8", "mean", path.join(tmpDir, "cache"));
     const timeoutPid = (await readState(timeoutState)).pid;
     try {
       await expectRejected(timeoutClient.embed(["hang"]), /timed out/i);

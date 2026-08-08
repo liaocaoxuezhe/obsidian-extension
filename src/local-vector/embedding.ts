@@ -12,6 +12,7 @@ export interface EmbeddingModelConfig {
   id: string;
   shortName: string;
   displayName: string;
+  pooling: EmbeddingPooling;
   queryPrefix: string;
   documentPrefix?: string;
   dtype: EmbeddingDType;
@@ -24,6 +25,8 @@ export interface EmbeddingModelConfig {
   /** Short marketing description (Chinese). */
   descriptionZh: string;
 }
+
+export type EmbeddingPooling = "mean" | "cls" | "last_token";
 
 type EmbeddingDType =
   | "auto"
@@ -48,7 +51,7 @@ interface EmbeddingOutput {
 interface FeatureExtractionPipeline {
   (
     inputs: string | string[],
-    options: { pooling: "mean"; normalize: true },
+    options: { pooling: EmbeddingPooling; normalize: true },
   ): Promise<EmbeddingOutput>;
 }
 
@@ -57,6 +60,7 @@ export const EMBEDDING_MODELS: Record<string, EmbeddingModelConfig> = {
     id: "Xenova/bge-small-en-v1.5",
     shortName: "bge-small-en-v1.5",
     displayName: "BGE-small-en-v1.5 (33M) — Default",
+    pooling: "mean",
     queryPrefix: "Represent this sentence for searching relevant passages: ",
     dtype: "q8",
     maxInputChars: 1500,
@@ -70,6 +74,7 @@ export const EMBEDDING_MODELS: Record<string, EmbeddingModelConfig> = {
     id: "Xenova/all-MiniLM-L6-v2",
     shortName: "all-MiniLM-L6-v2",
     displayName: "all-MiniLM-L6-v2 (22M) — Fastest",
+    pooling: "mean",
     queryPrefix: "",
     dtype: "q8",
     maxInputChars: 1500,
@@ -83,6 +88,7 @@ export const EMBEDDING_MODELS: Record<string, EmbeddingModelConfig> = {
     id: "Xenova/bge-small-zh-v1.5",
     shortName: "bge-small-zh",
     displayName: "BGE-small-zh-v1.5 (33M) — Chinese",
+    pooling: "mean",
     queryPrefix: "Represent this sentence for searching relevant passages: ",
     dtype: "q8",
     maxInputChars: 1500,
@@ -96,7 +102,9 @@ export const EMBEDDING_MODELS: Record<string, EmbeddingModelConfig> = {
     id: "onnx-community/embeddinggemma-300m-ONNX",
     shortName: "embedding-gemma-300m",
     displayName: "EmbeddingGemma-300M — Analogy-tuned",
+    pooling: "mean",
     queryPrefix: "task: search result | query: ",
+    documentPrefix: "title: none | text: ",
     dtype: "q8",
     maxInputChars: 4000,
     size: "300M",
@@ -108,7 +116,8 @@ export const EMBEDDING_MODELS: Record<string, EmbeddingModelConfig> = {
   "jina-nano": {
     id: "jinaai/jina-embeddings-v5-text-nano-retrieval",
     shortName: "jina-nano",
-    displayName: "Jina Embeddings v5 Nano (239M) — STS Best",
+    displayName: "Jina Embeddings v5 Nano (239M) — Non-commercial",
+    pooling: "last_token",
     queryPrefix: "Query: ",
     documentPrefix: "Document: ",
     dtype: "q8",
@@ -116,9 +125,39 @@ export const EMBEDDING_MODELS: Record<string, EmbeddingModelConfig> = {
     maxInputChars: 8000,
     size: "239M",
     description:
-      "Jina v5 Nano (239M). Top STS / semantic-textual-similarity scores in this lineup. Picks for users whose machine can run 200M+ models.",
+      "Jina v5 Nano (239M). Strong semantic retrieval for machines that can run 200M+ models. CC BY-NC 4.0: commercial use requires a separate Jina license.",
     descriptionZh:
-      "Jina v5 Nano（239M）。本列表中 STS / 语义相似度得分最高。适合能跑 200M+ 模型的用户。",
+      "Jina v5 Nano（239M）。语义检索能力强，适合能跑 200M+ 模型的用户。采用 CC BY-NC 4.0，商业使用需另获 Jina 授权。",
+  },
+  "granite-97m-multilingual-r2": {
+    id: "onnx-community/granite-embedding-97m-multilingual-r2-ONNX",
+    shortName: "granite-97m-multilingual-r2",
+    displayName: "Granite Embedding 97M Multilingual R2 — Recommended",
+    pooling: "cls",
+    queryPrefix: "",
+    documentPrefix: "",
+    dtype: "q8",
+    maxInputChars: 8000,
+    size: "97M",
+    description:
+      "Recommended multilingual model. Strong retrieval across 52 priority languages and code, with a 32K-token context window and an Apache 2.0 license.",
+    descriptionZh:
+      "推荐的多语言模型。重点支持中文等 52 种语言与代码，拥有 32K 上下文窗口，并采用 Apache 2.0 许可。",
+  },
+  "granite-small-english-r2": {
+    id: "onnx-community/granite-embedding-small-english-r2-ONNX",
+    shortName: "granite-small-english-r2",
+    displayName: "Granite Embedding Small English R2 (47M) — Efficient",
+    pooling: "cls",
+    queryPrefix: "",
+    documentPrefix: "",
+    dtype: "q8",
+    maxInputChars: 8000,
+    size: "47M",
+    description:
+      "Efficient English retrieval model with an 8K-token context window. A compact upgrade for English vaults and lower-end machines.",
+    descriptionZh:
+      "高效的英文检索模型，支持 8K 上下文。适合英文知识库和配置较低的电脑。",
   },
 };
 
@@ -374,7 +413,7 @@ export class LocalEmbeddingService {
           }
 
           const output = await withTimeout(
-            this.embedder(batch, { pooling: "mean", normalize: true }),
+            this.embedder(batch, { pooling: this.options.modelConfig.pooling, normalize: true }),
             EMBEDDING_TIMEOUT_MS,
             `Embedding batch inference (${batch.length} texts)`
           );
@@ -415,7 +454,7 @@ export class LocalEmbeddingService {
       throw new Error("Embedding model not initialized");
     }
     const result = await withTimeout(
-      this.embedder(input, { pooling: "mean", normalize: true }),
+      this.embedder(input, { pooling: this.options.modelConfig.pooling, normalize: true }),
       EMBEDDING_TIMEOUT_MS,
       label
     );

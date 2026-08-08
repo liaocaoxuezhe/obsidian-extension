@@ -809,14 +809,13 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
 
     try {
       const remote = require("electron")?.remote;
-      if (!remote?.dialog?.showOpenDialog || !remote?.getCurrentWindow) {
+      if (!remote?.dialog?.showOpenDialog) {
         new Notice(t("settings.exclude.chooseUnavailable"));
         return;
       }
 
       const selection = await openVaultFolderDialog({
         dialog: remote.dialog,
-        parentWindow: remote.getCurrentWindow(),
         vaultBasePath: adapter.getBasePath(),
         platform: process.platform,
         title: t("settings.exclude.chooseFolderTitle"),

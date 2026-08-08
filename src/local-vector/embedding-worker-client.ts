@@ -4,6 +4,7 @@ import * as fs from "fs";
 import * as crypto from "crypto";
 import { v4 as uuidv4 } from "uuid";
 import type { DiagnosticRecorder } from "../diagnostics/diagnostic-recorder";
+import type { EmbeddingPooling } from "./embedding";
 import {
   decodeMessage,
   encodeMessage,
@@ -536,6 +537,7 @@ export class EmbeddingWorkerClient {
   async initialize(
     modelId: string,
     dtype: string,
+    pooling: EmbeddingPooling,
     cacheDir: string,
     modelHost?: string,
     modelRevision?: string,
@@ -554,7 +556,7 @@ export class EmbeddingWorkerClient {
       signal?.addEventListener("abort", abort, { once: true });
       try {
         await this.sendRequest(
-          { id, type: "initialize", modelId, dtype, cacheDir, modelHost, modelRevision },
+          { id, type: "initialize", modelId, dtype, pooling, cacheDir, modelHost, modelRevision },
           true,
           onProgress,
         );

@@ -87,6 +87,7 @@ export class EmbeddingService {
         await attemptWorker.initialize(
           this.options.modelConfig.id,
           this.options.modelConfig.dtype,
+          this.options.modelConfig.pooling,
           this.options.cacheDir,
           this.options.remoteHost,
           this.options.modelRevision,

@@ -105,11 +105,11 @@ export function verifyRuntimeRelease(runtimeStaging, {
 		|| typeof runtimeManifest.baseUrl !== "string" || !runtimeManifest.baseUrl.startsWith("https://")) {
 		throw new Error("Invalid embedding-runtime-manifest.json header");
 	}
-	const expectedPlatforms = ["darwin-arm64", "win32-x64"];
+	const expectedPlatforms = ["darwin-arm64", "darwin-x64", "win32-x64"];
 	if (!Array.isArray(runtimeManifest.assets)
 		|| runtimeManifest.assets.length !== expectedPlatforms.length
 		|| JSON.stringify(runtimeManifest.assets.map((asset) => asset.platform)) !== JSON.stringify(expectedPlatforms)) {
-		throw new Error("Runtime release manifest must contain exactly one asset for darwin-arm64 and win32-x64");
+		throw new Error("Runtime release manifest must contain exactly one asset for darwin-arm64, darwin-x64, and win32-x64");
 	}
 
 	for (const asset of runtimeManifest.assets) {

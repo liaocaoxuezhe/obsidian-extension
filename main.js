@@ -32143,13 +32143,12 @@ function toVaultRelativeFolderPath(vaultBasePath, selectedFolderPath, platform =
 }
 async function openVaultFolderDialog({
   dialog,
-  parentWindow,
   vaultBasePath,
   platform,
   title
 }) {
   const properties = platform === "darwin" ? ["openDirectory", "createDirectory"] : ["openDirectory", "dontAddToRecent"];
-  const result = await dialog.showOpenDialog(parentWindow, {
+  const result = await dialog.showOpenDialog({
     title,
     defaultPath: vaultBasePath,
     properties
@@ -32173,6 +32172,7 @@ var EMBEDDING_MODELS = {
     id: "Xenova/bge-small-en-v1.5",
     shortName: "bge-small-en-v1.5",
     displayName: "BGE-small-en-v1.5 (33M) \u2014 Default",
+    pooling: "mean",
     queryPrefix: "Represent this sentence for searching relevant passages: ",
     dtype: "q8",
     maxInputChars: 1500,
@@ -32184,6 +32184,7 @@ var EMBEDDING_MODELS = {
     id: "Xenova/all-MiniLM-L6-v2",
     shortName: "all-MiniLM-L6-v2",
     displayName: "all-MiniLM-L6-v2 (22M) \u2014 Fastest",
+    pooling: "mean",
     queryPrefix: "",
     dtype: "q8",
     maxInputChars: 1500,
@@ -32195,6 +32196,7 @@ var EMBEDDING_MODELS = {
     id: "Xenova/bge-small-zh-v1.5",
     shortName: "bge-small-zh",
     displayName: "BGE-small-zh-v1.5 (33M) \u2014 Chinese",
+    pooling: "mean",
     queryPrefix: "Represent this sentence for searching relevant passages: ",
     dtype: "q8",
     maxInputChars: 1500,
@@ -32206,7 +32208,9 @@ var EMBEDDING_MODELS = {
     id: "onnx-community/embeddinggemma-300m-ONNX",
     shortName: "embedding-gemma-300m",
     displayName: "EmbeddingGemma-300M \u2014 Analogy-tuned",
+    pooling: "mean",
     queryPrefix: "task: search result | query: ",
+    documentPrefix: "title: none | text: ",
     dtype: "q8",
     maxInputChars: 4e3,
     size: "300M",
@@ -32216,15 +32220,42 @@ var EMBEDDING_MODELS = {
   "jina-nano": {
     id: "jinaai/jina-embeddings-v5-text-nano-retrieval",
     shortName: "jina-nano",
-    displayName: "Jina Embeddings v5 Nano (239M) \u2014 STS Best",
+    displayName: "Jina Embeddings v5 Nano (239M) \u2014 Non-commercial",
+    pooling: "last_token",
     queryPrefix: "Query: ",
     documentPrefix: "Document: ",
     dtype: "q8",
     localModelDir: "models/jina-nano",
     maxInputChars: 8e3,
     size: "239M",
-    description: "Jina v5 Nano (239M). Top STS / semantic-textual-similarity scores in this lineup. Picks for users whose machine can run 200M+ models.",
-    descriptionZh: "Jina v5 Nano\uFF08239M\uFF09\u3002\u672C\u5217\u8868\u4E2D STS / \u8BED\u4E49\u76F8\u4F3C\u5EA6\u5F97\u5206\u6700\u9AD8\u3002\u9002\u5408\u80FD\u8DD1 200M+ \u6A21\u578B\u7684\u7528\u6237\u3002"
+    description: "Jina v5 Nano (239M). Strong semantic retrieval for machines that can run 200M+ models. CC BY-NC 4.0: commercial use requires a separate Jina license.",
+    descriptionZh: "Jina v5 Nano\uFF08239M\uFF09\u3002\u8BED\u4E49\u68C0\u7D22\u80FD\u529B\u5F3A\uFF0C\u9002\u5408\u80FD\u8DD1 200M+ \u6A21\u578B\u7684\u7528\u6237\u3002\u91C7\u7528 CC BY-NC 4.0\uFF0C\u5546\u4E1A\u4F7F\u7528\u9700\u53E6\u83B7 Jina \u6388\u6743\u3002"
+  },
+  "granite-97m-multilingual-r2": {
+    id: "onnx-community/granite-embedding-97m-multilingual-r2-ONNX",
+    shortName: "granite-97m-multilingual-r2",
+    displayName: "Granite Embedding 97M Multilingual R2 \u2014 Recommended",
+    pooling: "cls",
+    queryPrefix: "",
+    documentPrefix: "",
+    dtype: "q8",
+    maxInputChars: 8e3,
+    size: "97M",
+    description: "Recommended multilingual model. Strong retrieval across 52 priority languages and code, with a 32K-token context window and an Apache 2.0 license.",
+    descriptionZh: "\u63A8\u8350\u7684\u591A\u8BED\u8A00\u6A21\u578B\u3002\u91CD\u70B9\u652F\u6301\u4E2D\u6587\u7B49 52 \u79CD\u8BED\u8A00\u4E0E\u4EE3\u7801\uFF0C\u62E5\u6709 32K \u4E0A\u4E0B\u6587\u7A97\u53E3\uFF0C\u5E76\u91C7\u7528 Apache 2.0 \u8BB8\u53EF\u3002"
+  },
+  "granite-small-english-r2": {
+    id: "onnx-community/granite-embedding-small-english-r2-ONNX",
+    shortName: "granite-small-english-r2",
+    displayName: "Granite Embedding Small English R2 (47M) \u2014 Efficient",
+    pooling: "cls",
+    queryPrefix: "",
+    documentPrefix: "",
+    dtype: "q8",
+    maxInputChars: 8e3,
+    size: "47M",
+    description: "Efficient English retrieval model with an 8K-token context window. A compact upgrade for English vaults and lower-end machines.",
+    descriptionZh: "\u9AD8\u6548\u7684\u82F1\u6587\u68C0\u7D22\u6A21\u578B\uFF0C\u652F\u6301 8K \u4E0A\u4E0B\u6587\u3002\u9002\u5408\u82F1\u6587\u77E5\u8BC6\u5E93\u548C\u914D\u7F6E\u8F83\u4F4E\u7684\u7535\u8111\u3002"
   }
 };
 var DEFAULT_MODEL_KEY = "bge-small-en-v1.5";
@@ -32401,7 +32432,7 @@ var LocalEmbeddingService = class {
             i++;
           }
           const output = await withTimeout(
-            this.embedder(batch, { pooling: "mean", normalize: true }),
+            this.embedder(batch, { pooling: this.options.modelConfig.pooling, normalize: true }),
             EMBEDDING_TIMEOUT_MS,
             `Embedding batch inference (${batch.length} texts)`
           );
@@ -32442,7 +32473,7 @@ var LocalEmbeddingService = class {
       throw new Error("Embedding model not initialized");
     }
     const result = await withTimeout(
-      this.embedder(input, { pooling: "mean", normalize: true }),
+      this.embedder(input, { pooling: this.options.modelConfig.pooling, normalize: true }),
       EMBEDDING_TIMEOUT_MS,
       label
     );
@@ -33702,13 +33733,12 @@ function SettingDetail({ plugin, setting }) {
     }
     try {
       const remote = require("electron")?.remote;
-      if (!remote?.dialog?.showOpenDialog || !remote?.getCurrentWindow) {
+      if (!remote?.dialog?.showOpenDialog) {
         new import_obsidian4.Notice(t("settings.exclude.chooseUnavailable"));
         return;
       }
       const selection = await openVaultFolderDialog({
         dialog: remote.dialog,
-        parentWindow: remote.getCurrentWindow(),
         vaultBasePath: adapter.getBasePath(),
         platform: process.platform,
         title: t("settings.exclude.chooseFolderTitle")
@@ -35339,7 +35369,7 @@ var EmbeddingWorkerClient = class {
       this.pending.delete(id);
     }
   }
-  async initialize(modelId, dtype, cacheDir, modelHost, modelRevision, onProgress, signal) {
+  async initialize(modelId, dtype, pooling, cacheDir, modelHost, modelRevision, onProgress, signal) {
     return this.enqueue(async () => {
       if (signal?.aborted)
         throw new Error("EMBEDDING_INITIALIZATION_CANCELLED");
@@ -35356,7 +35386,7 @@ var EmbeddingWorkerClient = class {
       signal?.addEventListener("abort", abort, { once: true });
       try {
         await this.sendRequest(
-          { id, type: "initialize", modelId, dtype, cacheDir, modelHost, modelRevision },
+          { id, type: "initialize", modelId, dtype, pooling, cacheDir, modelHost, modelRevision },
           true,
           onProgress
         );
@@ -35563,6 +35593,7 @@ var EmbeddingService = class {
         await attemptWorker.initialize(
           this.options.modelConfig.id,
           this.options.modelConfig.dtype,
+          this.options.modelConfig.pooling,
           this.options.cacheDir,
           this.options.remoteHost,
           this.options.modelRevision,
@@ -44155,6 +44186,7 @@ var EmbeddingRuntimeManager = class {
       await client.initialize(
         this.options.smokeModelId ?? "hf-internal-testing/tiny-random-BertModel",
         this.options.smokeDtype ?? "fp32",
+        "mean",
         this.paths.modelCache,
         void 0,
         this.options.smokeModelRevision
@@ -50822,7 +50854,7 @@ var Analogy = class extends import_obsidian9.Plugin {
     await this.loadSettings();
     setLocale(this.settings.uiLanguage || "en");
     const pluginDir = this.getPluginDir();
-    const buildId = "1.2.2+fc7b531.1786122140195" ? "1.2.2+fc7b531.1786122140195" : `${this.manifest.version}+dev`;
+    const buildId = "1.2.3+b589dfa.1786172596953" ? "1.2.3+b589dfa.1786172596953" : `${this.manifest.version}+dev`;
     this.diagnosticRecorder = new DiagnosticRecorder({
       pluginDir,
       pluginVersion: this.manifest.version,
@@ -51018,8 +51050,8 @@ var Analogy = class extends import_obsidian9.Plugin {
         runtimeVaultId
       })
     });
-    const buildId = "1.2.2+fc7b531.1786122140195" ? "1.2.2+fc7b531.1786122140195" : `${this.manifest.version}+dev`;
-    const workerBundleSource = true ? 'var __create = Object.create;\nvar __defProp = Object.defineProperty;\nvar __getOwnPropDesc = Object.getOwnPropertyDescriptor;\nvar __getOwnPropNames = Object.getOwnPropertyNames;\nvar __getProtoOf = Object.getPrototypeOf;\nvar __hasOwnProp = Object.prototype.hasOwnProperty;\nvar __copyProps = (to, from, except, desc) => {\n  if (from && typeof from === "object" || typeof from === "function") {\n    for (let key of __getOwnPropNames(from))\n      if (!__hasOwnProp.call(to, key) && key !== except)\n        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n  }\n  return to;\n};\nvar __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(\n  // If the importer is in node compatibility mode or this is not an ESM\n  // file that has been converted to a CommonJS file using a Babel-\n  // compatible transform (i.e. "__esModule" has not been set), then set\n  // "default" to the CommonJS "module.exports" for node compatibility.\n  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,\n  mod\n));\n\n// src/local-vector/embedding-worker-protocol.ts\nfunction encodeMessage(msg) {\n  return JSON.stringify(msg) + "\\n";\n}\nfunction decodeMessage(line) {\n  const trimmed = line.trim();\n  if (!trimmed)\n    return null;\n  try {\n    return JSON.parse(trimmed);\n  } catch {\n    return null;\n  }\n}\n\n// src/local-vector/embedding.ts\nvar http = __toESM(require("http"));\nvar https = __toESM(require("https"));\nfunction finiteNonNegative(value) {\n  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;\n}\nfunction sanitizeProgressFile(value) {\n  if (typeof value !== "string" || !value.trim())\n    return null;\n  const withoutQuery = value.trim().split(/[?#]/, 1)[0].replace(/\\\\/g, "/");\n  const basename = withoutQuery.slice(withoutQuery.lastIndexOf("/") + 1);\n  if (!basename || basename === "." || basename === "..")\n    return null;\n  try {\n    return decodeURIComponent(basename);\n  } catch {\n    return basename;\n  }\n}\nfunction normalizeEmbeddingInitializationProgress(progressInfo) {\n  if (!progressInfo || typeof progressInfo !== "object")\n    return null;\n  const progress = progressInfo;\n  const status = typeof progress.status === "string" ? progress.status.toLowerCase() : "";\n  let phase;\n  if (status === "ready")\n    phase = "ready";\n  else if (["progress", "download", "downloading", "initiate"].includes(status))\n    phase = "downloading";\n  else if (["done", "loading", "loaded"].includes(status))\n    phase = "loading";\n  else\n    return null;\n  const loadedBytes = finiteNonNegative(progress.loaded);\n  const totalCandidate = finiteNonNegative(progress.total);\n  const totalBytes = totalCandidate !== null && totalCandidate > 0 ? totalCandidate : null;\n  let percent = finiteNonNegative(progress.progress);\n  if (percent !== null && percent <= 1)\n    percent *= 100;\n  if (loadedBytes !== null && totalBytes !== null)\n    percent = loadedBytes / totalBytes * 100;\n  if (phase === "ready")\n    percent = 100;\n  if (percent !== null)\n    percent = Math.max(0, Math.min(100, Math.round(percent * 100) / 100));\n  return {\n    phase,\n    file: sanitizeProgressFile(progress.file),\n    loadedBytes,\n    totalBytes,\n    percent\n  };\n}\n\n// src/local-vector/embedding-worker.ts\nvar import_module = require("module");\nvar path = __toESM(require("path"));\nvar extractor = null;\nvar currentModelId = "";\nfunction logError(message, err) {\n  console.error(`[AnalogyWorker] ${message}`, err instanceof Error ? err.message : "");\n}\nasync function handleInitialize(req) {\n  try {\n    const moduleRoot = process.env.ANALOGY_RUNTIME_MODULE_ROOT;\n    if (!moduleRoot || !path.isAbsolute(moduleRoot)) {\n      throw new Error("ANALOGY_RUNTIME_MODULE_ROOT is required");\n    }\n    const runtimeRequire = (0, import_module.createRequire)(path.join(moduleRoot, "package.json"));\n    runtimeRequire(path.join(moduleRoot, "onnxruntime-node"));\n    const transformers = runtimeRequire(path.join(moduleRoot, "@huggingface", "transformers"));\n    if (req.modelHost) {\n      transformers.env.remoteHost = req.modelHost;\n      transformers.env.remotePathTemplate = "{model}/resolve/{revision}/";\n    }\n    transformers.env.cacheDir = req.cacheDir;\n    extractor = await transformers.pipeline("feature-extraction", req.modelId, {\n      dtype: req.dtype || "q8",\n      cache_dir: req.cacheDir,\n      ...req.modelRevision ? { revision: req.modelRevision } : {},\n      progress_callback: (progressInfo) => {\n        const progress = normalizeEmbeddingInitializationProgress(progressInfo);\n        if (!progress)\n          return;\n        const event = { id: req.id, type: "progress", progress };\n        process.stdout.write(encodeMessage(event));\n      }\n    });\n    currentModelId = req.modelId;\n    process.stdout.write(encodeMessage({\n      id: req.id,\n      type: "progress",\n      progress: {\n        phase: "ready",\n        file: null,\n        loadedBytes: null,\n        totalBytes: null,\n        percent: 100\n      }\n    }));\n    return { id: req.id, ok: true };\n  } catch (err) {\n    logError("initialize failed", err);\n    return {\n      id: req.id,\n      ok: false,\n      error: { code: "WORKER_INIT_FAILED", message: err.message }\n    };\n  }\n}\nasync function handleEmbed(req) {\n  if (!extractor) {\n    return {\n      id: req.id,\n      ok: false,\n      error: { code: "WORKER_NOT_INITIALIZED", message: "Worker not initialized" }\n    };\n  }\n  try {\n    const output = await extractor(req.texts, { pooling: "mean", normalize: true });\n    const dims = output.dims ?? [req.texts.length, output.data.length / req.texts.length];\n    const [batch, dim] = dims;\n    const embeddings = [];\n    for (let i = 0; i < batch; i++) {\n      const row = [];\n      for (let j = 0; j < dim; j++) {\n        row.push(output.data[i * dim + j]);\n      }\n      embeddings.push(row);\n    }\n    return { id: req.id, ok: true, embeddings, memoryUsage: getMemoryUsage() };\n  } catch (err) {\n    logError("embed failed", err);\n    return {\n      id: req.id,\n      ok: false,\n      error: { code: "WORKER_EMBED_FAILED", message: err.message }\n    };\n  }\n}\nasync function handleDispose(req) {\n  try {\n    if (extractor && typeof extractor.dispose === "function") {\n      await extractor.dispose();\n    }\n  } catch (err) {\n    logError("dispose failed", err);\n  }\n  extractor = null;\n  currentModelId = "";\n  return { id: req.id, ok: true };\n}\nfunction handleHealth(req) {\n  return { id: req.id, ok: true, memoryUsage: getMemoryUsage() };\n}\nfunction getMemoryUsage() {\n  const mu = process.memoryUsage();\n  return {\n    rss: Math.round(mu.rss / 1024 / 1024),\n    heapUsed: Math.round(mu.heapUsed / 1024 / 1024),\n    external: Math.round(mu.external / 1024 / 1024)\n  };\n}\nasync function handleRequest(req) {\n  switch (req.type) {\n    case "initialize":\n      return handleInitialize(req);\n    case "embed":\n      return handleEmbed(req);\n    case "dispose":\n      return handleDispose(req);\n    case "health":\n      return handleHealth(req);\n    default:\n      return {\n        id: req.id || "unknown",\n        ok: false,\n        error: { code: "WORKER_UNKNOWN_TYPE", message: "Unknown request type" }\n      };\n  }\n}\nvar buffer = "";\nprocess.stdin.setEncoding("utf-8");\nprocess.stdin.on("data", async (chunk) => {\n  buffer += chunk;\n  let lines = buffer.split("\\n");\n  buffer = lines.pop() || "";\n  for (const line of lines) {\n    const req = decodeMessage(line);\n    if (!req)\n      continue;\n    const response = await handleRequest(req);\n    process.stdout.write(encodeMessage(response));\n  }\n});\nprocess.stdin.on("end", () => {\n  if (buffer.trim()) {\n    const req = decodeMessage(buffer);\n    if (req) {\n      handleRequest(req).then((response) => {\n        process.stdout.write(encodeMessage(response));\n        process.exit(0);\n      });\n      return;\n    }\n  }\n  process.exit(0);\n});\nprocess.on("uncaughtException", (err) => {\n  logError("uncaughtException", err);\n  process.exit(1);\n});\n' : "";
+    const buildId = "1.2.3+b589dfa.1786172596953" ? "1.2.3+b589dfa.1786172596953" : `${this.manifest.version}+dev`;
+    const workerBundleSource = true ? 'var __create = Object.create;\nvar __defProp = Object.defineProperty;\nvar __getOwnPropDesc = Object.getOwnPropertyDescriptor;\nvar __getOwnPropNames = Object.getOwnPropertyNames;\nvar __getProtoOf = Object.getPrototypeOf;\nvar __hasOwnProp = Object.prototype.hasOwnProperty;\nvar __copyProps = (to, from, except, desc) => {\n  if (from && typeof from === "object" || typeof from === "function") {\n    for (let key of __getOwnPropNames(from))\n      if (!__hasOwnProp.call(to, key) && key !== except)\n        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n  }\n  return to;\n};\nvar __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(\n  // If the importer is in node compatibility mode or this is not an ESM\n  // file that has been converted to a CommonJS file using a Babel-\n  // compatible transform (i.e. "__esModule" has not been set), then set\n  // "default" to the CommonJS "module.exports" for node compatibility.\n  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,\n  mod\n));\n\n// src/local-vector/embedding-worker-protocol.ts\nfunction encodeMessage(msg) {\n  return JSON.stringify(msg) + "\\n";\n}\nfunction decodeMessage(line) {\n  const trimmed = line.trim();\n  if (!trimmed)\n    return null;\n  try {\n    return JSON.parse(trimmed);\n  } catch {\n    return null;\n  }\n}\n\n// src/local-vector/embedding.ts\nvar http = __toESM(require("http"));\nvar https = __toESM(require("https"));\nfunction finiteNonNegative(value) {\n  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;\n}\nfunction sanitizeProgressFile(value) {\n  if (typeof value !== "string" || !value.trim())\n    return null;\n  const withoutQuery = value.trim().split(/[?#]/, 1)[0].replace(/\\\\/g, "/");\n  const basename = withoutQuery.slice(withoutQuery.lastIndexOf("/") + 1);\n  if (!basename || basename === "." || basename === "..")\n    return null;\n  try {\n    return decodeURIComponent(basename);\n  } catch {\n    return basename;\n  }\n}\nfunction normalizeEmbeddingInitializationProgress(progressInfo) {\n  if (!progressInfo || typeof progressInfo !== "object")\n    return null;\n  const progress = progressInfo;\n  const status = typeof progress.status === "string" ? progress.status.toLowerCase() : "";\n  let phase;\n  if (status === "ready")\n    phase = "ready";\n  else if (["progress", "download", "downloading", "initiate"].includes(status))\n    phase = "downloading";\n  else if (["done", "loading", "loaded"].includes(status))\n    phase = "loading";\n  else\n    return null;\n  const loadedBytes = finiteNonNegative(progress.loaded);\n  const totalCandidate = finiteNonNegative(progress.total);\n  const totalBytes = totalCandidate !== null && totalCandidate > 0 ? totalCandidate : null;\n  let percent = finiteNonNegative(progress.progress);\n  if (percent !== null && percent <= 1)\n    percent *= 100;\n  if (loadedBytes !== null && totalBytes !== null)\n    percent = loadedBytes / totalBytes * 100;\n  if (phase === "ready")\n    percent = 100;\n  if (percent !== null)\n    percent = Math.max(0, Math.min(100, Math.round(percent * 100) / 100));\n  return {\n    phase,\n    file: sanitizeProgressFile(progress.file),\n    loadedBytes,\n    totalBytes,\n    percent\n  };\n}\n\n// src/local-vector/embedding-worker.ts\nvar import_module = require("module");\nvar path = __toESM(require("path"));\nvar extractor = null;\nvar currentModelId = "";\nvar currentPooling = "mean";\nfunction logError(message, err) {\n  console.error(`[AnalogyWorker] ${message}`, err instanceof Error ? err.message : "");\n}\nasync function handleInitialize(req) {\n  try {\n    const moduleRoot = process.env.ANALOGY_RUNTIME_MODULE_ROOT;\n    if (!moduleRoot || !path.isAbsolute(moduleRoot)) {\n      throw new Error("ANALOGY_RUNTIME_MODULE_ROOT is required");\n    }\n    const runtimeRequire = (0, import_module.createRequire)(path.join(moduleRoot, "package.json"));\n    runtimeRequire(path.join(moduleRoot, "onnxruntime-node"));\n    const transformers = runtimeRequire(path.join(moduleRoot, "@huggingface", "transformers"));\n    if (req.modelHost) {\n      transformers.env.remoteHost = req.modelHost;\n      transformers.env.remotePathTemplate = "{model}/resolve/{revision}/";\n    }\n    transformers.env.cacheDir = req.cacheDir;\n    extractor = await transformers.pipeline("feature-extraction", req.modelId, {\n      dtype: req.dtype || "q8",\n      cache_dir: req.cacheDir,\n      ...req.modelRevision ? { revision: req.modelRevision } : {},\n      progress_callback: (progressInfo) => {\n        const progress = normalizeEmbeddingInitializationProgress(progressInfo);\n        if (!progress)\n          return;\n        const event = { id: req.id, type: "progress", progress };\n        process.stdout.write(encodeMessage(event));\n      }\n    });\n    currentModelId = req.modelId;\n    currentPooling = req.pooling;\n    process.stdout.write(encodeMessage({\n      id: req.id,\n      type: "progress",\n      progress: {\n        phase: "ready",\n        file: null,\n        loadedBytes: null,\n        totalBytes: null,\n        percent: 100\n      }\n    }));\n    return { id: req.id, ok: true };\n  } catch (err) {\n    logError("initialize failed", err);\n    return {\n      id: req.id,\n      ok: false,\n      error: { code: "WORKER_INIT_FAILED", message: err.message }\n    };\n  }\n}\nasync function handleEmbed(req) {\n  if (!extractor) {\n    return {\n      id: req.id,\n      ok: false,\n      error: { code: "WORKER_NOT_INITIALIZED", message: "Worker not initialized" }\n    };\n  }\n  try {\n    const output = await extractor(req.texts, { pooling: currentPooling, normalize: true });\n    const dims = output.dims ?? [req.texts.length, output.data.length / req.texts.length];\n    const [batch, dim] = dims;\n    const embeddings = [];\n    for (let i = 0; i < batch; i++) {\n      const row = [];\n      for (let j = 0; j < dim; j++) {\n        row.push(output.data[i * dim + j]);\n      }\n      embeddings.push(row);\n    }\n    return { id: req.id, ok: true, embeddings, memoryUsage: getMemoryUsage() };\n  } catch (err) {\n    logError("embed failed", err);\n    return {\n      id: req.id,\n      ok: false,\n      error: { code: "WORKER_EMBED_FAILED", message: err.message }\n    };\n  }\n}\nasync function handleDispose(req) {\n  try {\n    if (extractor && typeof extractor.dispose === "function") {\n      await extractor.dispose();\n    }\n  } catch (err) {\n    logError("dispose failed", err);\n  }\n  extractor = null;\n  currentModelId = "";\n  currentPooling = "mean";\n  return { id: req.id, ok: true };\n}\nfunction handleHealth(req) {\n  return { id: req.id, ok: true, memoryUsage: getMemoryUsage() };\n}\nfunction getMemoryUsage() {\n  const mu = process.memoryUsage();\n  return {\n    rss: Math.round(mu.rss / 1024 / 1024),\n    heapUsed: Math.round(mu.heapUsed / 1024 / 1024),\n    external: Math.round(mu.external / 1024 / 1024)\n  };\n}\nasync function handleRequest(req) {\n  switch (req.type) {\n    case "initialize":\n      return handleInitialize(req);\n    case "embed":\n      return handleEmbed(req);\n    case "dispose":\n      return handleDispose(req);\n    case "health":\n      return handleHealth(req);\n    default:\n      return {\n        id: req.id || "unknown",\n        ok: false,\n        error: { code: "WORKER_UNKNOWN_TYPE", message: "Unknown request type" }\n      };\n  }\n}\nvar buffer = "";\nprocess.stdin.setEncoding("utf-8");\nprocess.stdin.on("data", async (chunk) => {\n  buffer += chunk;\n  let lines = buffer.split("\\n");\n  buffer = lines.pop() || "";\n  for (const line of lines) {\n    const req = decodeMessage(line);\n    if (!req)\n      continue;\n    const response = await handleRequest(req);\n    process.stdout.write(encodeMessage(response));\n  }\n});\nprocess.stdin.on("end", () => {\n  if (buffer.trim()) {\n    const req = decodeMessage(buffer);\n    if (req) {\n      handleRequest(req).then((response) => {\n        process.stdout.write(encodeMessage(response));\n        process.exit(0);\n      });\n      return;\n    }\n  }\n  process.exit(0);\n});\nprocess.on("uncaughtException", (err) => {\n  logError("uncaughtException", err);\n  process.exit(1);\n});\n' : "";
     const embeddingRuntimeManager = new EmbeddingRuntimeManager({
       paths,
       platform,
@@ -52085,7 +52117,7 @@ var Analogy = class extends import_obsidian9.Plugin {
     const coordinator = lifecycle.coordinator;
     if (!coordinator)
       return;
-    const buildId = "1.2.2+fc7b531.1786122140195" ? "1.2.2+fc7b531.1786122140195" : `${this.manifest.version}+dev`;
+    const buildId = "1.2.3+b589dfa.1786172596953" ? "1.2.3+b589dfa.1786172596953" : `${this.manifest.version}+dev`;
     const modal = new OnboardingModal(this.app, {
       coordinator,
       mode,

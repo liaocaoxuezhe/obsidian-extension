@@ -10,6 +10,7 @@ import {
   type WorkerProgressResponse,
 } from "./embedding-worker-protocol";
 import { normalizeEmbeddingInitializationProgress } from "./embedding";
+import type { EmbeddingPooling } from "./embedding";
 import { createRequire } from "module";
 import * as path from "path";
 
@@ -22,6 +23,7 @@ interface ExtractorLike {
 
 let extractor: ExtractorLike | null = null;
 let currentModelId = "";
+let currentPooling: EmbeddingPooling = "mean";
 
 function logError(message: string, err?: unknown): void {
   // Keep stderr minimal and never include input text.
@@ -54,6 +56,7 @@ async function handleInitialize(req: WorkerInitializeRequest): Promise<WorkerRes
       },
     });
     currentModelId = req.modelId;
+    currentPooling = req.pooling;
     process.stdout.write(encodeMessage({
       id: req.id,
       type: "progress",
@@ -85,7 +88,7 @@ async function handleEmbed(req: WorkerEmbedRequest): Promise<WorkerResponse> {
     };
   }
   try {
-    const output = await extractor(req.texts, { pooling: "mean", normalize: true });
+    const output = await extractor(req.texts, { pooling: currentPooling, normalize: true });
     const dims = output.dims ?? [req.texts.length, output.data.length / req.texts.length];
     const [batch, dim] = dims;
     const embeddings: number[][] = [];
@@ -117,6 +120,7 @@ async function handleDispose(req: WorkerDisposeRequest): Promise<WorkerResponse>
   }
   extractor = null;
   currentModelId = "";
+  currentPooling = "mean";
   return { id: req.id, ok: true };
 }
 

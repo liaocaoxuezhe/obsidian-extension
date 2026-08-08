@@ -57,6 +57,7 @@ async function loadEmbeddingService() {
                     globalThis.__embeddingSafetyState.workerConstructed += 1;
                   }
                   async initialize() {
+                    globalThis.__embeddingSafetyState.workerInitializeArgs = [...arguments];
                     globalThis.__embeddingSafetyState.workerInitialized += 1;
                     if (globalThis.__embeddingSafetyState.workerInitError) {
                       throw new Error(globalThis.__embeddingSafetyState.workerInitError);
@@ -113,6 +114,7 @@ function makeOptions(pluginDir, overrides = {}) {
       id: "test/model",
       shortName: "test-model",
       dtype: "q8",
+      pooling: "mean",
       maxInputChars: 1000,
       queryPrefix: "",
       documentPrefix: "",
@@ -215,6 +217,11 @@ async function expectServiceError(promise, expectedCode) {
       workerBundleSource: "// worker fixture\n",
     }));
     await failedEmbedService.initialize();
+    assert.strictEqual(
+      globalThis.__embeddingSafetyState.workerInitializeArgs[2],
+      "mean",
+      "embedding service must forward the configured pooling strategy to the worker client",
+    );
     await expectServiceError(
       failedEmbedService.embedBatch(["hello"]),
       "EMBEDDING_WORKER_FAILED",

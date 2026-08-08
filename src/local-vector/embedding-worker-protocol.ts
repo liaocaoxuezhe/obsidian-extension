@@ -14,6 +14,7 @@ export interface WorkerInitializeRequest {
   type: "initialize";
   modelId: string;
   dtype: string;
+  pooling: "mean" | "cls" | "last_token";
   cacheDir: string;
   modelHost?: string;
   modelRevision?: string;

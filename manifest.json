@@ -1,7 +1,7 @@
 {
 	"id": "analogy-rag-in-your-vault",
 	"name": "Analogy - RAG in your vault",
-	"version": "1.2.2",
+	"version": "1.2.3",
 	"minAppVersion": "1.12.7",
 	"description": "Search your vault semantically with local vector embeddings and expose RAG search to MCP clients.",
 	"author": "liaocaoxuezhe",

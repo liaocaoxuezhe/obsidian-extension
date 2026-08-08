@@ -25,7 +25,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish the verified runtime release after the supported native jobs pass
+        description: Publish the verified runtime release after all three native jobs pass
         type: boolean
         default: false
       runtime_tag:
@@ -51,6 +51,10 @@ jobs:
             platform: darwin
             arch: arm64
             key: darwin-arm64
+          - os: macos-15-intel
+            platform: darwin
+            arch: x64
+            key: darwin-x64
           - os: windows-2025
             platform: win32
             arch: x64
@@ -80,8 +84,21 @@ jobs:
         run: npm run build
       - name: Run unit, contract, worker, Chroma and Community harnesses
         run: npm run test:runtime
+      - name: Build pinned ONNX Runtime 1.26.0 Intel overlay
+        if: matrix.key == 'darwin-x64'
+        shell: bash
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/microsoft/onnxruntime "$RUNNER_TEMP/onnxruntime"
+          git -C "$RUNNER_TEMP/onnxruntime" checkout 8c546c37b43caaca1fa25db430dab94b901cf277
+          git -C "$RUNNER_TEMP/onnxruntime" submodule update --init --recursive --depth 1
+          "$RUNNER_TEMP/onnxruntime/build.sh" --config Release --parallel --skip_tests --build_shared_lib --build_nodejs --cmake_extra_defines CMAKE_OSX_ARCHITECTURES=x86_64
+          node scripts/package-ort-native-overlay.mjs --input "$RUNNER_TEMP/onnxruntime/build" --output "$RUNNER_TEMP/ort-overlay"
       - name: Build native embedding runtime
+        if: matrix.key != 'darwin-x64'
         run: node scripts/build-embedding-runtime.mjs --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --node-version 22.23.2 --output dist/runtime
+      - name: Build native embedding runtime with Intel overlay
+        if: matrix.key == 'darwin-x64'
+        run: node scripts/build-embedding-runtime.mjs --platform darwin --arch x64 --node-version 22.23.2 --output dist/runtime --ort-native-overlay ${{ runner.temp }}/ort-overlay
       - name: Run fresh-cache native inference smoke
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: node scripts/run-native-runtime-smoke.mjs --platform ${{ matrix.key }} --input dist/runtime --output dist/runtime/native-smoke-statement.json
@@ -128,7 +145,7 @@ jobs:
           pattern: completed-runtime-*
           path: dist/runtime
           merge-multiple: true
-      - name: Merge and validate the supported-platform manifest
+      - name: Merge and validate the exact three-platform manifest
         run: |
           node scripts/generate-runtime-manifest.mjs --input dist/runtime --output src/runtime/generated-embedding-runtime-manifest.ts --base-url "https://github.com/${{ github.repository }}/releases/download/${{ inputs.runtime_tag }}"
           node scripts/prepare-release.mjs --runtime-only --runtime-staging dist/runtime

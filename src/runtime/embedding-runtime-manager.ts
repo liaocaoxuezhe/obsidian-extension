@@ -342,6 +342,7 @@ export class EmbeddingRuntimeManager {
       await client.initialize(
         this.options.smokeModelId ?? "hf-internal-testing/tiny-random-BertModel",
         this.options.smokeDtype ?? "fp32",
+        "mean",
         this.paths.modelCache,
         undefined,
         this.options.smokeModelRevision,
