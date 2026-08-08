@@ -1,5 +1,8 @@
 export const app: string = "obsidian"
-export const appVersion: string = "1.0.0"
+// Keep every UI/API version report bound to the installed plugin manifest.
+// esbuild resolves this static require at build time, so the value cannot drift
+// from manifest.json when a release version changes.
+export const appVersion: string = require("../../manifest.json").version
 
 export const PageAuthListKey = "pageAuthList"
 export const PageListTreeKey = "pageListTree"

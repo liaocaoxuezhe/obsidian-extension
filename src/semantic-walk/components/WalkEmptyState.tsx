@@ -2,31 +2,23 @@ import React from "react";
 import { t } from "../../util/i18n";
 
 export interface WalkEmptyStateProps {
-  currentDocumentPath?: string | null;
-  onOpenCurrentDocument: () => void;
-  onOpenSearch: () => void;
+  onChooseNote: () => void;
+  onOpenFreeText: () => void;
   onPickRandom: () => void;
   feedback?: string | null;
   busy?: boolean;
   disabledReason?: string | null;
 }
 
-export function getDocumentName(documentPath: string): string {
-  const fileName = documentPath.split(/[\\/]/).pop() || documentPath;
-  return fileName.replace(/\.md$/i, "");
-}
-
 export function WalkEmptyState({
-  currentDocumentPath,
-  onOpenCurrentDocument,
-  onOpenSearch,
+  onChooseNote,
+  onOpenFreeText,
   onPickRandom,
   feedback,
   busy = false,
   disabledReason,
 }: WalkEmptyStateProps): JSX.Element {
-  const hasMarkdownDocument = Boolean(currentDocumentPath?.toLowerCase().endsWith(".md"));
-  const currentDocumentName = hasMarkdownDocument ? getDocumentName(currentDocumentPath || "") : "";
+  const disabled = busy || Boolean(disabledReason);
 
   return (
     <section className="semantic-walk-empty" aria-labelledby="semantic-walk-empty-title">
@@ -37,18 +29,18 @@ export function WalkEmptyState({
       <div className="semantic-walk-empty__entries">
         <button
           type="button"
-          onClick={onOpenCurrentDocument}
-          disabled={!hasMarkdownDocument || busy || Boolean(disabledReason)}
-          title={disabledReason || (hasMarkdownDocument ? t("semanticWalk.currentDocumentTitle").replace("{path}", currentDocumentName) : t("semanticWalk.noMarkdownDocument"))}
+          onClick={onChooseNote}
+          disabled={disabled}
+          title={disabledReason || undefined}
         >
-          <strong>{t("semanticWalk.currentDocument")}</strong>
-          <span>{hasMarkdownDocument ? currentDocumentName : t("semanticWalk.noMarkdownDocument")}</span>
+          <strong>{t("semanticWalk.chooseNote")}</strong>
+          <span>{t("semanticWalk.chooseNoteDescription")}</span>
         </button>
-        <button type="button" onClick={onOpenSearch} disabled={busy || Boolean(disabledReason)}>
-          <strong>{t("semanticWalk.searchChunks")}</strong>
-          <span>{t("semanticWalk.searchDescription")}</span>
+        <button type="button" onClick={onOpenFreeText} disabled={disabled} title={disabledReason || undefined}>
+          <strong>{t("semanticWalk.freeExplore")}</strong>
+          <span>{t("semanticWalk.freeExploreDescription")}</span>
         </button>
-        <button type="button" onClick={onPickRandom} disabled={busy || Boolean(disabledReason)}>
+        <button type="button" onClick={onPickRandom} disabled={disabled} title={disabledReason || undefined}>
           <strong>{t("semanticWalk.random")}</strong>
           <span>{t("semanticWalk.randomDescription")}</span>
         </button>

@@ -40,6 +40,7 @@ export const ChunkNodeCard = memo(function ChunkNodeCard({
   onOpenDocumentChunks,
   onHide,
 }: ChunkNodeCardProps): JSX.Element {
+  const hasSourceDocument = Boolean(node.chunk.path);
   const dragRef = useRef<DragState | null>(null);
   const frameRef = useRef<number | null>(null);
   const pendingPositionRef = useRef<{ x: number; y: number } | null>(null);
@@ -133,8 +134,6 @@ export const ChunkNodeCard = memo(function ChunkNodeCard({
     node.validity !== "valid" ? `is-${node.validity}` : "",
     compact ? "is-compact" : "",
   ].filter(Boolean).join(" ");
-  const sectionLabel = node.chunk.sectionLabel.trim();
-
   return (
     <article
       className={cardClassName}
@@ -155,19 +154,26 @@ export const ChunkNodeCard = memo(function ChunkNodeCard({
       onKeyDown={handleKeyDown}
     >
       <header className="semantic-walk-node__header">
-        <button
-          type="button"
-          className="semantic-walk-node__source"
-          title={t("semanticWalk.viewDocumentChunks").replace("{title}", node.chunk.title)}
-          onClick={(event) => {
-            event.stopPropagation();
-            onOpenDocumentChunks?.(node.id);
-          }}
-          disabled={!onOpenDocumentChunks}
-        >
-          <span className="semantic-walk-node__source-mark" aria-hidden="true" />
-          <span>{node.chunk.title}</span>
-        </button>
+        {hasSourceDocument ? (
+          <button
+            type="button"
+            className="semantic-walk-node__source"
+            title={t("semanticWalk.viewDocumentChunks").replace("{title}", node.chunk.title)}
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpenDocumentChunks?.(node.id);
+            }}
+            disabled={!onOpenDocumentChunks}
+          >
+            <span className="semantic-walk-node__source-mark" aria-hidden="true" />
+            <span>{node.chunk.title}</span>
+          </button>
+        ) : (
+          <div className="semantic-walk-node__source semantic-walk-node__source--virtual">
+            <span className="semantic-walk-node__source-mark" aria-hidden="true" />
+            <span>{node.chunk.title}</span>
+          </div>
+        )}
       </header>
 
       <div className="semantic-walk-node__meta">
@@ -175,12 +181,6 @@ export const ChunkNodeCard = memo(function ChunkNodeCard({
         {relationBand ? <span title={t("semanticWalk.relationHint")}>{relationLabel(relationBand)}</span> : null}
         {node.positionMode === "manual" ? <span>{t("semanticWalk.manualPosition")}</span> : null}
       </div>
-
-      {sectionLabel ? (
-        <div className="semantic-walk-node__section" title={sectionLabel}>
-          {sectionLabel}
-        </div>
-      ) : null}
 
       <div
         className="semantic-walk-node__content"
@@ -215,10 +215,12 @@ export const ChunkNodeCard = memo(function ChunkNodeCard({
         <button type="button" onClick={(event) => onView(node.id, event.currentTarget)}>
           {t("semanticWalk.viewChunk")}
         </button>
-        <button type="button" onClick={() => onOpenDocument?.(node.id)} disabled={!onOpenDocument || node.validity !== "valid"}>
-          {t("semanticWalk.openSource")}
-        </button>
-        {node.validity !== "valid" ? (
+        {hasSourceDocument ? (
+          <button className="semantic-walk-node__open-source" type="button" onClick={() => onOpenDocument?.(node.id)} disabled={!onOpenDocument || node.validity !== "valid"}>
+            {t("semanticWalk.openSource")}
+          </button>
+        ) : null}
+        {hasSourceDocument && node.validity !== "valid" ? (
           <button type="button" onClick={() => onOpenDocumentChunks?.(node.id)} disabled={!onOpenDocumentChunks}>
             {t("semanticWalk.viewNewChunks")}
           </button>

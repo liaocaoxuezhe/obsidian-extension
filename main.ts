@@ -64,6 +64,10 @@ import {
 	type RuntimeControlSurfaceCapability,
 } from "./src/runtime/runtime-control-surface";
 import {
+	McpServerManager,
+	type McpServiceState,
+} from "./src/mcp/mcp-server-manager";
+import {
 	ChromaDataMigration,
 	createChromaDataGeneration,
 	createDeviceLocalIndexStateStore,
@@ -146,6 +150,7 @@ export default class Analogy extends Plugin {
 	private diagnosticRecorder: DiagnosticRecorder | null = null;
 	private safeModeManager: SafeModeManager | null = null;
 	private semanticWalkActivationQueue: Promise<void> = Promise.resolve();
+	private mcpServerManager: McpServerManager | null = null;
 
 	getSafeModeState(): SafeModeState {
 		return this.safeModeManager?.getState() ?? {
@@ -1573,6 +1578,62 @@ export default class Analogy extends Plugin {
 		};
 	}
 
+	getMcpServerConfig(): { json: string; serverPath: string; serverReady: boolean } {
+		const vaultPath = ((this.app.vault.adapter as any)?.basePath as string | undefined) ?? "";
+		const pluginDir = this.getPluginDir();
+		const serverPath = path.join(pluginDir, "mcp-server", "dist", "index.js");
+		const config = {
+			mcpServers: {
+				"analogy-vault": {
+					command: "node",
+					args: [serverPath],
+					env: {
+						ANALOGY_VAULT_PATH: vaultPath,
+						ANALOGY_PLUGIN_DIR: pluginDir,
+						ANALOGY_MODEL: this.settings.embeddingModel || DEFAULT_MODEL_KEY,
+					},
+				},
+			},
+		};
+		return {
+			json: JSON.stringify(config, null, 2),
+			serverPath,
+			serverReady: fs.existsSync(serverPath),
+		};
+	}
+
+	getMcpServiceState(): McpServiceState {
+		return this.mcpServerManager?.getState() ?? { status: "stopped", message: "" };
+	}
+
+	onMcpServiceStateChange(listener: () => void): () => void {
+		return this.getOrCreateMcpServerManager().subscribe(listener);
+	}
+
+	async startMcpService(): Promise<void> {
+		await this.getOrCreateMcpServerManager().start();
+	}
+
+	async stopMcpService(): Promise<void> {
+		await this.getOrCreateMcpServerManager().stop();
+	}
+
+	private getOrCreateMcpServerManager(): McpServerManager {
+		if (!this.mcpServerManager) {
+			const pluginDir = this.getPluginDir();
+			const vaultPath = ((this.app.vault.adapter as any)?.basePath as string | undefined) ?? "";
+			this.mcpServerManager = new McpServerManager({
+				serverDir: path.join(pluginDir, "mcp-server"),
+				env: {
+					ANALOGY_VAULT_PATH: vaultPath,
+					ANALOGY_PLUGIN_DIR: pluginDir,
+					ANALOGY_MODEL: this.settings.embeddingModel || DEFAULT_MODEL_KEY,
+				},
+			});
+		}
+		return this.mcpServerManager;
+	}
+
 	async onunload() {
 		this.unloading = true;
 		this.lifecycleGeneration += 1;
@@ -1580,6 +1641,10 @@ export default class Analogy extends Plugin {
 		this.layoutReadyAbort = null;
 		this.onboardingModal?.close();
 		this.onboardingModal = null;
+		if (this.mcpServerManager) {
+			await this.mcpServerManager.dispose();
+			this.mcpServerManager = null;
+		}
 		this.diagnosticRecorder?.updateStage("plugin.unload", "plugin.unload.start");
 		void this.initLocalServicesPromise?.catch(() => undefined);
 		const bootstrap = this.localServiceBootstrap;

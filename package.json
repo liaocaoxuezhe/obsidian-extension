@@ -1,6 +1,6 @@
 {
 	"name": "analogy-rag-in-your-vault",
-	"version": "1.2.3",
+	"version": "1.2.4",
 	"description": "Obsidian plugin for local vault RAG with semantic search and MCP access.",
 	"main": "main.js",
 	"scripts": {
@@ -21,7 +21,7 @@
 		"setup:local": "node scripts/install-local-runtime.mjs",
 		"release:prepare": "npm run build && node scripts/prepare-release.mjs",
 		"release:prepare:development": "npm run build && node scripts/prepare-release.mjs --allow-development-runtime-fixture",
-		"release:verify:local-plugin": "node scripts/verify-local-plugin-artifact.mjs release/1.2.3/community",
+		"release:verify:local-plugin": "node scripts/verify-local-plugin-artifact.mjs release/1.2.4/community",
 		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
 	"keywords": [

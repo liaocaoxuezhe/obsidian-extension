@@ -321,6 +321,15 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
   const [excludedPaths, setExcludedPaths] = useState<string[]>(plugin.settings.excludedIndexPaths || []);
   const [newPathInput, setNewPathInput] = useState("");
   const [language, setLanguage] = useState<Locale>(plugin.settings.uiLanguage || "en");
+  const [mcpServiceState, setMcpServiceState] = useState(() => plugin.getMcpServiceState());
+
+  useEffect(() => {
+    return plugin.onMcpServiceStateChange(() => {
+      setMcpServiceState(plugin.getMcpServiceState());
+    });
+  }, [plugin]);
+
+  const mcpConfig = plugin.getMcpServerConfig();
 
   useEffect(() => {
     setLocale(plugin.settings.uiLanguage || "en");
@@ -873,6 +882,35 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     } catch (error) {
       console.error("[Analogy] Failed to copy support email:", error);
       new Notice(t("settings.feedback.copyFailed"));
+    }
+  }
+
+  async function copyMcpJson() {
+    try {
+      await navigator.clipboard.writeText(mcpConfig.json);
+      new Notice(t("settings.mcp.copied"));
+    } catch (error) {
+      console.error("[Analogy] Failed to copy MCP JSON:", error);
+      new Notice(t("settings.mcp.copyFailed"));
+    }
+  }
+
+  async function startMcpService() {
+    try {
+      await plugin.startMcpService();
+    } catch (error) {
+      console.error("[Analogy] Failed to start MCP service:", error);
+      new Notice(t("settings.mcp.startFailed", { message: (error as Error).message }));
+    }
+  }
+
+  async function stopMcpService() {
+    try {
+      await plugin.stopMcpService();
+      new Notice(t("settings.mcp.stopped"));
+    } catch (error) {
+      console.error("[Analogy] Failed to stop MCP service:", error);
+      new Notice(t("settings.mcp.stopFailed", { message: (error as Error).message }));
     }
   }
 
@@ -1766,6 +1804,69 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
               {statusFilter !== "all" || searchQuery
                 ? ` (${t("settings.docs.totalCount", { count: statusCounts.total })})`
                 : ""}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+      </section>
+
+      <section className="analogy-settings__section" aria-labelledby="analogy-settings-mcp">
+        <SettingsSectionHeader
+          id="analogy-settings-mcp"
+          title={t("settings.section.mcp")}
+          description={t("settings.section.mcpDescription")}
+        />
+
+      <Card className="analogy-settings-card">
+        <CardHeader>
+          <CardTitle className="text-base">{t("settings.section.mcp")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm text-[#444444] leading-relaxed">
+            {t("settings.mcp.description")}
+          </div>
+
+          {mcpServiceState.status === "running" ? (
+            <>
+              <pre className="whitespace-pre-wrap text-xs text-[#666666] mt-3 bg-[#fafafa] border border-[#f0f0f0] rounded-md px-3 py-2 font-mono">
+{mcpConfig.json}
+              </pre>
+              <div className="analogy-settings-actions mt-3">
+                <Button size="sm" onClick={copyMcpJson}>{t("settings.mcp.copy")}</Button>
+                <Button size="sm" variant="secondary" onClick={stopMcpService}>
+                  {t("settings.mcp.stop")}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="analogy-settings-actions mt-3">
+              <Button
+                size="sm"
+                onClick={startMcpService}
+                disabled={mcpServiceState.status === "building" || mcpServiceState.status === "starting"}
+              >
+                {mcpServiceState.status === "building"
+                  ? t("settings.mcp.building")
+                  : mcpServiceState.status === "starting"
+                    ? t("settings.mcp.starting")
+                    : t("settings.mcp.start")}
+              </Button>
+              {mcpServiceState.status === "error" && (
+                <span className="text-xs text-[#e74c3c] max-w-[340px] break-words" title={mcpServiceState.message}>
+                  {mcpServiceState.message}
+                </span>
+              )}
+            </div>
+          )}
+
+          {mcpServiceState.status === "stopped" && (
+            <div className="text-xs text-[#888888] mt-2 leading-relaxed">
+              {t("settings.mcp.startHint")}
+            </div>
+          )}
+          {mcpServiceState.status === "running" && (
+            <div className="text-xs text-[#888888] mt-2 leading-relaxed">
+              {t("settings.mcp.note")}
             </div>
           )}
         </CardContent>

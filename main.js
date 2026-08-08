@@ -1094,7 +1094,7 @@ var require_react_development = __commonJS({
           }
           return dispatcher.useContext(Context);
         }
-        function useState20(initialState2) {
+        function useState21(initialState2) {
           var dispatcher = resolveDispatcher();
           return dispatcher.useState(initialState2);
         }
@@ -1897,7 +1897,7 @@ var require_react_development = __commonJS({
         exports.useMemo = useMemo10;
         exports.useReducer = useReducer2;
         exports.useRef = useRef17;
-        exports.useState = useState20;
+        exports.useState = useState21;
         exports.useSyncExternalStore = useSyncExternalStore;
         exports.useTransition = useTransition;
         exports.version = ReactVersion;
@@ -2393,9 +2393,9 @@ var require_react_dom_development = __commonJS({
         if (typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ !== "undefined" && typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart === "function") {
           __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStart(new Error());
         }
-        var React42 = require_react();
+        var React43 = require_react();
         var Scheduler = require_scheduler();
-        var ReactSharedInternals = React42.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React43.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         var suppressWarning = false;
         function setSuppressWarning(newSuppressWarning) {
           {
@@ -2444,7 +2444,7 @@ var require_react_dom_development = __commonJS({
         var HostPortal = 4;
         var HostComponent = 5;
         var HostText = 6;
-        var Fragment9 = 7;
+        var Fragment10 = 7;
         var Mode = 8;
         var ContextConsumer = 9;
         var ContextProvider = 10;
@@ -3600,7 +3600,7 @@ var require_react_dom_development = __commonJS({
               return "DehydratedFragment";
             case ForwardRef:
               return getWrappedName$1(type, type.render, "ForwardRef");
-            case Fragment9:
+            case Fragment10:
               return "Fragment";
             case HostComponent:
               return type;
@@ -4000,7 +4000,7 @@ var require_react_dom_development = __commonJS({
           {
             if (props.value == null) {
               if (typeof props.children === "object" && props.children !== null) {
-                React42.Children.forEach(props.children, function(child) {
+                React43.Children.forEach(props.children, function(child) {
                   if (child == null) {
                     return;
                   }
@@ -4499,7 +4499,7 @@ var require_react_dom_development = __commonJS({
         function createDangerousStringForStyles(styles) {
           {
             var serialized = "";
-            var delimiter = "";
+            var delimiter2 = "";
             for (var styleName in styles) {
               if (!styles.hasOwnProperty(styleName)) {
                 continue;
@@ -4507,9 +4507,9 @@ var require_react_dom_development = __commonJS({
               var styleValue = styles[styleName];
               if (styleValue != null) {
                 var isCustomProperty = styleName.indexOf("--") === 0;
-                serialized += delimiter + (isCustomProperty ? styleName : hyphenateStyleName(styleName)) + ":";
+                serialized += delimiter2 + (isCustomProperty ? styleName : hyphenateStyleName(styleName)) + ":";
                 serialized += dangerousStyleValue(styleName, styleValue, isCustomProperty);
-                delimiter = ";";
+                delimiter2 = ";";
               }
             }
             return serialized || null;
@@ -12001,7 +12001,7 @@ var require_react_dom_development = __commonJS({
             }
           }
           function updateFragment2(returnFiber, current2, fragment, lanes, key) {
-            if (current2 === null || current2.tag !== Fragment9) {
+            if (current2 === null || current2.tag !== Fragment10) {
               var created = createFiberFromFragment(fragment, returnFiber.mode, lanes, key);
               created.return = returnFiber;
               return created;
@@ -12404,7 +12404,7 @@ var require_react_dom_development = __commonJS({
               if (child.key === key) {
                 var elementType = element.type;
                 if (elementType === REACT_FRAGMENT_TYPE) {
-                  if (child.tag === Fragment9) {
+                  if (child.tag === Fragment10) {
                     deleteRemainingChildren(returnFiber, child.sibling);
                     var existing = useFiber(child, element.props.children);
                     existing.return = returnFiber;
@@ -17881,7 +17881,7 @@ var require_react_dom_development = __commonJS({
               var _resolvedProps2 = workInProgress2.elementType === type ? _unresolvedProps2 : resolveDefaultProps(type, _unresolvedProps2);
               return updateForwardRef(current2, workInProgress2, type, _resolvedProps2, renderLanes2);
             }
-            case Fragment9:
+            case Fragment10:
               return updateFragment(current2, workInProgress2, renderLanes2);
             case Mode:
               return updateMode(current2, workInProgress2, renderLanes2);
@@ -18154,7 +18154,7 @@ var require_react_dom_development = __commonJS({
             case SimpleMemoComponent:
             case FunctionComponent:
             case ForwardRef:
-            case Fragment9:
+            case Fragment10:
             case Mode:
             case Profiler:
             case ContextConsumer:
@@ -22413,7 +22413,7 @@ var require_react_dom_development = __commonJS({
           return fiber;
         }
         function createFiberFromFragment(elements, mode, lanes, key) {
-          var fiber = createFiber(Fragment9, elements, key, mode);
+          var fiber = createFiber(Fragment10, elements, key, mode);
           fiber.lanes = lanes;
           return fiber;
         }
@@ -22825,10 +22825,10 @@ var require_react_dom_development = __commonJS({
         var setErrorHandler = null;
         var setSuspenseHandler = null;
         {
-          var copyWithDeleteImpl = function(obj, path20, index2) {
-            var key = path20[index2];
+          var copyWithDeleteImpl = function(obj, path21, index2) {
+            var key = path21[index2];
             var updated = isArray(obj) ? obj.slice() : assign({}, obj);
-            if (index2 + 1 === path20.length) {
+            if (index2 + 1 === path21.length) {
               if (isArray(updated)) {
                 updated.splice(key, 1);
               } else {
@@ -22836,11 +22836,11 @@ var require_react_dom_development = __commonJS({
               }
               return updated;
             }
-            updated[key] = copyWithDeleteImpl(obj[key], path20, index2 + 1);
+            updated[key] = copyWithDeleteImpl(obj[key], path21, index2 + 1);
             return updated;
           };
-          var copyWithDelete = function(obj, path20) {
-            return copyWithDeleteImpl(obj, path20, 0);
+          var copyWithDelete = function(obj, path21) {
+            return copyWithDeleteImpl(obj, path21, 0);
           };
           var copyWithRenameImpl = function(obj, oldPath, newPath, index2) {
             var oldKey = oldPath[index2];
@@ -22878,17 +22878,17 @@ var require_react_dom_development = __commonJS({
             }
             return copyWithRenameImpl(obj, oldPath, newPath, 0);
           };
-          var copyWithSetImpl = function(obj, path20, index2, value) {
-            if (index2 >= path20.length) {
+          var copyWithSetImpl = function(obj, path21, index2, value) {
+            if (index2 >= path21.length) {
               return value;
             }
-            var key = path20[index2];
+            var key = path21[index2];
             var updated = isArray(obj) ? obj.slice() : assign({}, obj);
-            updated[key] = copyWithSetImpl(obj[key], path20, index2 + 1, value);
+            updated[key] = copyWithSetImpl(obj[key], path21, index2 + 1, value);
             return updated;
           };
-          var copyWithSet = function(obj, path20, value) {
-            return copyWithSetImpl(obj, path20, 0, value);
+          var copyWithSet = function(obj, path21, value) {
+            return copyWithSetImpl(obj, path21, 0, value);
           };
           var findHook = function(fiber, id) {
             var currentHook2 = fiber.memoizedState;
@@ -22898,10 +22898,10 @@ var require_react_dom_development = __commonJS({
             }
             return currentHook2;
           };
-          overrideHookState = function(fiber, id, path20, value) {
+          overrideHookState = function(fiber, id, path21, value) {
             var hook = findHook(fiber, id);
             if (hook !== null) {
-              var newState = copyWithSet(hook.memoizedState, path20, value);
+              var newState = copyWithSet(hook.memoizedState, path21, value);
               hook.memoizedState = newState;
               hook.baseState = newState;
               fiber.memoizedProps = assign({}, fiber.memoizedProps);
@@ -22911,10 +22911,10 @@ var require_react_dom_development = __commonJS({
               }
             }
           };
-          overrideHookStateDeletePath = function(fiber, id, path20) {
+          overrideHookStateDeletePath = function(fiber, id, path21) {
             var hook = findHook(fiber, id);
             if (hook !== null) {
-              var newState = copyWithDelete(hook.memoizedState, path20);
+              var newState = copyWithDelete(hook.memoizedState, path21);
               hook.memoizedState = newState;
               hook.baseState = newState;
               fiber.memoizedProps = assign({}, fiber.memoizedProps);
@@ -22937,8 +22937,8 @@ var require_react_dom_development = __commonJS({
               }
             }
           };
-          overrideProps = function(fiber, path20, value) {
-            fiber.pendingProps = copyWithSet(fiber.memoizedProps, path20, value);
+          overrideProps = function(fiber, path21, value) {
+            fiber.pendingProps = copyWithSet(fiber.memoizedProps, path21, value);
             if (fiber.alternate) {
               fiber.alternate.pendingProps = fiber.pendingProps;
             }
@@ -22947,8 +22947,8 @@ var require_react_dom_development = __commonJS({
               scheduleUpdateOnFiber(root2, fiber, SyncLane, NoTimestamp);
             }
           };
-          overridePropsDeletePath = function(fiber, path20) {
-            fiber.pendingProps = copyWithDelete(fiber.memoizedProps, path20);
+          overridePropsDeletePath = function(fiber, path21) {
+            fiber.pendingProps = copyWithDelete(fiber.memoizedProps, path21);
             if (fiber.alternate) {
               fiber.alternate.pendingProps = fiber.pendingProps;
             }
@@ -23569,7 +23569,7 @@ var require_react_jsx_runtime_development = __commonJS({
     if (true) {
       (function() {
         "use strict";
-        var React42 = require_react();
+        var React43 = require_react();
         var REACT_ELEMENT_TYPE = Symbol.for("react.element");
         var REACT_PORTAL_TYPE = Symbol.for("react.portal");
         var REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
@@ -23595,7 +23595,7 @@ var require_react_jsx_runtime_development = __commonJS({
           }
           return null;
         }
-        var ReactSharedInternals = React42.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
+        var ReactSharedInternals = React43.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED;
         function error(format) {
           {
             {
@@ -24445,11 +24445,11 @@ var require_react_jsx_runtime_development = __commonJS({
             return jsxWithValidation(type, props, key, false);
           }
         }
-        var jsx34 = jsxWithValidationDynamic;
-        var jsxs20 = jsxWithValidationStatic;
+        var jsx35 = jsxWithValidationDynamic;
+        var jsxs21 = jsxWithValidationStatic;
         exports.Fragment = REACT_FRAGMENT_TYPE;
-        exports.jsx = jsx34;
-        exports.jsxs = jsxs20;
+        exports.jsx = jsx35;
+        exports.jsxs = jsxs21;
       })();
     }
   }
@@ -24464,6 +24464,22 @@ var require_jsx_runtime = __commonJS({
     } else {
       module2.exports = require_react_jsx_runtime_development();
     }
+  }
+});
+
+// manifest.json
+var require_manifest = __commonJS({
+  "manifest.json"(exports, module2) {
+    module2.exports = {
+      id: "analogy-rag-in-your-vault",
+      name: "Analogy - RAG in your vault",
+      version: "1.2.4",
+      minAppVersion: "1.12.7",
+      description: "Search your vault semantically with local vector embeddings and expose RAG search to MCP clients.",
+      author: "liaocaoxuezhe",
+      fundingUrl: "https://analogy.zexing.club/analogy",
+      isDesktopOnly: true
+    };
   }
 });
 
@@ -24728,9 +24744,9 @@ var processClassesRecursively = (classGroup, classPartObject, classGroupId, them
     });
   });
 };
-var getPart = (classPartObject, path20) => {
+var getPart = (classPartObject, path21) => {
   let currentClassPartObject = classPartObject;
-  path20.split(CLASS_PART_SEPARATOR).forEach((pathPart) => {
+  path21.split(CLASS_PART_SEPARATOR).forEach((pathPart) => {
     if (!currentClassPartObject.nextPart.has(pathPart)) {
       currentClassPartObject.nextPart.set(pathPart, {
         nextPart: /* @__PURE__ */ new Map(),
@@ -27373,7 +27389,7 @@ var CardTitle = React5.forwardRef(({ className, ...props }, ref) => /* @__PURE__
   "h3",
   {
     ref,
-    className: cn("font-medium leading-none tracking-tight", className),
+    className: cn("m-0 text-left font-medium leading-snug tracking-tight", className),
     ...props
   }
 ));
@@ -27524,8 +27540,8 @@ var LocalSemanticSearch = class {
     const excluded = new Set(excludePaths);
     const excludedChunks = new Set(excludeChunkIds);
     const filtered = results.filter((r2) => {
-      const path20 = r2.metadata?.path;
-      return !mutedPaths.has(path20) && !excluded.has(path20) && !excludedChunks.has(r2.chunkId);
+      const path21 = r2.metadata?.path;
+      return !mutedPaths.has(path21) && !excluded.has(path21) && !excludedChunks.has(r2.chunkId);
     });
     return filtered.slice(0, topK).map((r2) => ({
       chunkId: r2.chunkId,
@@ -27715,11 +27731,11 @@ function canCreateSearchTab(tabs) {
 function uniquePaths(paths) {
   const seen = /* @__PURE__ */ new Set();
   const unique = [];
-  paths.forEach((path20) => {
-    if (!path20 || seen.has(path20))
+  paths.forEach((path21) => {
+    if (!path21 || seen.has(path21))
       return;
-    seen.add(path20);
-    unique.push(path20);
+    seen.add(path21);
+    unique.push(path21);
   });
   return unique;
 }
@@ -27822,6 +27838,42 @@ var TRANSLATIONS = {
   "settings.section.supportDescription": {
     en: "Review local diagnostic data and prepare a report when troubleshooting.",
     zh: "\u6392\u67E5\u95EE\u9898\u65F6\u67E5\u770B\u672C\u5730\u8BCA\u65AD\u4FE1\u606F\u5E76\u51C6\u5907\u62A5\u544A\u3002"
+  },
+  "settings.section.mcp": {
+    en: "MCP",
+    zh: "MCP"
+  },
+  "settings.section.mcpDescription": {
+    en: "Expose Analogy semantic search to your AI agent via the Model Context Protocol.",
+    zh: "\u901A\u8FC7 Model Context Protocol \u5C06 Analogy \u8BED\u4E49\u68C0\u7D22\u5F00\u653E\u7ED9\u4F60\u7684 AI Agent\u3002"
+  },
+  "settings.mcp.description": {
+    en: "Send the JSON below to your Agent. After the MCP server is added, the Agent can use Analogy's semantic search.",
+    zh: "\u5C06\u4E0B\u9762\u7684 JSON \u683C\u5F0F\u53D1\u9001\u7ED9\u4F60\u7684 Agent\uFF0C\u6DFB\u52A0 MCP \u540E\u53EF\u8BA9 Agent \u4F7F\u7528 Analogy \u7684\u8BED\u4E49\u68C0\u7D22\u3002"
+  },
+  "settings.mcp.start": { en: "Start MCP Service", zh: "\u542F\u52A8 MCP \u670D\u52A1" },
+  "settings.mcp.building": { en: "Building MCP server...", zh: "\u6B63\u5728\u6784\u5EFA MCP server..." },
+  "settings.mcp.starting": { en: "Starting...", zh: "\u6B63\u5728\u542F\u52A8..." },
+  "settings.mcp.stop": { en: "Stop MCP Service", zh: "\u5173\u95ED MCP \u670D\u52A1" },
+  "settings.mcp.stopped": { en: "MCP service stopped", zh: "MCP \u670D\u52A1\u5DF2\u5173\u95ED" },
+  "settings.mcp.copy": { en: "Copy JSON", zh: "\u590D\u5236 JSON" },
+  "settings.mcp.copied": { en: "MCP JSON copied to clipboard", zh: "MCP JSON \u5DF2\u590D\u5236\u5230\u526A\u8D34\u677F" },
+  "settings.mcp.copyFailed": { en: "Failed to copy MCP JSON", zh: "\u590D\u5236 MCP JSON \u5931\u8D25" },
+  "settings.mcp.startFailed": {
+    en: "Failed to start MCP service: {message}",
+    zh: "\u542F\u52A8 MCP \u670D\u52A1\u5931\u8D25\uFF1A{message}"
+  },
+  "settings.mcp.stopFailed": {
+    en: "Failed to stop MCP service: {message}",
+    zh: "\u5173\u95ED MCP \u670D\u52A1\u5931\u8D25\uFF1A{message}"
+  },
+  "settings.mcp.startHint": {
+    en: "Starting builds the bundled MCP server and verifies it can reach the local index. Keep Obsidian running.",
+    zh: "\u542F\u52A8\u4F1A\u6784\u5EFA\u968F\u9644\u7684 MCP server\uFF0C\u5E76\u9A8C\u8BC1\u5176\u53EF\u8FDE\u63A5\u672C\u5730\u7D22\u5F15\u3002\u8BF7\u4FDD\u6301 Obsidian \u8FD0\u884C\u3002"
+  },
+  "settings.mcp.note": {
+    en: "Keep Obsidian running with the Analogy index built. Compatible with Claude Code (.mcp.json), Cursor (.cursor/mcp.json), opencode (.mcp.json), and other stdio MCP clients.",
+    zh: "\u4FDD\u6301 Obsidian \u8FD0\u884C\u5E76\u5DF2\u5EFA\u7ACB Analogy \u7D22\u5F15\u3002\u517C\u5BB9 Claude Code\uFF08.mcp.json\uFF09\u3001Cursor\uFF08.cursor/mcp.json\uFF09\u3001opencode\uFF08.mcp.json\uFF09\u7B49 stdio MCP \u5BA2\u6237\u7AEF\u3002"
   },
   "settings.language.title": {
     en: "Language",
@@ -28012,6 +28064,14 @@ var TRANSLATIONS = {
   "semanticWalk.noMarkdownDocument": { en: "No Markdown document is available", zh: "\u6CA1\u6709\u53EF\u7528\u7684 Markdown \u6587\u6863" },
   "semanticWalk.searchChunks": { en: "Search chunks", zh: "\u641C\u7D22 chunk" },
   "semanticWalk.searchDescription": { en: "Temporarily find candidates by meaning", zh: "\u6309\u8BED\u4E49\u67E5\u8BE2\u4E34\u65F6\u5019\u9009" },
+  "semanticWalk.chooseNote": { en: "Choose notes", zh: "\u9009\u62E9\u7B14\u8BB0" },
+  "semanticWalk.chooseNoteDescription": { en: "Choose from indexed notes", zh: "\u4ECE\u5DF2\u7D22\u5F15\u7684\u7B14\u8BB0\u4E2D\u9009\u62E9" },
+  "semanticWalk.freeExplore": { en: "Free exploration", zh: "\u81EA\u7531\u63A2\u7D22" },
+  "semanticWalk.freeExploreDescription": { en: "Enter text to start exploring", zh: "\u8F93\u5165\u6587\u672C\uFF0C\u5F00\u59CB\u6F2B\u6E38" },
+  "semanticWalk.freeText.title": { en: "Starting point", zh: "\u6F2B\u6E38\u8D77\u70B9" },
+  "semanticWalk.freeText.default": { en: "Enter an idea", zh: "\u8F93\u5165\u4E00\u4E2A\u60F3\u6CD5" },
+  "semanticWalk.freeText.start": { en: "Start exploring", zh: "\u5F00\u59CB\u6F2B\u6E38" },
+  "semanticWalk.freeText.close": { en: "Close starting point dialog", zh: "\u5173\u95ED\u6F2B\u6E38\u8D77\u70B9\u5F39\u7A97" },
   "semanticWalk.random": { en: "Random walk", zh: "\u968F\u673A\u6F2B\u6E38" },
   "semanticWalk.randomDescription": { en: "Pick a random start from the index", zh: "\u4ECE\u7D22\u5F15\u4E2D\u968F\u673A\u9009\u4E00\u4E2A\u8D77\u70B9" },
   "semanticWalk.chunkCount": { en: "{count} chunks", zh: "{count} \u4E2A chunk" },
@@ -29524,7 +29584,7 @@ var SmartConnection = ({ activeFile, main }) => {
         onQueryChange: (value) => updateTab(activeTab.id, (tab) => ({ ...tab, query: value })),
         onSearch: (query) => performSearchForTab(activeTab.id, query, activeTab.excludedPaths, activeTab.excludedChunkIds || []),
         onSummarySearch: () => performSearchForTab(activeTab.id, "", activeTab.excludedPaths, activeTab.excludedChunkIds || [], void 0, true),
-        onOpenResult: (path20) => workspace?.openLinkText(path20, "", true),
+        onOpenResult: (path21) => workspace?.openLinkText(path21, "", true),
         onExploreResult: exploreResult,
         onSemanticWalkResult: (request5) => {
           void activateSemanticWalkRequest(app, request5, (message) => new import_obsidian.Notice(message));
@@ -29557,7 +29617,7 @@ function Badge({ className, variant, ...props }) {
 }
 
 // src/model/Consts.ts
-var appVersion = "1.0.0";
+var appVersion = require_manifest().version;
 var icon = `<g transform="scale(2.08333)" fill="none" stroke="none">
   <path d="M24.2863 16.6665C9.75459 20.7972 8.37048 25.8201 8.37048 25.8201L8.59448 18.2744C11.7214 18.977 15.6838 18.4443 24.2863 15.5554C32.8889 12.6665 36.2222 7.55549 36.2222 7.55549L41.1111 13.9999C41.1111 13.9999 35.0889 13.5959 24.2863 16.6665Z" fill="currentColor" opacity="0.25"/>
   <path d="M31.3332 26.4446C40.1379 15.0715 36.6665 7.55566 36.6665 7.55566L42.8887 12.6668C38.7152 16.3404 38.5629 19.1486 32.6665 26.4446C26.7701 33.7405 25.2945 43.1894 25.2945 43.1894L19.7839 40.6315C19.7839 40.6315 24.4583 35.3248 31.3332 26.4446Z" fill="currentColor" opacity="0.25"/>
@@ -32111,11 +32171,11 @@ function normalizeExcludedIndexPaths(paths) {
   const seen = /* @__PURE__ */ new Set();
   const normalized = [];
   for (const rawPath of paths) {
-    const path20 = rawPath.trim().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
-    if (!path20 || seen.has(path20))
+    const path21 = rawPath.trim().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+    if (!path21 || seen.has(path21))
       continue;
-    seen.add(path20);
-    normalized.push(path20);
+    seen.add(path21);
+    normalized.push(path21);
   }
   return normalized;
 }
@@ -32486,9 +32546,9 @@ var LocalEmbeddingService = class {
   }
 };
 async function loadTransformers(pluginDir) {
-  const path20 = require("path");
+  const path21 = require("path");
   const Module = require("module");
-  const pluginRequire = Module.createRequire(path20.join(pluginDir, "main.js"));
+  const pluginRequire = Module.createRequire(path21.join(pluginDir, "main.js"));
   let transformers;
   try {
     transformers = pluginRequire("@huggingface/transformers");
@@ -32672,10 +32732,10 @@ var OllamaClient = class {
     });
     return String(json.response || "").trim();
   }
-  async requestJson(method, path20, body) {
-    return this.consumeResponse(method, path20, body, void 0, (response) => response.json());
+  async requestJson(method, path21, body) {
+    return this.consumeResponse(method, path21, body, void 0, (response) => response.json());
   }
-  async consumeResponse(method, path20, body, signal, consume) {
+  async consumeResponse(method, path21, body, signal, consume) {
     const controller = new AbortController();
     const abort = () => controller.abort(signal?.reason);
     if (signal?.aborted)
@@ -32684,14 +32744,14 @@ var OllamaClient = class {
       signal?.addEventListener("abort", abort, { once: true });
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     try {
-      const response = await fetch(`${this.host}${path20}`, {
+      const response = await fetch(`${this.host}${path21}`, {
         method,
         signal: controller.signal,
         headers: body ? { "content-type": "application/json" } : void 0,
         body: body ? JSON.stringify(body) : void 0
       });
       if (!response.ok) {
-        throw new Error(`Ollama ${method} ${path20} failed: HTTP ${response.status}`);
+        throw new Error(`Ollama ${method} ${path21} failed: HTTP ${response.status}`);
       }
       return await consume(response);
     } finally {
@@ -33276,6 +33336,13 @@ function SettingDetail({ plugin, setting }) {
   const [excludedPaths, setExcludedPaths] = (0, import_react10.useState)(plugin.settings.excludedIndexPaths || []);
   const [newPathInput, setNewPathInput] = (0, import_react10.useState)("");
   const [language, setLanguage] = (0, import_react10.useState)(plugin.settings.uiLanguage || "en");
+  const [mcpServiceState, setMcpServiceState] = (0, import_react10.useState)(() => plugin.getMcpServiceState());
+  (0, import_react10.useEffect)(() => {
+    return plugin.onMcpServiceStateChange(() => {
+      setMcpServiceState(plugin.getMcpServiceState());
+    });
+  }, [plugin]);
+  const mcpConfig = plugin.getMcpServerConfig();
   (0, import_react10.useEffect)(() => {
     setLocale(plugin.settings.uiLanguage || "en");
     const unsub = onLocaleChange((l) => setLanguage(l));
@@ -33791,6 +33858,32 @@ function SettingDetail({ plugin, setting }) {
     } catch (error) {
       console.error("[Analogy] Failed to copy support email:", error);
       new import_obsidian4.Notice(t("settings.feedback.copyFailed"));
+    }
+  }
+  async function copyMcpJson() {
+    try {
+      await navigator.clipboard.writeText(mcpConfig.json);
+      new import_obsidian4.Notice(t("settings.mcp.copied"));
+    } catch (error) {
+      console.error("[Analogy] Failed to copy MCP JSON:", error);
+      new import_obsidian4.Notice(t("settings.mcp.copyFailed"));
+    }
+  }
+  async function startMcpService() {
+    try {
+      await plugin.startMcpService();
+    } catch (error) {
+      console.error("[Analogy] Failed to start MCP service:", error);
+      new import_obsidian4.Notice(t("settings.mcp.startFailed", { message: error.message }));
+    }
+  }
+  async function stopMcpService() {
+    try {
+      await plugin.stopMcpService();
+      new import_obsidian4.Notice(t("settings.mcp.stopped"));
+    } catch (error) {
+      console.error("[Analogy] Failed to stop MCP service:", error);
+      new import_obsidian4.Notice(t("settings.mcp.stopFailed", { message: error.message }));
     }
   }
   function buildDiagnosticReport(userNote = diagnosticUserNote) {
@@ -34572,6 +34665,42 @@ function SettingDetail({ plugin, setting }) {
             t("settings.docs.files"),
             statusFilter !== "all" || searchQuery ? ` (${t("settings.docs.totalCount", { count: statusCounts.total })})` : ""
           ] })
+        ] })
+      ] })
+    ] }),
+    /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("section", { className: "analogy-settings__section", "aria-labelledby": "analogy-settings-mcp", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
+        SettingsSectionHeader,
+        {
+          id: "analogy-settings-mcp",
+          title: t("settings.section.mcp"),
+          description: t("settings.section.mcpDescription")
+        }
+      ),
+      /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)(Card, { className: "analogy-settings-card", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(CardHeader, { children: /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(CardTitle, { className: "text-base", children: t("settings.section.mcp") }) }),
+        /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)(CardContent, { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { className: "text-sm text-[#444444] leading-relaxed", children: t("settings.mcp.description") }),
+          mcpServiceState.status === "running" ? /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)(import_jsx_runtime21.Fragment, { children: [
+            /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("pre", { className: "whitespace-pre-wrap text-xs text-[#666666] mt-3 bg-[#fafafa] border border-[#f0f0f0] rounded-md px-3 py-2 font-mono", children: mcpConfig.json }),
+            /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("div", { className: "analogy-settings-actions mt-3", children: [
+              /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(Button, { size: "sm", onClick: copyMcpJson, children: t("settings.mcp.copy") }),
+              /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(Button, { size: "sm", variant: "secondary", onClick: stopMcpService, children: t("settings.mcp.stop") })
+            ] })
+          ] }) : /* @__PURE__ */ (0, import_jsx_runtime21.jsxs)("div", { className: "analogy-settings-actions mt-3", children: [
+            /* @__PURE__ */ (0, import_jsx_runtime21.jsx)(
+              Button,
+              {
+                size: "sm",
+                onClick: startMcpService,
+                disabled: mcpServiceState.status === "building" || mcpServiceState.status === "starting",
+                children: mcpServiceState.status === "building" ? t("settings.mcp.building") : mcpServiceState.status === "starting" ? t("settings.mcp.starting") : t("settings.mcp.start")
+              }
+            ),
+            mcpServiceState.status === "error" && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("span", { className: "text-xs text-[#e74c3c] max-w-[340px] break-words", title: mcpServiceState.message, children: mcpServiceState.message })
+          ] }),
+          mcpServiceState.status === "stopped" && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { className: "text-xs text-[#888888] mt-2 leading-relaxed", children: t("settings.mcp.startHint") }),
+          mcpServiceState.status === "running" && /* @__PURE__ */ (0, import_jsx_runtime21.jsx)("div", { className: "text-xs text-[#888888] mt-2 leading-relaxed", children: t("settings.mcp.note") })
         ] })
       ] })
     ] }),
@@ -35946,7 +36075,7 @@ var LocalVectorStore = class {
     await this.ensureCollection(this.collectionName);
   }
   async ensureCollection(name) {
-    const path20 = `/api/v2/tenants/${TENANT}/databases/${DATABASE}/collections`;
+    const path21 = `/api/v2/tenants/${TENANT}/databases/${DATABASE}/collections`;
     const body = {
       name,
       configuration: null,
@@ -35955,7 +36084,7 @@ var LocalVectorStore = class {
     };
     const collection = await this.requestJson(
       "POST",
-      path20,
+      path21,
       body
     );
     this.collectionId = collection.id;
@@ -36086,18 +36215,18 @@ var LocalVectorStore = class {
       if (!docId)
         continue;
       const existing = entries.get(docId);
-      const path20 = typeof meta?.path === "string" && meta.path ? meta.path : docId;
+      const path21 = typeof meta?.path === "string" && meta.path ? meta.path : docId;
       const mtime = this.normalizeMtime(meta?.mtime);
       if (existing) {
         existing.chunkCount++;
         if (mtime > existing.mtime)
           existing.mtime = mtime;
-        if (!existing.path && path20)
-          existing.path = path20;
+        if (!existing.path && path21)
+          existing.path = path21;
       } else {
         entries.set(docId, {
           docId,
-          path: path20,
+          path: path21,
           mtime,
           chunkCount: 1
         });
@@ -36164,14 +36293,14 @@ var LocalVectorStore = class {
       return false;
     return entries.every(([key, item]) => key.length > 0 && key.length <= 256 && (typeof item === "string" || typeof item === "boolean" || typeof item === "number" && Number.isFinite(item)));
   }
-  async requestJson(method, path20, body) {
+  async requestJson(method, path21, body) {
     return new Promise((resolve11, reject) => {
       const payload = body === void 0 ? void 0 : JSON.stringify(body);
       const req = (0, import_http.request)(
         {
           hostname: "127.0.0.1",
           port: this.port,
-          path: path20,
+          path: path21,
           method,
           timeout: 1e4,
           headers: payload ? {
@@ -36188,7 +36317,7 @@ var LocalVectorStore = class {
           res.on("end", () => {
             const statusCode = res.statusCode ?? 0;
             if (statusCode < 200 || statusCode >= 300) {
-              reject(new Error(`ChromaDB ${method} ${path20} failed with HTTP ${statusCode}: ${responseBody}`));
+              reject(new Error(`ChromaDB ${method} ${path21} failed with HTTP ${statusCode}: ${responseBody}`));
               return;
             }
             if (!responseBody) {
@@ -36198,7 +36327,7 @@ var LocalVectorStore = class {
             try {
               resolve11(JSON.parse(responseBody));
             } catch (err) {
-              reject(new Error(`ChromaDB returned invalid JSON for ${method} ${path20}: ${err.message}`));
+              reject(new Error(`ChromaDB returned invalid JSON for ${method} ${path21}: ${err.message}`));
             }
           });
         }
@@ -36206,7 +36335,7 @@ var LocalVectorStore = class {
       req.on("error", (err) => reject(err));
       req.on("timeout", () => {
         req.destroy();
-        reject(new Error(`ChromaDB ${method} ${path20} timed out`));
+        reject(new Error(`ChromaDB ${method} ${path21} timed out`));
       });
       if (payload)
         req.write(payload);
@@ -36218,9 +36347,9 @@ var LocalVectorStore = class {
       throw new Error("ChromaDB heartbeat failed on /api/v2/heartbeat");
     }
   }
-  async isEndpointHealthy(path20) {
+  async isEndpointHealthy(path21) {
     try {
-      await this.requestJson("GET", path20);
+      await this.requestJson("GET", path21);
       return true;
     } catch {
       return false;
@@ -36515,10 +36644,10 @@ var DocumentIndexer = class {
     if (text.length <= limit)
       return [text];
     const separators = [/\n#{1,3}\s/, /\n\n/, /\n/, /[。！？!?\.]\s*/];
-    for (const sep11 of separators) {
+    for (const sep12 of separators) {
       const mid = Math.floor(text.length / 2);
       const searchWindow = text.slice(Math.max(0, mid - 500), Math.min(text.length, mid + 500));
-      const match = searchWindow.match(sep11);
+      const match = searchWindow.match(sep12);
       if (match && match.index !== void 0) {
         const splitPos = Math.max(0, mid - 500) + match.index + match[0].length;
         const left = text.slice(0, splitPos).trim();
@@ -37820,7 +37949,7 @@ var LocalServiceBootstrap = class {
 };
 
 // src/semantic-walk/SemanticWalkItemView.tsx
-var import_react17 = __toESM(require_react());
+var import_react18 = __toESM(require_react());
 var import_obsidian7 = require("obsidian");
 var import_client3 = __toESM(require_client());
 
@@ -38028,7 +38157,7 @@ var ChunkRelationService = class {
 };
 
 // src/semantic-walk/SemanticWalkView.tsx
-var import_react16 = __toESM(require_react());
+var import_react17 = __toESM(require_react());
 
 // src/semantic-walk/graph-reducer.ts
 var MAX_VISIBLE_NODES = 100;
@@ -38925,6 +39054,7 @@ var ChunkNodeCard = (0, import_react11.memo)(function ChunkNodeCard2({
   onOpenDocumentChunks,
   onHide
 }) {
+  const hasSourceDocument = Boolean(node.chunk.path);
   const dragRef = (0, import_react11.useRef)(null);
   const frameRef = (0, import_react11.useRef)(null);
   const pendingPositionRef = (0, import_react11.useRef)(null);
@@ -39023,7 +39153,6 @@ var ChunkNodeCard = (0, import_react11.memo)(function ChunkNodeCard2({
     node.validity !== "valid" ? `is-${node.validity}` : "",
     compact ? "is-compact" : ""
   ].filter(Boolean).join(" ");
-  const sectionLabel = node.chunk.sectionLabel.trim();
   return /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(
     "article",
     {
@@ -39042,7 +39171,7 @@ var ChunkNodeCard = (0, import_react11.memo)(function ChunkNodeCard2({
       onPointerCancel: handlePointerCancel,
       onKeyDown: handleKeyDown,
       children: [
-        /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("header", { className: "semantic-walk-node__header", children: /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(
+        /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("header", { className: "semantic-walk-node__header", children: hasSourceDocument ? /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)(
           "button",
           {
             type: "button",
@@ -39058,13 +39187,15 @@ var ChunkNodeCard = (0, import_react11.memo)(function ChunkNodeCard2({
               /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("span", { children: node.chunk.title })
             ]
           }
-        ) }),
+        ) : /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("div", { className: "semantic-walk-node__source semantic-walk-node__source--virtual", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("span", { className: "semantic-walk-node__source-mark", "aria-hidden": "true" }),
+          /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("span", { children: node.chunk.title })
+        ] }) }),
         /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("div", { className: "semantic-walk-node__meta", children: [
           /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("span", { className: "semantic-walk-node__status", "data-status": node.status, children: statusLabel2(node.status) }),
           relationBand ? /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("span", { title: t("semanticWalk.relationHint"), children: relationLabel(relationBand) }) : null,
           node.positionMode === "manual" ? /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("span", { children: t("semanticWalk.manualPosition") }) : null
         ] }),
-        sectionLabel ? /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("div", { className: "semantic-walk-node__section", title: sectionLabel, children: sectionLabel }) : null,
         /* @__PURE__ */ (0, import_jsx_runtime22.jsx)(
           "div",
           {
@@ -39085,8 +39216,8 @@ var ChunkNodeCard = (0, import_react11.memo)(function ChunkNodeCard2({
         /* @__PURE__ */ (0, import_jsx_runtime22.jsxs)("footer", { className: "semantic-walk-node__actions", children: [
           /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("button", { type: "button", onClick: () => onExpand(node.id), disabled: node.loading || node.validity !== "valid", children: node.error ? t("semanticWalk.retry") : node.expanded ? t(node.collapsed ? "semanticWalk.restore" : "semanticWalk.collapse") : t("semanticWalk.expand") }),
           /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("button", { type: "button", onClick: (event) => onView(node.id, event.currentTarget), children: t("semanticWalk.viewChunk") }),
-          /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("button", { type: "button", onClick: () => onOpenDocument?.(node.id), disabled: !onOpenDocument || node.validity !== "valid", children: t("semanticWalk.openSource") }),
-          node.validity !== "valid" ? /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("button", { type: "button", onClick: () => onOpenDocumentChunks?.(node.id), disabled: !onOpenDocumentChunks, children: t("semanticWalk.viewNewChunks") }) : null,
+          hasSourceDocument ? /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("button", { className: "semantic-walk-node__open-source", type: "button", onClick: () => onOpenDocument?.(node.id), disabled: !onOpenDocument || node.validity !== "valid", children: t("semanticWalk.openSource") }) : null,
+          hasSourceDocument && node.validity !== "valid" ? /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("button", { type: "button", onClick: () => onOpenDocumentChunks?.(node.id), disabled: !onOpenDocumentChunks, children: t("semanticWalk.viewNewChunks") }) : null,
           /* @__PURE__ */ (0, import_jsx_runtime22.jsx)("button", { type: "button", onClick: () => onHide(node.id), children: t("semanticWalk.hideNode") })
         ] })
       ]
@@ -39249,10 +39380,10 @@ var CANVAS_NODE_WIDTH = 414;
 var CANVAS_NODE_HEIGHT = 276;
 var CANVAS_COMPACT_NODE_HEIGHT = 168;
 var EdgeLayer = import_react14.default.memo(function EdgeLayer2({ paths }) {
-  return /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("svg", { className: "semantic-walk-edges", width: "1", height: "1", "aria-hidden": "true", children: paths.map(({ edge, path: path20 }) => /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(
+  return /* @__PURE__ */ (0, import_jsx_runtime25.jsx)("svg", { className: "semantic-walk-edges", width: "1", height: "1", "aria-hidden": "true", children: paths.map(({ edge, path: path21 }) => /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(
     "path",
     {
-      d: path20,
+      d: path21,
       className: `semantic-walk-edge is-${edge.relationBand}`,
       vectorEffect: "non-scaling-stroke"
     },
@@ -39591,8 +39722,8 @@ function SemanticWalkCanvas({
 var import_react15 = __toESM(require_react());
 
 // src/semantic-walk/markdown-file.ts
-function isMarkdownPath(path20) {
-  return /\.md$/i.test(path20);
+function isMarkdownPath(path21) {
+  return /\.md$/i.test(path21);
 }
 
 // src/semantic-walk/components/ChunkPicker.tsx
@@ -39610,11 +39741,11 @@ async function loadDocumentChunks(repository, document2) {
   const chunks = sortChunksByIndex(await repository.listChunksByDocument(document2.docId));
   return chunks.length > 0 ? { status: "ready", document: document2, chunks } : { status: "empty", document: document2, chunks: [] };
 }
-async function loadChunksForPath(repository, path20) {
+async function loadChunksForPath(repository, path21) {
   const documents = await repository.listIndexedDocuments();
-  const document2 = documents.find((entry) => entry.path === path20);
+  const document2 = documents.find((entry) => entry.path === path21);
   if (!document2)
-    return { status: "unindexed", path: path20 };
+    return { status: "unindexed", path: path21 };
   return loadDocumentChunks(repository, document2);
 }
 async function pickRandomChunk(repository) {
@@ -39821,10 +39952,10 @@ function ChunkPicker({
       void openDocument(document2);
   }, [documents, initialDocumentId, openDocument]);
   (0, import_react15.useEffect)(() => {
-    if (initialMode !== "current")
+    if (mode !== "current")
       return;
     void openCurrent();
-  }, [currentDocumentPath, initialMode, openCurrent]);
+  }, [currentDocumentPath, mode, openCurrent]);
   const sortedSearchResults = (0, import_react15.useMemo)(
     () => [...searchResults].sort((left, right) => left.distance - right.distance),
     [searchResults]
@@ -39924,21 +40055,15 @@ function ChunkPicker({
 
 // src/semantic-walk/components/WalkEmptyState.tsx
 var import_jsx_runtime27 = __toESM(require_jsx_runtime());
-function getDocumentName(documentPath) {
-  const fileName = documentPath.split(/[\\/]/).pop() || documentPath;
-  return fileName.replace(/\.md$/i, "");
-}
 function WalkEmptyState({
-  currentDocumentPath,
-  onOpenCurrentDocument,
-  onOpenSearch,
+  onChooseNote,
+  onOpenFreeText,
   onPickRandom,
   feedback,
   busy = false,
   disabledReason
 }) {
-  const hasMarkdownDocument = Boolean(currentDocumentPath?.toLowerCase().endsWith(".md"));
-  const currentDocumentName = hasMarkdownDocument ? getDocumentName(currentDocumentPath || "") : "";
+  const disabled = busy || Boolean(disabledReason);
   return /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("section", { className: "semantic-walk-empty", "aria-labelledby": "semantic-walk-empty-title", children: [
     /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("span", { className: "semantic-walk-empty__beacon", "aria-hidden": "true" }),
     /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("p", { className: "semantic-walk-empty__eyebrow", children: t("semanticWalk.mapName") }),
@@ -39949,20 +40074,20 @@ function WalkEmptyState({
         "button",
         {
           type: "button",
-          onClick: onOpenCurrentDocument,
-          disabled: !hasMarkdownDocument || busy || Boolean(disabledReason),
-          title: disabledReason || (hasMarkdownDocument ? t("semanticWalk.currentDocumentTitle").replace("{path}", currentDocumentName) : t("semanticWalk.noMarkdownDocument")),
+          onClick: onChooseNote,
+          disabled,
+          title: disabledReason || void 0,
           children: [
-            /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("strong", { children: t("semanticWalk.currentDocument") }),
-            /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("span", { children: hasMarkdownDocument ? currentDocumentName : t("semanticWalk.noMarkdownDocument") })
+            /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("strong", { children: t("semanticWalk.chooseNote") }),
+            /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("span", { children: t("semanticWalk.chooseNoteDescription") })
           ]
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("button", { type: "button", onClick: onOpenSearch, disabled: busy || Boolean(disabledReason), children: [
-        /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("strong", { children: t("semanticWalk.searchChunks") }),
-        /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("span", { children: t("semanticWalk.searchDescription") })
+      /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("button", { type: "button", onClick: onOpenFreeText, disabled, title: disabledReason || void 0, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("strong", { children: t("semanticWalk.freeExplore") }),
+        /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("span", { children: t("semanticWalk.freeExploreDescription") })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("button", { type: "button", onClick: onPickRandom, disabled: busy || Boolean(disabledReason), children: [
+      /* @__PURE__ */ (0, import_jsx_runtime27.jsxs)("button", { type: "button", onClick: onPickRandom, disabled, title: disabledReason || void 0, children: [
         /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("strong", { children: t("semanticWalk.random") }),
         /* @__PURE__ */ (0, import_jsx_runtime27.jsx)("span", { children: t("semanticWalk.randomDescription") })
       ] })
@@ -39971,8 +40096,75 @@ function WalkEmptyState({
   ] });
 }
 
-// src/semantic-walk/SemanticWalkView.tsx
+// src/semantic-walk/components/FreeTextStartDialog.tsx
+var import_react16 = __toESM(require_react());
 var import_jsx_runtime28 = __toESM(require_jsx_runtime());
+function FreeTextStartDialog({
+  open: open2,
+  busy = false,
+  onClose,
+  onStart
+}) {
+  const [text, setText] = (0, import_react16.useState)(() => t("semanticWalk.freeText.default"));
+  if (!open2)
+    return null;
+  const trimmed = text.trim();
+  return /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(
+    "div",
+    {
+      className: "semantic-walk-free-text-dialog",
+      onMouseDown: (event) => {
+        if (event.target === event.currentTarget && !busy)
+          onClose();
+      },
+      children: /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)(
+        "form",
+        {
+          role: "dialog",
+          "aria-modal": "true",
+          "aria-labelledby": "semantic-walk-free-text-title",
+          onKeyDown: (event) => {
+            if (event.key === "Escape" && !busy)
+              onClose();
+          },
+          onSubmit: (event) => {
+            event.preventDefault();
+            if (trimmed && !busy)
+              onStart(trimmed);
+          },
+          children: [
+            /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(
+              "button",
+              {
+                type: "button",
+                className: "semantic-walk-free-text-dialog__close",
+                "aria-label": t("semanticWalk.freeText.close"),
+                disabled: busy,
+                onClick: onClose,
+                children: "\xD7"
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("h2", { id: "semantic-walk-free-text-title", children: t("semanticWalk.freeText.title") }),
+            /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(
+              "textarea",
+              {
+                rows: 6,
+                value: text,
+                disabled: busy,
+                "aria-label": t("semanticWalk.freeText.title"),
+                onChange: (event) => setText(event.target.value)
+              }
+            ),
+            /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("button", { type: "submit", disabled: busy || !trimmed, children: t("semanticWalk.freeText.start") })
+          ]
+        }
+      )
+    }
+  );
+}
+
+// src/semantic-walk/SemanticWalkView.tsx
+var import_jsx_runtime29 = __toESM(require_jsx_runtime());
 function SemanticWalkView({
   repository,
   relationService,
@@ -39989,40 +40181,49 @@ function SemanticWalkView({
   model,
   className = ""
 }) {
-  const controller = (0, import_react16.useMemo)(
+  const transientChunksRef = (0, import_react17.useRef)(/* @__PURE__ */ new Map());
+  const freeTextIdRef = (0, import_react17.useRef)(0);
+  const sessionRepository = (0, import_react17.useMemo)(() => ({
+    getChunk: async (chunkId, includeEmbedding) => transientChunksRef.current.get(chunkId) ?? repository.getChunk(chunkId, includeEmbedding),
+    listChunksByDocument: (docId) => repository.listChunksByDocument(docId),
+    listIndexedDocuments: () => repository.listIndexedDocuments(),
+    getRandomChunk: () => repository.getRandomChunk()
+  }), [repository]);
+  const controller = (0, import_react17.useMemo)(
     () => new SemanticWalkController({
-      repository,
+      repository: sessionRepository,
       relationService,
       diagnosticRecorder,
       model,
       getIndexRevision: fileBridge ? () => fileBridge.getIndexRevision() : void 0,
-      validateSource: fileBridge ? (chunk) => fileBridge.getFileValidity(chunk.path, chunk.mtime) : void 0
+      validateSource: fileBridge ? (chunk) => chunk.path ? fileBridge.getFileValidity(chunk.path, chunk.mtime) : "valid" : void 0
     }),
-    [repository, relationService, diagnosticRecorder, model, fileBridge]
+    [sessionRepository, relationService, diagnosticRecorder, model, fileBridge]
   );
-  const [walkState, setWalkState] = (0, import_react16.useState)(controller.getState());
-  const [picker, setPicker] = (0, import_react16.useState)(null);
-  const [feedback, setFeedback] = (0, import_react16.useState)(null);
-  const [busy, setBusy] = (0, import_react16.useState)(false);
-  const [newBatchBusy, setNewBatchBusy] = (0, import_react16.useState)(false);
-  const [fileRevision, setFileRevision] = (0, import_react16.useState)(0);
-  const [currentDocumentSnapshot, setCurrentDocumentSnapshot] = (0, import_react16.useState)(
+  const [walkState, setWalkState] = (0, import_react17.useState)(controller.getState());
+  const [picker, setPicker] = (0, import_react17.useState)(null);
+  const [feedback, setFeedback] = (0, import_react17.useState)(null);
+  const [busy, setBusy] = (0, import_react17.useState)(false);
+  const [newBatchBusy, setNewBatchBusy] = (0, import_react17.useState)(false);
+  const [freeTextOpen, setFreeTextOpen] = (0, import_react17.useState)(false);
+  const [fileRevision, setFileRevision] = (0, import_react17.useState)(0);
+  const [currentDocumentSnapshot, setCurrentDocumentSnapshot] = (0, import_react17.useState)(
     () => fileBridge?.getCurrentDocument() ?? null
   );
-  const mountedRef = (0, import_react16.useRef)(false);
-  const actionGenerationRef = (0, import_react16.useRef)(0);
-  (0, import_react16.useEffect)(() => {
+  const mountedRef = (0, import_react17.useRef)(false);
+  const actionGenerationRef = (0, import_react17.useRef)(0);
+  (0, import_react17.useEffect)(() => {
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       actionGenerationRef.current++;
     };
   }, []);
-  (0, import_react16.useEffect)(() => {
+  (0, import_react17.useEffect)(() => {
     const unsubscribe = controller.subscribe(setWalkState);
     return unsubscribe;
   }, [controller]);
-  (0, import_react16.useEffect)(() => {
+  (0, import_react17.useEffect)(() => {
     if (!fileBridge) {
       setCurrentDocumentSnapshot(null);
       return;
@@ -40032,7 +40233,7 @@ function SemanticWalkView({
       setFileRevision((revision) => revision + 1);
     });
   }, [fileBridge]);
-  (0, import_react16.useEffect)(() => {
+  (0, import_react17.useEffect)(() => {
     controller.refreshFileValidity();
   }, [controller, fileRevision]);
   const isCurrentAction = (generation) => mountedRef.current && actionGenerationRef.current === generation;
@@ -40074,6 +40275,46 @@ function SemanticWalkView({
       if (!isCurrentAction(actionGeneration))
         return;
       applyOperationResult(result, action);
+    } catch (error) {
+      if (!isCurrentAction(actionGeneration))
+        return;
+      setFeedback(error instanceof Error ? error.message : String(error));
+    } finally {
+      if (isCurrentAction(actionGeneration))
+        setBusy(false);
+    }
+  };
+  const handleFreeTextStart = async (text) => {
+    if (serviceUnavailableReason) {
+      setFeedback(serviceUnavailableReason);
+      return;
+    }
+    const actionGeneration = ++actionGenerationRef.current;
+    const chunkId = `__analogy_free_text__:${++freeTextIdRef.current}`;
+    transientChunksRef.current.set(chunkId, {
+      chunkId,
+      docId: "__analogy_free_text__",
+      path: "",
+      title: t("semanticWalk.freeText.title"),
+      content: text,
+      chunkIndex: 0,
+      chunkCount: 1,
+      sectionLabel: "",
+      mtime: 0
+    });
+    setBusy(true);
+    setFeedback(null);
+    try {
+      const start = await controller.setStart(chunkId, confirmRestart);
+      if (!isCurrentAction(actionGeneration))
+        return;
+      if (!applyOperationResult(start, "start"))
+        return;
+      setFreeTextOpen(false);
+      const expansion = await controller.expand(chunkId);
+      if (!isCurrentAction(actionGeneration))
+        return;
+      applyOperationResult(expansion, "add-expand");
     } catch (error) {
       if (!isCurrentAction(actionGeneration))
         return;
@@ -40156,7 +40397,7 @@ function SemanticWalkView({
       }
     }
   };
-  (0, import_react16.useEffect)(() => {
+  (0, import_react17.useEffect)(() => {
     if (!openEvent)
       return;
     const { request: request5 } = openEvent;
@@ -40171,6 +40412,7 @@ function SemanticWalkView({
       setBusy(false);
       setNewBatchBusy(false);
       setPicker(null);
+      setFreeTextOpen(false);
       setFeedback(null);
     } else if (request5.type === "current-document") {
       setPicker({ mode: "current" });
@@ -40205,18 +40447,18 @@ function SemanticWalkView({
   };
   const hasNodes = Object.keys(walkState.nodes).length > 0;
   const viewClassName = `semantic-walk-view ${className}`.trim();
-  return /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("section", { className: viewClassName, "aria-label": t("semanticWalk.viewName"), children: [
-    hasNodes || newBatchBusy ? /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("header", { className: "semantic-walk-view__header", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("div", { className: "semantic-walk-view__summary", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("h2", { children: t("semanticWalk.mapName") }),
-        /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("span", { children: t("semanticWalk.chunkCount").replace("{count}", String(Object.keys(walkState.nodes).length)) })
+  return /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("section", { className: viewClassName, children: [
+    hasNodes || newBatchBusy ? /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("header", { className: "semantic-walk-view__header", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("div", { className: "semantic-walk-view__summary", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("h2", { children: t("semanticWalk.mapName") }),
+        /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("span", { children: t("semanticWalk.chunkCount").replace("{count}", String(Object.keys(walkState.nodes).length)) })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("div", { className: "semantic-walk-view__actions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("button", { type: "button", onClick: () => setPicker({ mode: "documents" }), children: t("semanticWalk.chooseChunk") }),
-        /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("button", { type: "button", disabled: newBatchBusy, onClick: () => {
+      /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("div", { className: "semantic-walk-view__actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("button", { type: "button", onClick: () => setPicker({ mode: "documents" }), children: t("semanticWalk.chooseChunk") }),
+        /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("button", { type: "button", disabled: newBatchBusy, onClick: () => {
           void handleNewBatch();
         }, children: t("semanticWalk.newBatch") }),
-        /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("button", { type: "button", disabled: busy, onClick: () => {
+        /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("button", { type: "button", disabled: busy, onClick: () => {
           actionGenerationRef.current++;
           controller.reset();
           setPicker(null);
@@ -40224,8 +40466,8 @@ function SemanticWalkView({
         }, children: t("semanticWalk.clearCanvas") })
       ] })
     ] }) : null,
-    /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)("div", { className: "semantic-walk-view__canvas", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("div", { className: "semantic-walk-view__canvas", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime29.jsx)(
         SemanticWalkCanvas,
         {
           nodes: walkState.nodes,
@@ -40269,12 +40511,11 @@ function SemanticWalkView({
           }
         }
       ),
-      !hasNodes ? /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(
+      !hasNodes ? /* @__PURE__ */ (0, import_jsx_runtime29.jsx)(
         WalkEmptyState,
         {
-          currentDocumentPath: liveCurrentDocumentPath,
-          onOpenCurrentDocument: () => setPicker({ mode: "current" }),
-          onOpenSearch: () => setPicker({ mode: "search" }),
+          onChooseNote: () => setPicker({ mode: "documents" }),
+          onOpenFreeText: () => setFreeTextOpen(true),
           onPickRandom: () => {
             void handleRandom();
           },
@@ -40284,9 +40525,9 @@ function SemanticWalkView({
         }
       ) : null
     ] }),
-    hasNodes && feedback ? /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("p", { className: "semantic-walk-view__feedback", role: "status", children: feedback }) : null,
-    hasNodes && walkState.limitWarning ? /* @__PURE__ */ (0, import_jsx_runtime28.jsx)("p", { className: "semantic-walk-view__feedback", role: "status", children: t(walkState.limitWarning === "nodes" ? "semanticWalk.limit.nodes" : "semanticWalk.limit.edges") }) : null,
-    picker ? /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(
+    hasNodes && feedback ? /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("p", { className: "semantic-walk-view__feedback", role: "status", children: feedback }) : null,
+    hasNodes && walkState.limitWarning ? /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("p", { className: "semantic-walk-view__feedback", role: "status", children: t(walkState.limitWarning === "nodes" ? "semanticWalk.limit.nodes" : "semanticWalk.limit.edges") }) : null,
+    picker ? /* @__PURE__ */ (0, import_jsx_runtime29.jsx)(
       ChunkPicker,
       {
         repository,
@@ -40304,6 +40545,17 @@ function SemanticWalkView({
         onClose: () => setPicker(null)
       },
       `${picker.mode}:${picker.documentId ?? ""}:${picker.highlightedChunkId ?? ""}`
+    ) : null,
+    freeTextOpen ? /* @__PURE__ */ (0, import_jsx_runtime29.jsx)(
+      FreeTextStartDialog,
+      {
+        open: true,
+        busy: busy || Boolean(serviceUnavailableReason),
+        onClose: () => setFreeTextOpen(false),
+        onStart: (text) => {
+          void handleFreeTextStart(text);
+        }
+      }
     ) : null
   ] });
 }
@@ -40324,8 +40576,8 @@ var ObsidianSemanticWalkFileBridge = class {
   getCurrentDocument() {
     return markdownDocument(this.app.workspace.getActiveFile());
   }
-  getFileValidity(path20, indexedMtime) {
-    const document2 = markdownDocument(this.app.vault.getAbstractFileByPath(path20));
+  getFileValidity(path21, indexedMtime) {
+    const document2 = markdownDocument(this.app.vault.getAbstractFileByPath(path21));
     if (!document2)
       return "missing";
     return indexedMtime > 0 && document2.mtime === indexedMtime ? "valid" : "stale";
@@ -40344,11 +40596,11 @@ var ObsidianSemanticWalkFileBridge = class {
         this.stop();
     };
   }
-  async openDocument(path20) {
-    if (this.getFileValidity(path20, markdownDocument(this.app.vault.getAbstractFileByPath(path20))?.mtime ?? 0) === "missing") {
+  async openDocument(path21) {
+    if (this.getFileValidity(path21, markdownDocument(this.app.vault.getAbstractFileByPath(path21))?.mtime ?? 0) === "missing") {
       return false;
     }
-    await this.app.workspace.openLinkText(path20, "", false);
+    await this.app.workspace.openLinkText(path21, "", false);
     return true;
   }
   dispose() {
@@ -40390,7 +40642,7 @@ var ObsidianSemanticWalkFileBridge = class {
 };
 
 // src/semantic-walk/SemanticWalkItemView.tsx
-var import_jsx_runtime29 = __toESM(require_jsx_runtime());
+var import_jsx_runtime30 = __toESM(require_jsx_runtime());
 var VIEW_TYPE_SEMANTIC_WALK = "analogy-semantic-walk";
 var SemanticWalkConfirmModal = class extends import_obsidian7.Modal {
   constructor(app, message, resolveChoice) {
@@ -40451,15 +40703,15 @@ function isSemanticWalkServiceAvailable() {
   return (status === "ready" || status === "degraded") && Boolean(searchInstance.vectorStore) && Boolean(searchInstance.localSearch) && Boolean(searchInstance.embeddingService);
 }
 function SemanticWalkWorkspace({ itemView }) {
-  const [openEvent, setOpenEvent] = (0, import_react17.useState)(() => itemView.getOpenRequest());
-  (0, import_react17.useEffect)(() => itemView.subscribeOpenRequests(setOpenEvent), [itemView]);
+  const [openEvent, setOpenEvent] = (0, import_react18.useState)(() => itemView.getOpenRequest());
+  (0, import_react18.useEffect)(() => itemView.subscribeOpenRequests(setOpenEvent), [itemView]);
   const vectorStore = searchInstance.vectorStore;
   const serviceAvailable = isSemanticWalkServiceAvailable();
-  const repository = (0, import_react17.useMemo)(
+  const repository = (0, import_react18.useMemo)(
     () => serviceAvailable && vectorStore ? new ChromaChunkRepository(vectorStore) : unavailableRepository,
     [serviceAvailable, vectorStore]
   );
-  const relationService = (0, import_react17.useMemo)(
+  const relationService = (0, import_react18.useMemo)(
     () => serviceAvailable ? new ChunkRelationService({
       search: searchInstance.localSearch,
       embedding: searchInstance.embeddingService,
@@ -40479,13 +40731,13 @@ function SemanticWalkWorkspace({ itemView }) {
   const currentDocument = itemView.fileBridge.getCurrentDocument();
   const requestPath = openEvent.request.type === "current-document" ? openEvent.request.path : "";
   const currentDocumentPath = requestPath || currentDocument?.path || "";
-  return /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("div", { className: "semantic-walk-workspace", children: [
-    serviceUnavailableReason ? /* @__PURE__ */ (0, import_jsx_runtime29.jsxs)("aside", { className: "semantic-walk-workspace__status", role: "status", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("strong", { children: t("semanticWalk.serviceUnavailableTitle") }),
-      /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("span", { children: serviceUnavailableReason }),
-      /* @__PURE__ */ (0, import_jsx_runtime29.jsx)("button", { type: "button", onClick: () => itemView.openSettings(), children: t("semanticWalk.openSettings") })
+  return /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("div", { className: "semantic-walk-workspace", children: [
+    serviceUnavailableReason ? /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("aside", { className: "semantic-walk-workspace__status", role: "status", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("strong", { children: t("semanticWalk.serviceUnavailableTitle") }),
+      /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("span", { children: serviceUnavailableReason }),
+      /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("button", { type: "button", onClick: () => itemView.openSettings(), children: t("semanticWalk.openSettings") })
     ] }) : null,
-    /* @__PURE__ */ (0, import_jsx_runtime29.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime30.jsx)(
       SemanticWalkView,
       {
         repository,
@@ -40496,7 +40748,7 @@ function SemanticWalkWorkspace({ itemView }) {
         fileBridge: itemView.fileBridge,
         openEvent,
         serviceUnavailableReason,
-        onOpenDocument: (path20) => itemView.openDocument(path20),
+        onOpenDocument: (path21) => itemView.openDocument(path21),
         confirmRestart: () => confirmWithObsidianModal(itemView.app, t("semanticWalk.confirm.restart")),
         confirmHide: () => confirmWithObsidianModal(itemView.app, t("semanticWalk.confirm.hide")),
         diagnosticRecorder: itemView.diagnosticRecorder,
@@ -40551,12 +40803,12 @@ var SemanticWalkItemView = class extends import_obsidian7.ItemView {
     this.unsubscribeServiceState = subscribeServiceState(() => {
       if (this.closed || generation !== this.lifecycleGeneration)
         return;
-      this.root?.render(/* @__PURE__ */ (0, import_jsx_runtime29.jsx)(SemanticWalkWorkspace, { itemView: this }));
+      this.root?.render(/* @__PURE__ */ (0, import_jsx_runtime30.jsx)(SemanticWalkWorkspace, { itemView: this }));
     });
     this.unsubscribeLocaleChange = onLocaleChange(() => {
       if (this.closed || generation !== this.lifecycleGeneration)
         return;
-      this.root?.render(/* @__PURE__ */ (0, import_jsx_runtime29.jsx)(SemanticWalkWorkspace, { itemView: this }));
+      this.root?.render(/* @__PURE__ */ (0, import_jsx_runtime30.jsx)(SemanticWalkWorkspace, { itemView: this }));
     });
   }
   async onClose() {
@@ -40574,9 +40826,9 @@ var SemanticWalkItemView = class extends import_obsidian7.ItemView {
   openSettings() {
     this.app.setting?.openTabById?.("analogy-rag-in-your-vault");
   }
-  openDocument(path20) {
+  openDocument(path21) {
     const generation = this.lifecycleGeneration;
-    void this.fileBridge.openDocument(path20).catch((error) => {
+    void this.fileBridge.openDocument(path21).catch((error) => {
       if (!this.closed && generation === this.lifecycleGeneration) {
         console.error("[Analogy] Failed to open semantic walk source", error);
       }
@@ -40751,9 +41003,9 @@ var DiagnosticStorage = class {
   }
   ensureDir() {
     try {
-      const fs19 = require("fs");
-      if (!fs19.existsSync(this.diagnosticsDir)) {
-        fs19.mkdirSync(this.diagnosticsDir, { recursive: true });
+      const fs20 = require("fs");
+      if (!fs20.existsSync(this.diagnosticsDir)) {
+        fs20.mkdirSync(this.diagnosticsDir, { recursive: true });
       }
     } catch (err) {
       console.error("[Analogy][Diagnostics] failed to create diagnostics dir", err);
@@ -40777,21 +41029,21 @@ var DiagnosticStorage = class {
   }
   async clear() {
     this.ensureDir();
-    const fs19 = require("fs");
+    const fs20 = require("fs");
     try {
-      fs19.rmSync(this.diagnosticsDir, { recursive: true, force: true });
+      fs20.rmSync(this.diagnosticsDir, { recursive: true, force: true });
     } catch (err) {
       console.error("[Analogy][Diagnostics] failed to clear diagnostics dir", err);
     }
   }
   async readJson(name) {
     this.ensureDir();
-    const fs19 = require("fs");
+    const fs20 = require("fs");
     const fullPath = this.path(name);
     try {
-      if (!fs19.existsSync(fullPath))
+      if (!fs20.existsSync(fullPath))
         return null;
-      const raw = fs19.readFileSync(fullPath, { encoding: "utf-8" });
+      const raw = fs20.readFileSync(fullPath, { encoding: "utf-8" });
       return JSON.parse(raw);
     } catch (err) {
       console.error(`[Analogy][Diagnostics] failed to read ${name}`, err);
@@ -40802,17 +41054,17 @@ var DiagnosticStorage = class {
     this.ensureDir();
     const fullPath = this.path(name);
     const tempPath = `${fullPath}.tmp`;
-    const fs19 = require("fs");
+    const fs20 = require("fs");
     const task = this.writeQueue.catch(() => {
     }).then(async () => {
       try {
         const raw = JSON.stringify(data, null, 2);
-        fs19.writeFileSync(tempPath, raw, { encoding: "utf-8" });
-        fs19.renameSync(tempPath, fullPath);
+        fs20.writeFileSync(tempPath, raw, { encoding: "utf-8" });
+        fs20.renameSync(tempPath, fullPath);
       } catch (err) {
         console.error(`[Analogy][Diagnostics] failed to write ${name}`, err);
         try {
-          fs19.unlinkSync(tempPath);
+          fs20.unlinkSync(tempPath);
         } catch {
         }
       }
@@ -40884,11 +41136,11 @@ var DiagnosticRecorder = class {
   }
   loadReporterId() {
     try {
-      const fs19 = require("fs");
-      const path20 = require("path");
-      const reporterPath = path20.join(this.options.pluginDir, "diagnostics", "reporter.json");
-      if (fs19.existsSync(reporterPath)) {
-        const raw = fs19.readFileSync(reporterPath, { encoding: "utf-8" });
+      const fs20 = require("fs");
+      const path21 = require("path");
+      const reporterPath = path21.join(this.options.pluginDir, "diagnostics", "reporter.json");
+      if (fs20.existsSync(reporterPath)) {
+        const raw = fs20.readFileSync(reporterPath, { encoding: "utf-8" });
         const parsed = JSON.parse(raw);
         return parsed.reporter_id || null;
       }
@@ -40898,10 +41150,10 @@ var DiagnosticRecorder = class {
   }
   async saveReporterId(id) {
     try {
-      const fs19 = require("fs");
-      const path20 = require("path");
-      const reporterPath = path20.join(this.options.pluginDir, "diagnostics", "reporter.json");
-      fs19.writeFileSync(reporterPath, JSON.stringify({ reporter_id: id }), { encoding: "utf-8" });
+      const fs20 = require("fs");
+      const path21 = require("path");
+      const reporterPath = path21.join(this.options.pluginDir, "diagnostics", "reporter.json");
+      fs20.writeFileSync(reporterPath, JSON.stringify({ reporter_id: id }), { encoding: "utf-8" });
     } catch (err) {
     }
   }
@@ -44114,8 +44366,8 @@ var EmbeddingRuntimeManager = class {
     if (transformersVersion !== EXPECTED_VERSIONS.transformers || onnxruntimeVersion !== EXPECTED_VERSIONS.onnxruntime) {
       throw runtimeError2("EMBEDDING_RUNTIME_VERSION_MISMATCH");
     }
-    const { os: os2, arch } = platformParts(this.options.platform);
-    const nativeRoot = path9.join(moduleRoot, "onnxruntime-node", "bin", "napi-v6", os2, arch);
+    const { os: os3, arch } = platformParts(this.options.platform);
+    const nativeRoot = path9.join(moduleRoot, "onnxruntime-node", "bin", "napi-v6", os3, arch);
     let nativeNames;
     try {
       await assertRealPathWithin(runtimeRoot, nativeRoot, true);
@@ -44123,13 +44375,13 @@ var EmbeddingRuntimeManager = class {
     } catch {
       throw runtimeError2("EMBEDDING_RUNTIME_NATIVE_LAYOUT_INVALID");
     }
-    const nativeLibraryPattern = os2 === "win32" ? /\.dll$/i : /\.dylib$/i;
+    const nativeLibraryPattern = os3 === "win32" ? /\.dll$/i : /\.dylib$/i;
     if (!nativeNames.includes("onnxruntime_binding.node") || !nativeNames.some((name) => nativeLibraryPattern.test(name))) {
       throw runtimeError2("EMBEDDING_RUNTIME_NATIVE_LAYOUT_INVALID");
     }
     const nativePlatformRoot = path9.join(moduleRoot, "onnxruntime-node", "bin", "napi-v6");
     for (const platformName of await fs6.promises.readdir(nativePlatformRoot)) {
-      if (platformName !== os2)
+      if (platformName !== os3)
         throw runtimeError2("EMBEDDING_RUNTIME_NATIVE_LAYOUT_INVALID");
       const platformRoot = path9.join(nativePlatformRoot, platformName);
       for (const architectureName of await fs6.promises.readdir(platformRoot)) {
@@ -47367,10 +47619,10 @@ var import_client4 = __toESM(require_client());
 var import_obsidian8 = require("obsidian");
 
 // src/onboarding/OnboardingView.tsx
-var import_react19 = __toESM(require_react());
+var import_react20 = __toESM(require_react());
 
 // src/onboarding/components/SetupSteps.tsx
-var import_jsx_runtime30 = __toESM(require_jsx_runtime());
+var import_jsx_runtime31 = __toESM(require_jsx_runtime());
 var ROUTE_STAGES = [
   ["checking", "awaiting-consent"],
   ["downloading-chroma", "verifying-chroma", "installing-chroma", "downloading-embedding-runtime", "verifying-embedding-runtime", "installing-embedding-runtime"],
@@ -47404,19 +47656,19 @@ function SetupSteps({ snapshot, speedBytesPerSecond }) {
   const progress = determinate ? Math.max(0, Math.min(100, snapshot.progress)) : null;
   const currentItem = visibleBasename(snapshot.currentItem);
   const hasBytes = snapshot.completedBytes !== null && snapshot.totalBytes !== null;
-  return /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("section", { className: "analogy-onboarding__route", "aria-label": t("onboarding.steps.label"), children: [
-    /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("ol", { className: "analogy-onboarding-steps", children: ROUTE_LABEL_KEYS.map((labelKey, index) => {
+  return /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("section", { className: "analogy-onboarding__route", "aria-label": t("onboarding.steps.label"), children: [
+    /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("ol", { className: "analogy-onboarding-steps", children: ROUTE_LABEL_KEYS.map((labelKey, index) => {
       const state = position > index || snapshot.stage === "ready" ? "complete" : position === index ? "current" : "pending";
-      return /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("li", { className: "analogy-onboarding-step", "data-state": state, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("span", { className: "analogy-onboarding-step__lamp", "aria-hidden": "true", children: state === "complete" ? "\u2713" : index + 1 }),
-        /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("span", { className: "analogy-onboarding-step__copy", children: [
-          /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("span", { children: t(labelKey) }),
-          /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("span", { className: "analogy-onboarding-step__status", children: t(`onboarding.stepStatus.${state}`) })
+      return /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("li", { className: "analogy-onboarding-step", "data-state": state, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "analogy-onboarding-step__lamp", "aria-hidden": "true", children: state === "complete" ? "\u2713" : index + 1 }),
+        /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("span", { className: "analogy-onboarding-step__copy", children: [
+          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: t(labelKey) }),
+          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "analogy-onboarding-step__status", children: t(`onboarding.stepStatus.${state}`) })
         ] })
       ] }, labelKey);
     }) }),
-    /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("div", { className: "analogy-onboarding-progress", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime30.jsx)(
+    /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "analogy-onboarding-progress", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(
         "div",
         {
           className: `analogy-onboarding-progress__track${determinate ? "" : " is-indeterminate"}`,
@@ -47425,22 +47677,22 @@ function SetupSteps({ snapshot, speedBytesPerSecond }) {
           "aria-valuemin": determinate ? 0 : void 0,
           "aria-valuemax": determinate ? 100 : void 0,
           "aria-valuenow": progress ?? void 0,
-          children: /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("span", { className: "analogy-onboarding-progress__fill", style: determinate ? { width: `${progress}%` } : void 0 })
+          children: /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "analogy-onboarding-progress__fill", style: determinate ? { width: `${progress}%` } : void 0 })
         }
       ),
-      /* @__PURE__ */ (0, import_jsx_runtime30.jsxs)("div", { className: "analogy-onboarding-progress__telemetry", "aria-hidden": "true", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("span", { children: determinate ? t("onboarding.progress.percent", { percent: Math.round(progress) }) : t("onboarding.progress.unknown") }),
-        /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("span", { children: hasBytes ? t("onboarding.progress.bytes", { completed: decimalMegabytes(snapshot.completedBytes), total: decimalMegabytes(snapshot.totalBytes) }) : t("onboarding.progress.sizeUnknown") }),
-        /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("span", { children: speedBytesPerSecond === null ? t("onboarding.progress.speedUnknown") : t("onboarding.progress.speed", { speed: decimalMegabytes(speedBytesPerSecond) }) })
+      /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { className: "analogy-onboarding-progress__telemetry", "aria-hidden": "true", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: determinate ? t("onboarding.progress.percent", { percent: Math.round(progress) }) : t("onboarding.progress.unknown") }),
+        /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: hasBytes ? t("onboarding.progress.bytes", { completed: decimalMegabytes(snapshot.completedBytes), total: decimalMegabytes(snapshot.totalBytes) }) : t("onboarding.progress.sizeUnknown") }),
+        /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { children: speedBytesPerSecond === null ? t("onboarding.progress.speedUnknown") : t("onboarding.progress.speed", { speed: decimalMegabytes(speedBytesPerSecond) }) })
       ] }),
-      currentItem ? /* @__PURE__ */ (0, import_jsx_runtime30.jsx)("p", { className: "analogy-onboarding-progress__item", children: t("onboarding.progress.currentItem", { item: currentItem }) }) : null
+      currentItem ? /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("p", { className: "analogy-onboarding-progress__item", children: t("onboarding.progress.currentItem", { item: currentItem }) }) : null
     ] })
   ] });
 }
 
 // src/onboarding/components/SetupError.tsx
-var import_react18 = __toESM(require_react());
-var import_jsx_runtime31 = __toESM(require_jsx_runtime());
+var import_react19 = __toESM(require_react());
+var import_jsx_runtime32 = __toESM(require_jsx_runtime());
 var MAX_DIAGNOSTIC_EVENTS = 20;
 var SAFE_ONBOARDING_DIAGNOSTIC_EVENT_CODES = [
   "STAGE_STARTED",
@@ -47496,7 +47748,7 @@ function createOnboardingDiagnosticText(snapshot, pluginBuildId, diagnosticEvent
 }
 function SetupError(props) {
   const { error } = props;
-  const [copyState, setCopyState] = (0, import_react18.useState)("idle");
+  const [copyState, setCopyState] = (0, import_react19.useState)("idle");
   const action = () => {
     if (error.action === "retry" || error.action === "redownload")
       props.onRetry();
@@ -47512,33 +47764,33 @@ function SetupError(props) {
     const text = createOnboardingDiagnosticText(props.snapshot, props.pluginBuildId, props.diagnosticEvents);
     void navigator.clipboard.writeText(text).then(() => setCopyState("copied"), () => setCopyState("failed"));
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("section", { className: "analogy-onboarding-error", "aria-labelledby": "analogy-onboarding-error-title", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("div", { className: "analogy-onboarding-error__mark", "aria-hidden": "true", children: "!" }),
-    /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("h2", { id: "analogy-onboarding-error-title", children: t("onboarding.failed.heading") }),
-      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("p", { role: "alert", children: t(error.userMessageKey) })
+  return /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("section", { className: "analogy-onboarding-error", "aria-labelledby": "analogy-onboarding-error-title", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("div", { className: "analogy-onboarding-error__mark", "aria-hidden": "true", children: "!" }),
+    /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("div", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("h2", { id: "analogy-onboarding-error-title", children: t("onboarding.failed.heading") }),
+      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("p", { role: "alert", children: t(error.userMessageKey) })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("button", { type: "button", className: "mod-cta analogy-onboarding__primary", "data-primary-action": "true", onClick: action, children: t(actionKey) }),
-    /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("details", { className: "analogy-onboarding-error__details", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("summary", { children: t("onboarding.diagnostics.summary") }),
-      /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("dl", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("dt", { children: t("onboarding.diagnostics.code") }),
-          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("dd", { children: /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("code", { children: error.code }) })
+    /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("button", { type: "button", className: "mod-cta analogy-onboarding__primary", "data-primary-action": "true", onClick: action, children: t(actionKey) }),
+    /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("details", { className: "analogy-onboarding-error__details", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("summary", { children: t("onboarding.diagnostics.summary") }),
+      /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("dl", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("dt", { children: t("onboarding.diagnostics.code") }),
+          /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("dd", { children: /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("code", { children: error.code }) })
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)("div", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("dt", { children: t("onboarding.diagnostics.stage") }),
-          /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("dd", { children: t(`onboarding.stage.${error.stage}`) })
+        /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("div", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("dt", { children: t("onboarding.diagnostics.stage") }),
+          /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("dd", { children: t(`onboarding.stage.${error.stage}`) })
         ] })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("button", { type: "button", onClick: copyDiagnostics, children: t("onboarding.diagnostics.copy") }),
-      /* @__PURE__ */ (0, import_jsx_runtime31.jsx)("span", { className: "analogy-onboarding-error__copy-state", "aria-live": "polite", children: copyState === "copied" ? t("onboarding.diagnostics.copied") : copyState === "failed" ? t("onboarding.diagnostics.copyFailed") : "" })
+      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("button", { type: "button", onClick: copyDiagnostics, children: t("onboarding.diagnostics.copy") }),
+      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("span", { className: "analogy-onboarding-error__copy-state", "aria-live": "polite", children: copyState === "copied" ? t("onboarding.diagnostics.copied") : copyState === "failed" ? t("onboarding.diagnostics.copyFailed") : "" })
     ] })
   ] });
 }
 
 // src/onboarding/OnboardingView.tsx
-var import_jsx_runtime32 = __toESM(require_jsx_runtime());
+var import_jsx_runtime33 = __toESM(require_jsx_runtime());
 var INSTALL_STAGES = /* @__PURE__ */ new Set([
   "checking",
   "downloading-chroma",
@@ -47557,13 +47809,13 @@ var INSTALL_STAGES = /* @__PURE__ */ new Set([
   "verifying-legacy-index"
 ]);
 function validFolderPath(value) {
-  const path20 = value.trim().replace(/\\/g, "/");
-  return Boolean(path20) && path20.length <= 1024 && !path20.startsWith("/") && !/^[A-Za-z]:\//.test(path20) && !path20.includes("\0") && path20.split("/").every((part) => Boolean(part) && part !== "." && part !== "..");
+  const path21 = value.trim().replace(/\\/g, "/");
+  return Boolean(path21) && path21.length <= 1024 && !path21.startsWith("/") && !/^[A-Za-z]:\//.test(path21) && !path21.includes("\0") && path21.split("/").every((part) => Boolean(part) && part !== "." && part !== "..");
 }
 function useTransferSpeed(snapshot) {
-  const previous = (0, import_react19.useRef)(null);
-  const [speed, setSpeed] = (0, import_react19.useState)(null);
-  (0, import_react19.useEffect)(() => {
+  const previous = (0, import_react20.useRef)(null);
+  const [speed, setSpeed] = (0, import_react20.useState)(null);
+  (0, import_react20.useEffect)(() => {
     if (snapshot.completedBytes === null) {
       previous.current = null;
       setSpeed(null);
@@ -47581,11 +47833,11 @@ function useTransferSpeed(snapshot) {
   return speed;
 }
 function ScopeSelection({ coordinator }) {
-  const [scope, setScope] = (0, import_react19.useState)("recent");
-  const [folder, setFolder] = (0, import_react19.useState)("");
-  const [error, setError] = (0, import_react19.useState)("");
-  const [submitting, setSubmitting] = (0, import_react19.useState)(false);
-  const locked = (0, import_react19.useRef)(false);
+  const [scope, setScope] = (0, import_react20.useState)("recent");
+  const [folder, setFolder] = (0, import_react20.useState)("");
+  const [error, setError] = (0, import_react20.useState)("");
+  const [submitting, setSubmitting] = (0, import_react20.useState)(false);
+  const locked = (0, import_react20.useRef)(false);
   const submit = () => {
     if (locked.current)
       return;
@@ -47618,36 +47870,36 @@ function ScopeSelection({ coordinator }) {
     setScope(value);
     setError("");
   };
-  return /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("section", { className: "analogy-onboarding-scope", "aria-labelledby": "analogy-onboarding-scope-title", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("p", { className: "analogy-onboarding__eyebrow", children: t("onboarding.scope.eyebrow") }),
-    /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("h2", { id: "analogy-onboarding-scope-title", children: t("onboarding.scope.heading") }),
-    /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("p", { children: t("onboarding.scope.description") }),
-    /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("fieldset", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("legend", { children: t("onboarding.scope.legend") }),
-      ["recent", "folder", "vault"].map((value) => /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("label", { className: "analogy-onboarding-scope__option", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("input", { type: "radio", name: "onboarding-scope", value, checked: scope === value, onChange: () => choose(value) }),
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("span", { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("strong", { children: t(`onboarding.scope.${value}.title`) }),
-          /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("small", { children: t(`onboarding.scope.${value}.description`) })
+  return /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("section", { className: "analogy-onboarding-scope", "aria-labelledby": "analogy-onboarding-scope-title", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("p", { className: "analogy-onboarding__eyebrow", children: t("onboarding.scope.eyebrow") }),
+    /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("h2", { id: "analogy-onboarding-scope-title", children: t("onboarding.scope.heading") }),
+    /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("p", { children: t("onboarding.scope.description") }),
+    /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("fieldset", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("legend", { children: t("onboarding.scope.legend") }),
+      ["recent", "folder", "vault"].map((value) => /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("label", { className: "analogy-onboarding-scope__option", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("input", { type: "radio", name: "onboarding-scope", value, checked: scope === value, onChange: () => choose(value) }),
+        /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("span", { children: [
+          /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("strong", { children: t(`onboarding.scope.${value}.title`) }),
+          /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("small", { children: t(`onboarding.scope.${value}.description`) })
         ] })
       ] }, value)),
-      scope === "folder" ? /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("label", { className: "analogy-onboarding-scope__folder", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("span", { children: t("onboarding.scope.folder.label") }),
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("input", { name: "onboarding-folder", value: folder, onChange: (event) => {
+      scope === "folder" ? /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("label", { className: "analogy-onboarding-scope__folder", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("span", { children: t("onboarding.scope.folder.label") }),
+        /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("input", { name: "onboarding-folder", value: folder, onChange: (event) => {
           setFolder(event.target.value);
           setError("");
         }, placeholder: t("onboarding.scope.folder.placeholder"), "aria-describedby": "onboarding-folder-hint" }),
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("small", { id: "onboarding-folder-hint", children: t("onboarding.scope.folder.hint") })
+        /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("small", { id: "onboarding-folder-hint", children: t("onboarding.scope.folder.hint") })
       ] }) : null
     ] }),
-    error ? /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("p", { className: "analogy-onboarding-scope__error", role: "alert", children: error }) : null,
-    /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("button", { type: "button", className: "mod-cta analogy-onboarding__primary", "data-primary-action": "true", disabled: submitting, onClick: submit, children: submitting ? t("onboarding.scope.starting") : t("onboarding.scope.start") })
+    error ? /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("p", { className: "analogy-onboarding-scope__error", role: "alert", children: error }) : null,
+    /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("button", { type: "button", className: "mod-cta analogy-onboarding__primary", "data-primary-action": "true", disabled: submitting, onClick: submit, children: submitting ? t("onboarding.scope.starting") : t("onboarding.scope.start") })
   ] });
 }
 function LegacyIndexSelection({ coordinator, snapshot }) {
-  const locked = (0, import_react19.useRef)(false);
-  const [submitting, setSubmitting] = (0, import_react19.useState)(null);
-  const [error, setError] = (0, import_react19.useState)("");
+  const locked = (0, import_react20.useRef)(false);
+  const [submitting, setSubmitting] = (0, import_react20.useState)(null);
+  const [error, setError] = (0, import_react20.useState)("");
   const choose = (choice) => {
     if (locked.current)
       return;
@@ -47668,35 +47920,35 @@ function LegacyIndexSelection({ coordinator, snapshot }) {
   };
   const records = snapshot.legacyRecordsTotal === null ? t("onboarding.legacy.recordsUnknown") : t("onboarding.legacy.records", { count: new Intl.NumberFormat().format(snapshot.legacyRecordsTotal) });
   const storage = snapshot.legacySourceBytes === null ? t("onboarding.legacy.storageUnknown") : t("onboarding.legacy.storage", { size: `${(snapshot.legacySourceBytes / 1e6).toFixed(1)} MB` });
-  return /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("section", { className: "analogy-onboarding-legacy", "aria-labelledby": "analogy-onboarding-legacy-title", children: [
-    /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("p", { className: "analogy-onboarding__eyebrow", children: t("onboarding.legacy.eyebrow") }),
-    /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("h2", { id: "analogy-onboarding-legacy-title", children: t("onboarding.legacy.heading") }),
-    /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("p", { children: t("onboarding.legacy.description") }),
-    /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("p", { className: "analogy-onboarding-legacy__estimate", children: [
+  return /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("section", { className: "analogy-onboarding-legacy", "aria-labelledby": "analogy-onboarding-legacy-title", children: [
+    /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("p", { className: "analogy-onboarding__eyebrow", children: t("onboarding.legacy.eyebrow") }),
+    /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("h2", { id: "analogy-onboarding-legacy-title", children: t("onboarding.legacy.heading") }),
+    /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("p", { children: t("onboarding.legacy.description") }),
+    /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("p", { className: "analogy-onboarding-legacy__estimate", children: [
       records,
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("span", { "aria-hidden": "true", children: " \xB7 " }),
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("span", { "aria-hidden": "true", children: " \xB7 " }),
       storage
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("div", { className: "analogy-onboarding-legacy__actions", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("div", { className: "analogy-onboarding-legacy__option", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("button", { type: "button", className: "mod-cta analogy-onboarding-legacy__choice", "data-primary-action": "true", disabled: submitting !== null, onClick: () => choose("reuse"), children: t("onboarding.legacy.reuse.title") }),
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("small", { children: t("onboarding.legacy.reuse.description") })
+    /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("div", { className: "analogy-onboarding-legacy__actions", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("div", { className: "analogy-onboarding-legacy__option", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("button", { type: "button", className: "mod-cta analogy-onboarding-legacy__choice", "data-primary-action": "true", disabled: submitting !== null, onClick: () => choose("reuse"), children: t("onboarding.legacy.reuse.title") }),
+        /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("small", { children: t("onboarding.legacy.reuse.description") })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("div", { className: "analogy-onboarding-legacy__option", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("button", { type: "button", className: "analogy-onboarding-legacy__choice", disabled: submitting !== null, onClick: () => choose("rebuild"), children: t("onboarding.legacy.rebuild.title") }),
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("small", { children: t("onboarding.legacy.rebuild.description") })
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("div", { className: "analogy-onboarding-legacy__option", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("button", { type: "button", className: "analogy-onboarding-legacy__choice", disabled: submitting !== null, onClick: () => choose("rebuild"), children: t("onboarding.legacy.rebuild.title") }),
+        /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("small", { children: t("onboarding.legacy.rebuild.description") })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("button", { type: "button", className: "analogy-onboarding-legacy__later", disabled: submitting !== null, onClick: () => choose("later"), children: t("onboarding.legacy.later") })
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("button", { type: "button", className: "analogy-onboarding-legacy__later", disabled: submitting !== null, onClick: () => choose("later"), children: t("onboarding.legacy.later") })
     ] }),
-    error ? /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("p", { className: "analogy-onboarding-scope__error", role: "alert", children: error }) : null
+    error ? /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("p", { className: "analogy-onboarding-scope__error", role: "alert", children: error }) : null
   ] });
 }
 function OnboardingView(props) {
-  const [snapshot, setSnapshot] = (0, import_react19.useState)(() => props.coordinator.getSnapshot());
-  const [, renderLocale] = (0, import_react19.useState)(0);
-  const heading = (0, import_react19.useRef)(null);
+  const [snapshot, setSnapshot] = (0, import_react20.useState)(() => props.coordinator.getSnapshot());
+  const [, renderLocale] = (0, import_react20.useState)(0);
+  const heading = (0, import_react20.useRef)(null);
   const speed = useTransferSpeed(snapshot);
-  (0, import_react19.useEffect)(() => {
+  (0, import_react20.useEffect)(() => {
     let mounted = true;
     const unsubscribe = props.coordinator.subscribe((value) => {
       if (mounted)
@@ -47708,8 +47960,8 @@ function OnboardingView(props) {
       unsubscribe();
     };
   }, [props.coordinator]);
-  (0, import_react19.useEffect)(() => onLocaleChange(() => renderLocale((value) => value + 1)), []);
-  (0, import_react19.useEffect)(() => {
+  (0, import_react20.useEffect)(() => onLocaleChange(() => renderLocale((value) => value + 1)), []);
+  (0, import_react20.useEffect)(() => {
     heading.current?.focus();
   }, [snapshot.stage, props.mode]);
   const retry = () => {
@@ -47726,32 +47978,32 @@ function OnboardingView(props) {
   };
   const isWelcome = snapshot.stage === "not-started" || snapshot.stage === "awaiting-consent" || snapshot.stage === "cancelled";
   const titleKey = props.mode === "repair" ? "onboarding.repair.title" : isWelcome ? "onboarding.welcome.title" : "onboarding.install.title";
-  return /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("main", { className: "analogy-onboarding", "data-state": props.mode === "repair" ? "repair" : snapshot.stage, children: [
-    /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("button", { type: "button", className: "analogy-onboarding__close", "aria-label": t("onboarding.close"), onClick: props.onClose, children: t("onboarding.close") }),
-    /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("header", { className: "analogy-onboarding__header", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("p", { className: "analogy-onboarding__kicker", children: t(props.mode === "repair" ? "onboarding.repair.kicker" : "onboarding.kicker") }),
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("h1", { ref: heading, tabIndex: -1, children: t(titleKey) }),
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("p", { className: "analogy-onboarding__lede", children: t(props.mode === "repair" ? "onboarding.repair.description" : isWelcome ? "onboarding.welcome.description" : "onboarding.install.description") })
+  return /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("main", { className: "analogy-onboarding", "data-state": props.mode === "repair" ? "repair" : snapshot.stage, children: [
+    /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("button", { type: "button", className: "analogy-onboarding__close", "aria-label": t("onboarding.close"), onClick: props.onClose, children: t("onboarding.close") }),
+    /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("header", { className: "analogy-onboarding__header", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("p", { className: "analogy-onboarding__kicker", children: t(props.mode === "repair" ? "onboarding.repair.kicker" : "onboarding.kicker") }),
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("h1", { ref: heading, tabIndex: -1, children: t(titleKey) }),
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("p", { className: "analogy-onboarding__lede", children: t(props.mode === "repair" ? "onboarding.repair.description" : isWelcome ? "onboarding.welcome.description" : "onboarding.install.description") })
     ] }),
-    isWelcome ? /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("section", { className: "analogy-onboarding-welcome", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("ul", { children: [
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("li", { children: t("onboarding.welcome.local") }),
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("li", { children: t("onboarding.welcome.download") }),
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("li", { children: t("onboarding.welcome.storage") })
+    isWelcome ? /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("section", { className: "analogy-onboarding-welcome", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("ul", { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("li", { children: t("onboarding.welcome.local") }),
+        /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("li", { children: t("onboarding.welcome.download") }),
+        /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("li", { children: t("onboarding.welcome.storage") })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("div", { className: "analogy-onboarding__actions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("button", { type: "button", className: "mod-cta analogy-onboarding__primary", "data-primary-action": "true", onClick: consent, children: t("onboarding.welcome.accept") }),
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("button", { type: "button", onClick: later, children: t("onboarding.welcome.later") })
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("div", { className: "analogy-onboarding__actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("button", { type: "button", className: "mod-cta analogy-onboarding__primary", "data-primary-action": "true", onClick: consent, children: t("onboarding.welcome.accept") }),
+        /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("button", { type: "button", onClick: later, children: t("onboarding.welcome.later") })
       ] })
     ] }) : null,
-    INSTALL_STAGES.has(snapshot.stage) ? /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("section", { children: [
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("p", { className: "analogy-onboarding__stage", "aria-live": "polite", "aria-atomic": "true", children: t(`onboarding.stage.${snapshot.stage}`) }),
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(SetupSteps, { snapshot, speedBytesPerSecond: speed }),
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("button", { type: "button", className: "analogy-onboarding__cancel", onClick: cancel, children: t("onboarding.install.cancel") })
+    INSTALL_STAGES.has(snapshot.stage) ? /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("section", { children: [
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("p", { className: "analogy-onboarding__stage", "aria-live": "polite", "aria-atomic": "true", children: t(`onboarding.stage.${snapshot.stage}`) }),
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsx)(SetupSteps, { snapshot, speedBytesPerSecond: speed }),
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("button", { type: "button", className: "analogy-onboarding__cancel", onClick: cancel, children: t("onboarding.install.cancel") })
     ] }) : null,
-    snapshot.stage === "selecting-index-scope" ? /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(ScopeSelection, { coordinator: props.coordinator }) : null,
-    snapshot.stage === "selecting-legacy-index-action" ? /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(LegacyIndexSelection, { coordinator: props.coordinator, snapshot }) : null,
-    snapshot.stage === "failed" && snapshot.error ? /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(
+    snapshot.stage === "selecting-index-scope" ? /* @__PURE__ */ (0, import_jsx_runtime33.jsx)(ScopeSelection, { coordinator: props.coordinator }) : null,
+    snapshot.stage === "selecting-legacy-index-action" ? /* @__PURE__ */ (0, import_jsx_runtime33.jsx)(LegacyIndexSelection, { coordinator: props.coordinator, snapshot }) : null,
+    snapshot.stage === "failed" && snapshot.error ? /* @__PURE__ */ (0, import_jsx_runtime33.jsx)(
       SetupError,
       {
         error: snapshot.error,
@@ -47764,21 +48016,21 @@ function OnboardingView(props) {
         onClose: props.onClose
       }
     ) : null,
-    snapshot.stage === "ready" ? /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("section", { className: "analogy-onboarding-complete", children: [
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("div", { className: "analogy-onboarding-complete__mark", "aria-hidden": "true", children: "\u2713" }),
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("h2", { children: t("onboarding.complete.heading") }),
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("p", { children: t("onboarding.complete.description") }),
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)("div", { className: "analogy-onboarding__actions", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("button", { type: "button", className: "mod-cta analogy-onboarding__primary", "data-primary-action": "true", onClick: props.onStartSearching, children: t("onboarding.complete.search") }),
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("button", { type: "button", onClick: props.onOpenOllama, children: t("onboarding.complete.ollama") })
+    snapshot.stage === "ready" ? /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("section", { className: "analogy-onboarding-complete", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("div", { className: "analogy-onboarding-complete__mark", "aria-hidden": "true", children: "\u2713" }),
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("h2", { children: t("onboarding.complete.heading") }),
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("p", { children: t("onboarding.complete.description") }),
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)("div", { className: "analogy-onboarding__actions", children: [
+        /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("button", { type: "button", className: "mod-cta analogy-onboarding__primary", "data-primary-action": "true", onClick: props.onStartSearching, children: t("onboarding.complete.search") }),
+        /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("button", { type: "button", onClick: props.onOpenOllama, children: t("onboarding.complete.ollama") })
       ] }),
-      /* @__PURE__ */ (0, import_jsx_runtime32.jsx)("p", { className: "analogy-onboarding-complete__optional", children: t("onboarding.complete.ollamaHint") })
+      /* @__PURE__ */ (0, import_jsx_runtime33.jsx)("p", { className: "analogy-onboarding-complete__optional", children: t("onboarding.complete.ollamaHint") })
     ] }) : null
   ] });
 }
 
 // src/onboarding/OnboardingModal.tsx
-var import_jsx_runtime33 = __toESM(require_jsx_runtime());
+var import_jsx_runtime34 = __toESM(require_jsx_runtime());
 var OnboardingModal = class extends import_obsidian8.Modal {
   constructor(app, options) {
     super(app);
@@ -47794,7 +48046,7 @@ var OnboardingModal = class extends import_obsidian8.Modal {
     const operation = this.options.mode === "repair" || snapshot.stage === "failed" ? this.options.coordinator.retry() : snapshot.stage === "not-started" || snapshot.stage === "cancelled" ? this.options.coordinator.start() : this.options.coordinator.resume();
     void operation.catch(() => void 0);
     this.root = (0, import_client4.createRoot)(this.contentEl);
-    this.root.render(/* @__PURE__ */ (0, import_jsx_runtime33.jsx)(
+    this.root.render(/* @__PURE__ */ (0, import_jsx_runtime34.jsx)(
       OnboardingView,
       {
         coordinator: this.options.coordinator,
@@ -48684,9 +48936,433 @@ var RuntimeControlSurface = class {
   }
 };
 
-// src/runtime/chroma-data-migration.ts
+// src/mcp/mcp-server-manager.ts
+var import_child_process5 = require("child_process");
 var fs15 = __toESM(require("fs"));
+var os2 = __toESM(require("os"));
 var path16 = __toESM(require("path"));
+var INSTALL_TIMEOUT_MS = 10 * 60 * 1e3;
+var BUILD_TIMEOUT_MS = 5 * 60 * 1e3;
+var READINESS_TIMEOUT_MS = 120 * 1e3;
+var MAX_LOG_LINES2 = 500;
+function mergeEnv(base, extra) {
+  return { ...base, ...extra };
+}
+function probeVersion(executable, env) {
+  if (executable.includes(path16.sep) && !fs15.existsSync(executable))
+    return null;
+  try {
+    const probe = (0, import_child_process5.spawnSync)(executable, ["--version"], {
+      env,
+      encoding: "utf-8",
+      timeout: 5e3,
+      windowsHide: true
+    });
+    if (probe.status !== 0)
+      return null;
+    return `${probe.stdout || ""}${probe.stderr || ""}`.trim();
+  } catch {
+    return null;
+  }
+}
+function resolveNodeExecutable2(env) {
+  const candidates = [];
+  if (env.ANALOGY_NODE_PATH)
+    candidates.push(env.ANALOGY_NODE_PATH);
+  try {
+    const dataRoot = process.platform === "win32" ? env.LOCALAPPDATA || path16.join(os2.homedir(), "AppData", "Local", "Analogy") : path16.join(os2.homedir(), "Library", "Application Support", "Analogy");
+    const currentPointer = path16.join(dataRoot, "runtime", "current", "embedding-runtime.json");
+    if (fs15.existsSync(currentPointer)) {
+      const pointer = JSON.parse(fs15.readFileSync(currentPointer, "utf8"));
+      const installed = typeof pointer?.installedPath === "string" ? pointer.installedPath : "";
+      if (installed && fs15.existsSync(installed)) {
+        for (const name of fs15.readdirSync(installed)) {
+          const dir = path16.join(installed, name);
+          try {
+            if (!fs15.statSync(dir).isDirectory())
+              continue;
+          } catch {
+            continue;
+          }
+          const candidate = process.platform === "win32" ? path16.join(dir, "node", "node.exe") : path16.join(dir, "node", "bin", "node");
+          if (fs15.existsSync(candidate))
+            candidates.push(candidate);
+        }
+      }
+    }
+  } catch {
+  }
+  const pathName = process.platform === "win32" ? "node.exe" : "node";
+  for (const dir of (env.PATH || "").split(path16.delimiter).filter(Boolean)) {
+    candidates.push(path16.join(dir, pathName));
+  }
+  candidates.push(pathName);
+  for (const candidate of candidates) {
+    const version = probeVersion(candidate, env);
+    if (version && /^v?\d+\.\d+\.\d+/.test(version))
+      return candidate;
+  }
+  throw new Error(
+    "A Node.js runtime is required to start the MCP server. Enable the Analogy managed runtime, or set ANALOGY_NODE_PATH."
+  );
+}
+function resolveNpmExecutable(env) {
+  if (env.ANALOGY_NPM_PATH) {
+    const version = probeVersion(env.ANALOGY_NPM_PATH, env);
+    if (version && /^\d+\.\d+\.\d+/.test(version))
+      return env.ANALOGY_NPM_PATH;
+  }
+  let nodeDir = "";
+  try {
+    nodeDir = path16.dirname(resolveNodeExecutable2(env));
+  } catch {
+    nodeDir = "";
+  }
+  const name = process.platform === "win32" ? "npm.cmd" : "npm";
+  const candidates = [];
+  if (nodeDir)
+    candidates.push(path16.join(nodeDir, name));
+  for (const dir of (env.PATH || "").split(path16.delimiter).filter(Boolean)) {
+    candidates.push(path16.join(dir, name));
+  }
+  for (const candidate of candidates) {
+    const version = probeVersion(candidate, env);
+    if (version && /^\d+\.\d+\.\d+/.test(version))
+      return candidate;
+  }
+  return process.platform === "win32" ? "npm.cmd" : "npm";
+}
+var McpServerManager = class {
+  constructor(options) {
+    this.child = null;
+    this.activeBuild = null;
+    this.pending = /* @__PURE__ */ new Map();
+    this.logs = [];
+    this.state = { status: "stopped", message: "" };
+    this.listeners = /* @__PURE__ */ new Set();
+    this.serverDir = options.serverDir;
+    this.env = options.env;
+    this.installTimeoutMs = options.installTimeoutMs ?? INSTALL_TIMEOUT_MS;
+    this.buildTimeoutMs = options.buildTimeoutMs ?? BUILD_TIMEOUT_MS;
+    this.readinessTimeoutMs = options.readinessTimeoutMs ?? READINESS_TIMEOUT_MS;
+  }
+  getState() {
+    return { status: this.state.status, message: this.state.message };
+  }
+  getLogTail(maxLines = 30) {
+    return this.logs.slice(-maxLines).join("\n");
+  }
+  subscribe(listener) {
+    this.listeners.add(listener);
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+  async start() {
+    if (this.state.status === "building" || this.state.status === "starting" || this.state.status === "running") {
+      return;
+    }
+    this.setState({ status: "building", message: "Preparing MCP server" });
+    try {
+      await this.ensureBuilt();
+      if (this.getState().status !== "building")
+        return;
+      this.setState({ status: "starting", message: "Starting MCP server" });
+      await this.spawnAndWaitReady();
+      if (this.getState().status !== "starting")
+        return;
+      this.setState({ status: "running", message: "MCP service is running" });
+    } catch (err) {
+      if (this.getState().status === "stopped")
+        return;
+      this.setState({
+        status: "error",
+        message: err.message || String(err)
+      });
+    }
+  }
+  async stop() {
+    this.setState({ status: "stopped", message: "MCP service stopped" });
+    this.killActiveBuild();
+    await this.killChild();
+  }
+  dispose() {
+    return this.stop();
+  }
+  setState(next) {
+    this.state = next;
+    for (const listener of this.listeners)
+      listener();
+  }
+  pushLog(line) {
+    for (const part of line.split(/\r?\n/)) {
+      const trimmed = part.trim();
+      if (trimmed)
+        this.logs.push(trimmed);
+    }
+    if (this.logs.length > MAX_LOG_LINES2) {
+      this.logs.splice(0, this.logs.length - MAX_LOG_LINES2);
+    }
+  }
+  getEnv() {
+    return mergeEnv(process.env, this.env);
+  }
+  async ensureBuilt() {
+    const distEntry = path16.join(this.serverDir, "dist", "index.js");
+    if (fs15.existsSync(distEntry))
+      return;
+    if (!fs15.existsSync(path16.join(this.serverDir, "package.json"))) {
+      throw new Error(`The MCP server is not installed in ${this.serverDir}`);
+    }
+    const hasLockfile = fs15.existsSync(path16.join(this.serverDir, "package-lock.json"));
+    this.setState({ status: "building", message: "Installing MCP server dependencies" });
+    await this.runNpmCommand(hasLockfile ? ["ci"] : ["install"], this.installTimeoutMs);
+    if (this.getState().status !== "building")
+      return;
+    this.setState({ status: "building", message: "Building MCP server" });
+    await this.runNpmCommand(["run", "build"], this.buildTimeoutMs);
+    if (this.getState().status !== "building")
+      return;
+    if (!fs15.existsSync(distEntry)) {
+      throw new Error(`MCP server build finished but ${distEntry} was not produced`);
+    }
+  }
+  runNpmCommand(args, timeoutMs) {
+    return new Promise((resolve11, reject) => {
+      const env = this.getEnv();
+      const npmExecutable = resolveNpmExecutable(env);
+      const child = (0, import_child_process5.spawn)(npmExecutable, args, {
+        cwd: this.serverDir,
+        env,
+        shell: process.platform === "win32",
+        windowsHide: true
+      });
+      this.activeBuild = child;
+      const timer = setTimeout(() => {
+        try {
+          child.kill("SIGTERM");
+        } catch {
+        }
+        setTimeout(() => {
+          try {
+            child.kill("SIGKILL");
+          } catch {
+          }
+        }, 3e3);
+      }, timeoutMs);
+      let stderrTail = "";
+      child.stdout?.setEncoding("utf-8");
+      child.stderr?.setEncoding("utf-8");
+      child.stdout?.on("data", (chunk) => this.pushLog(String(chunk)));
+      child.stderr?.on("data", (chunk) => {
+        this.pushLog(String(chunk));
+        stderrTail = `${stderrTail}${String(chunk)}`.slice(-4e3);
+      });
+      child.on("error", (err) => {
+        clearTimeout(timer);
+        if (this.activeBuild === child)
+          this.activeBuild = null;
+        if (this.state.status === "stopped") {
+          reject(new Error("Cancelled"));
+        } else {
+          reject(new Error(`Failed to run ${npmExecutable}: ${err.message}`));
+        }
+      });
+      child.on("exit", (code) => {
+        clearTimeout(timer);
+        if (this.activeBuild === child)
+          this.activeBuild = null;
+        if (this.state.status === "stopped") {
+          reject(new Error("Cancelled"));
+          return;
+        }
+        if (code !== 0) {
+          reject(
+            new Error(
+              `${npmExecutable} ${args.join(" ")} exited with code ${code}${stderrTail ? `
+${stderrTail}` : ""}`
+            )
+          );
+        } else {
+          resolve11();
+        }
+      });
+    });
+  }
+  spawnAndWaitReady() {
+    return new Promise((resolve11, reject) => {
+      const env = this.getEnv();
+      let nodeExecutable;
+      try {
+        nodeExecutable = resolveNodeExecutable2(env);
+      } catch (err) {
+        reject(err);
+        return;
+      }
+      const entry = path16.join(this.serverDir, "dist", "index.js");
+      const child = (0, import_child_process5.spawn)(nodeExecutable, [entry], {
+        cwd: this.serverDir,
+        env,
+        stdio: ["pipe", "pipe", "pipe"],
+        windowsHide: true
+      });
+      this.child = child;
+      let settled = false;
+      const finish = (err) => {
+        if (settled)
+          return;
+        settled = true;
+        if (err)
+          reject(err);
+        else
+          resolve11();
+      };
+      child.stdout?.setEncoding("utf-8");
+      child.stderr?.setEncoding("utf-8");
+      let stdoutBuffer = "";
+      child.stdout?.on("data", (chunk) => {
+        stdoutBuffer += String(chunk);
+        let newlineIndex = stdoutBuffer.indexOf("\n");
+        while (newlineIndex >= 0) {
+          const line = stdoutBuffer.slice(0, newlineIndex).trim();
+          stdoutBuffer = stdoutBuffer.slice(newlineIndex + 1);
+          newlineIndex = stdoutBuffer.indexOf("\n");
+          if (!line)
+            continue;
+          this.pushLog(line);
+          let message = null;
+          try {
+            message = JSON.parse(line);
+          } catch {
+            continue;
+          }
+          if (message && (typeof message.id === "string" || typeof message.id === "number")) {
+            const id = String(message.id);
+            const pending = this.pending.get(id);
+            if (pending) {
+              this.pending.delete(id);
+              clearTimeout(pending.timer);
+              pending.resolve(line);
+            }
+          }
+        }
+      });
+      child.stderr?.on("data", (chunk) => this.pushLog(String(chunk)));
+      const fail = (err) => {
+        for (const pending of this.pending.values()) {
+          clearTimeout(pending.timer);
+          pending.reject(err);
+        }
+        this.pending.clear();
+        finish(err);
+      };
+      child.on("error", (err) => {
+        if (this.child === child)
+          this.child = null;
+        fail(new Error(`Failed to spawn the MCP server: ${err.message}`));
+      });
+      child.on("exit", (code, signal) => {
+        if (this.child === child)
+          this.child = null;
+        if (this.state.status === "running") {
+          this.setState({
+            status: "error",
+            message: `MCP server exited unexpectedly (code=${code}, signal=${signal})`
+          });
+          return;
+        }
+        fail(
+          new Error(
+            `MCP server exited before it became ready (code=${code}, signal=${signal})`
+          )
+        );
+      });
+      const send = (payload) => {
+        try {
+          child.stdin?.write(`${JSON.stringify(payload)}
+`);
+        } catch (err) {
+          fail(new Error(`Failed to write to the MCP server: ${err.message}`));
+        }
+      };
+      const waitForReply = (id, timeoutMs) => new Promise((res, rej) => {
+        const timer = setTimeout(() => {
+          this.pending.delete(id);
+          rej(new Error(`MCP server did not respond to ${id} within ${timeoutMs}ms`));
+        }, timeoutMs);
+        this.pending.set(id, { resolve: res, reject: rej, timer });
+      });
+      void (async () => {
+        try {
+          await waitForReply("1", 3e4);
+          send({ jsonrpc: "2.0", method: "notifications/initialized" });
+          send({
+            jsonrpc: "2.0",
+            id: 2,
+            method: "tools/call",
+            params: { name: "vault_index_status", arguments: {} }
+          });
+          const statusReply = await waitForReply("2", this.readinessTimeoutMs);
+          const status = JSON.parse(statusReply);
+          const text = status.result?.content?.[0]?.text ?? "";
+          if (status.result?.isError || /"error"\s*:/.test(text)) {
+            throw new Error(`MCP server reported an error: ${text}`);
+          }
+          finish(null);
+        } catch (err) {
+          fail(err);
+        }
+      })();
+      send({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2024-11-05",
+          capabilities: {},
+          clientInfo: { name: "analogy-obsidian", version: "1.0.0" }
+        }
+      });
+    });
+  }
+  killChild() {
+    const child = this.child;
+    this.child = null;
+    if (!child || child.exitCode !== null)
+      return Promise.resolve();
+    const exited = new Promise((resolve11) => {
+      child.once("exit", () => resolve11(true));
+      setTimeout(() => resolve11(false), 3e3);
+    });
+    try {
+      child.stdin?.end();
+    } catch {
+    }
+    child.kill("SIGTERM");
+    return exited.then((ok) => {
+      if (!ok && child.exitCode === null) {
+        try {
+          child.kill("SIGKILL");
+        } catch {
+        }
+      }
+    });
+  }
+  killActiveBuild() {
+    const child = this.activeBuild;
+    this.activeBuild = null;
+    if (!child || child.exitCode !== null)
+      return;
+    try {
+      child.kill("SIGTERM");
+    } catch {
+    }
+  }
+};
+
+// src/runtime/chroma-data-migration.ts
+var fs16 = __toESM(require("fs"));
+var path17 = __toESM(require("path"));
 var import_crypto11 = require("crypto");
 var CHROMA_DATA_GENERATION = "v2";
 var CHROMA_RUNTIME_ID = "chroma-cli-1.4.4";
@@ -48767,8 +49443,8 @@ function validV2Collection(value, runtimeVaultId, modelShortName) {
   return value === prefix || new RegExp(`^${prefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_[0-9a-f]{12}$`).test(value);
 }
 function assertContained3(root, candidate) {
-  const relative11 = path16.relative(path16.resolve(root), path16.resolve(candidate));
-  if (!relative11 || relative11 === ".." || relative11.startsWith(`..${path16.sep}`) || path16.isAbsolute(relative11)) {
+  const relative11 = path17.relative(path17.resolve(root), path17.resolve(candidate));
+  if (!relative11 || relative11 === ".." || relative11.startsWith(`..${path17.sep}`) || path17.isAbsolute(relative11)) {
     throw migrationError("UNSAFE_CHROMA_DATA_PATH");
   }
 }
@@ -48786,21 +49462,21 @@ function toGenerationPointer(state) {
   };
 }
 async function atomicWriteJson2(filename, value) {
-  const directory = path16.dirname(filename);
-  await fs15.promises.mkdir(directory, { recursive: true, mode: 448 });
-  const temp = path16.join(directory, `.${path16.basename(filename)}.${process.pid}.${(0, import_crypto11.randomUUID)()}.tmp`);
+  const directory = path17.dirname(filename);
+  await fs16.promises.mkdir(directory, { recursive: true, mode: 448 });
+  const temp = path17.join(directory, `.${path17.basename(filename)}.${process.pid}.${(0, import_crypto11.randomUUID)()}.tmp`);
   let handle = null;
   try {
-    handle = await fs15.promises.open(temp, "wx", 384);
+    handle = await fs16.promises.open(temp, "wx", 384);
     await handle.writeFile(`${JSON.stringify(value, null, 2)}
 `, "utf8");
     await handle.sync();
     await handle.close();
     handle = null;
-    await fs15.promises.rename(temp, filename);
+    await fs16.promises.rename(temp, filename);
     let directoryHandle = null;
     try {
-      directoryHandle = await fs15.promises.open(directory, fs15.constants.O_RDONLY);
+      directoryHandle = await fs16.promises.open(directory, fs16.constants.O_RDONLY);
       await directoryHandle.sync();
     } catch (error) {
       const code = error.code;
@@ -48812,7 +49488,7 @@ async function atomicWriteJson2(filename, value) {
     }
   } catch (error) {
     await handle?.close().catch(() => void 0);
-    await fs15.promises.unlink(temp).catch(() => void 0);
+    await fs16.promises.unlink(temp).catch(() => void 0);
     throw error;
   }
 }
@@ -48820,13 +49496,13 @@ function createChromaDataGeneration(input) {
   validateRuntimeVaultId(input.runtimeVaultId);
   validateModelShortName(input.modelShortName);
   validatePort(input.port);
-  if (!path16.isAbsolute(input.localDataRoot))
+  if (!path17.isAbsolute(input.localDataRoot))
     throw migrationError("INVALID_LOCAL_DATA_ROOT");
-  const vaultRoot = path16.join(path16.resolve(input.localDataRoot), "vaults", input.runtimeVaultId);
-  const dataPath = path16.join(vaultRoot, "chroma_data_v2");
-  assertContained3(path16.resolve(input.localDataRoot), dataPath);
+  const vaultRoot = path17.join(path17.resolve(input.localDataRoot), "vaults", input.runtimeVaultId);
+  const dataPath = path17.join(vaultRoot, "chroma_data_v2");
+  assertContained3(path17.resolve(input.localDataRoot), dataPath);
   const legacyDataPath = input.legacyDataPath ?? null;
-  if (legacyDataPath !== null && !path16.isAbsolute(legacyDataPath)) {
+  if (legacyDataPath !== null && !path17.isAbsolute(legacyDataPath)) {
     throw migrationError("INVALID_LEGACY_DATA_PATH");
   }
   const transitionToken = input.transitionToken ?? (0, import_crypto11.randomUUID)().replace(/-/g, "");
@@ -48853,11 +49529,11 @@ function indexStateFilename(vaultRoot, generation, modelShortName, evidenceId) {
   if (generation !== "legacy" && generation !== "v2")
     throw migrationError("INVALID_INDEX_GENERATION");
   validateModelShortName(modelShortName);
-  if (!path16.isAbsolute(vaultRoot))
+  if (!path17.isAbsolute(vaultRoot))
     throw migrationError("INVALID_VAULT_RUNTIME_ROOT");
   if (evidenceId !== void 0)
     validateTransitionToken(evidenceId);
-  const filename = evidenceId ? path16.join(path16.resolve(vaultRoot), "index-states", generation, modelShortName, `${evidenceId}.json`) : path16.join(path16.resolve(vaultRoot), "index-states", generation, `${modelShortName}.json`);
+  const filename = evidenceId ? path17.join(path17.resolve(vaultRoot), "index-states", generation, modelShortName, `${evidenceId}.json`) : path17.join(path17.resolve(vaultRoot), "index-states", generation, `${modelShortName}.json`);
   assertContained3(vaultRoot, filename);
   return filename;
 }
@@ -48888,7 +49564,7 @@ function createDeviceLocalIndexStateStore(vaultRoot, generation, modelShortName,
     load: async () => {
       let parsed;
       try {
-        parsed = JSON.parse(await fs15.promises.readFile(filename, "utf8"));
+        parsed = JSON.parse(await fs16.promises.readFile(filename, "utf8"));
       } catch (error) {
         if (error.code === "ENOENT")
           return void 0;
@@ -48992,9 +49668,9 @@ function validateCollectionDocument(value) {
 }
 var _ChromaDataMigration = class {
   constructor(options) {
-    if (!path16.isAbsolute(options.runtimeStatePath))
+    if (!path17.isAbsolute(options.runtimeStatePath))
       throw migrationError("INVALID_RUNTIME_STATE_PATH");
-    this.runtimeStatePath = path16.resolve(options.runtimeStatePath);
+    this.runtimeStatePath = path17.resolve(options.runtimeStatePath);
     this.now = options.now ?? Date.now;
   }
   async withStateLock(operation) {
@@ -49065,7 +49741,7 @@ var _ChromaDataMigration = class {
     ];
     if (!exactKeys(old, oldKeys))
       return null;
-    const expectedVaultId = path16.basename(path16.dirname(this.runtimeStatePath));
+    const expectedVaultId = path17.basename(path17.dirname(this.runtimeStatePath));
     try {
       validateRuntimeVaultId(old.runtimeVaultId);
       validatePort(old.port);
@@ -49179,7 +49855,7 @@ var _ChromaDataMigration = class {
       validateRevision(state.revision);
       validatePort(state.port);
       validateModelShortName(state.modelShortName);
-      const expectedVaultId = path16.basename(path16.dirname(this.runtimeStatePath));
+      const expectedVaultId = path17.basename(path17.dirname(this.runtimeStatePath));
       if (state.schemaVersion !== 1 || state.runtimeVaultId !== expectedVaultId || state.activeGeneration !== null && state.activeGeneration !== "legacy" && state.activeGeneration !== "v2" || !validRuntimeId(state.runtimeId) || !validCollectionName(state.collectionName) || state.rebuildCompletedAt !== null && (!Number.isSafeInteger(state.rebuildCompletedAt) || state.rebuildCompletedAt <= 0) || state.previousGeneration !== null && !this.validPrevious(state.previousGeneration, expectedVaultId) || state.pendingGeneration !== null && !this.validPending(state.pendingGeneration, expectedVaultId)) {
         throw migrationError("RUNTIME_STATE_INVALID");
       }
@@ -49198,7 +49874,7 @@ var _ChromaDataMigration = class {
   }
   async readUnsafe() {
     try {
-      const parsed = JSON.parse(await fs15.promises.readFile(this.runtimeStatePath, "utf8"));
+      const parsed = JSON.parse(await fs16.promises.readFile(this.runtimeStatePath, "utf8"));
       try {
         return this.validateRuntimeState(parsed);
       } catch (error) {
@@ -49326,7 +50002,7 @@ var _ChromaDataMigration = class {
       return { ...generation, stateRevision: 1 };
     });
   }
-  writeLegacyPointerForMigration(generation, port, collectionName, modelShortName, runtimeVaultId = path16.basename(path16.dirname(this.runtimeStatePath))) {
+  writeLegacyPointerForMigration(generation, port, collectionName, modelShortName, runtimeVaultId = path17.basename(path17.dirname(this.runtimeStatePath))) {
     return this.withStateLock(async () => {
       validateRuntimeVaultId(runtimeVaultId);
       validatePort(port);
@@ -49357,7 +50033,7 @@ var _ChromaDataMigration = class {
       const pending = state?.pendingGeneration;
       if (!state || !pending)
         return null;
-      if (!path16.isAbsolute(localDataRoot))
+      if (!path17.isAbsolute(localDataRoot))
         throw migrationError("INVALID_LOCAL_DATA_ROOT");
       return {
         schemaVersion: 1,
@@ -49366,7 +50042,7 @@ var _ChromaDataMigration = class {
         runtimeVaultId: state.runtimeVaultId,
         modelShortName: pending.modelShortName,
         collectionName: pending.collectionName,
-        dataPath: path16.join(path16.resolve(localDataRoot), "vaults", state.runtimeVaultId, "chroma_data_v2"),
+        dataPath: path17.join(path17.resolve(localDataRoot), "vaults", state.runtimeVaultId, "chroma_data_v2"),
         port: pending.port,
         rebuildCompletedAt: null,
         legacyDataPath,
@@ -49400,8 +50076,8 @@ var _ChromaDataMigration = class {
   }
   evidenceFilename(evidenceId) {
     validateTransitionToken(evidenceId);
-    const vaultRoot = path16.dirname(this.runtimeStatePath);
-    const filename = path16.join(vaultRoot, "generation-evidence", `${evidenceId}.json`);
+    const vaultRoot = path17.dirname(this.runtimeStatePath);
+    const filename = path17.join(vaultRoot, "generation-evidence", `${evidenceId}.json`);
     assertContained3(vaultRoot, filename);
     return filename;
   }
@@ -49430,12 +50106,12 @@ var _ChromaDataMigration = class {
       return;
     }
     await Promise.all([
-      fs15.promises.unlink(this.evidenceFilename(transitionToken)).catch((error) => {
+      fs16.promises.unlink(this.evidenceFilename(transitionToken)).catch((error) => {
         if (error.code !== "ENOENT")
           throw error;
       }),
-      fs15.promises.unlink(indexStateFilename(
-        path16.dirname(this.runtimeStatePath),
+      fs16.promises.unlink(indexStateFilename(
+        path17.dirname(this.runtimeStatePath),
         "v2",
         modelShortName,
         transitionToken
@@ -49580,7 +50256,7 @@ var _ChromaDataMigration = class {
       try {
         await atomicWriteJson2(this.runtimeStatePath, runtimeState);
       } catch (error) {
-        await fs15.promises.unlink(evidenceFilename).catch(() => void 0);
+        await fs16.promises.unlink(evidenceFilename).catch(() => void 0);
         throw error;
       }
       const retired = previous.previousGeneration;
@@ -49627,7 +50303,7 @@ var _ChromaDataMigration = class {
       const state = await this.read();
       if (state.activeGeneration !== "v2" || state.pendingGeneration !== null || state.modelShortName !== input.modelShortName || state.rebuildCompletedAt === null || !state.scopeCompletion || input.actualPort != null && state.port !== input.actualPort)
         return false;
-      const raw = JSON.parse(await fs15.promises.readFile(this.evidenceFilename(state.scopeCompletion.evidenceId), "utf8"));
+      const raw = JSON.parse(await fs16.promises.readFile(this.evidenceFilename(state.scopeCompletion.evidenceId), "utf8"));
       if (!raw || typeof raw !== "object" || Array.isArray(raw))
         return false;
       const evidence = raw;
@@ -49673,25 +50349,25 @@ var _ChromaDataMigration = class {
 var ChromaDataMigration = _ChromaDataMigration;
 ChromaDataMigration.stateLocks = /* @__PURE__ */ new Map();
 function isContainedOrEqual2(root, candidate) {
-  const relative11 = path16.relative(path16.resolve(root), path16.resolve(candidate));
-  return relative11 === "" || relative11 !== ".." && !relative11.startsWith(`..${path16.sep}`) && !path16.isAbsolute(relative11);
+  const relative11 = path17.relative(path17.resolve(root), path17.resolve(candidate));
+  return relative11 === "" || relative11 !== ".." && !relative11.startsWith(`..${path17.sep}`) && !path17.isAbsolute(relative11);
 }
 function safeDirectoryChain2(root, candidate) {
   if (!isContainedOrEqual2(root, candidate))
     return false;
-  const relative11 = path16.relative(path16.resolve(root), path16.resolve(candidate));
-  let cursor = path16.resolve(root);
+  const relative11 = path17.relative(path17.resolve(root), path17.resolve(candidate));
+  let cursor = path17.resolve(root);
   try {
-    for (const component of relative11 ? relative11.split(path16.sep) : []) {
-      const parent = fs15.lstatSync(cursor);
+    for (const component of relative11 ? relative11.split(path17.sep) : []) {
+      const parent = fs16.lstatSync(cursor);
       if (!parent.isDirectory() || parent.isSymbolicLink())
         return false;
-      cursor = path16.join(cursor, component);
+      cursor = path17.join(cursor, component);
     }
-    const final = fs15.lstatSync(cursor);
+    const final = fs16.lstatSync(cursor);
     if (!final.isDirectory() || final.isSymbolicLink())
       return false;
-    return isContainedOrEqual2(fs15.realpathSync(root), fs15.realpathSync(candidate));
+    return isContainedOrEqual2(fs16.realpathSync(root), fs16.realpathSync(candidate));
   } catch {
     return false;
   }
@@ -49710,25 +50386,25 @@ function sameIdentity(left, right) {
   return left.dev === right.dev && left.ino === right.ino && left.isDirectory() && right.isDirectory() && !left.isSymbolicLink() && !right.isSymbolicLink();
 }
 function writeJsonSyncAtomic(filename, value) {
-  const temp = path16.join(path16.dirname(filename), `.${path16.basename(filename)}.${process.pid}.${(0, import_crypto11.randomUUID)()}.tmp`);
+  const temp = path17.join(path17.dirname(filename), `.${path17.basename(filename)}.${process.pid}.${(0, import_crypto11.randomUUID)()}.tmp`);
   let fd = null;
   try {
-    fd = fs15.openSync(temp, "wx", 384);
-    fs15.writeFileSync(fd, `${JSON.stringify(value, null, 2)}
+    fd = fs16.openSync(temp, "wx", 384);
+    fs16.writeFileSync(fd, `${JSON.stringify(value, null, 2)}
 `, "utf8");
-    fs15.fsyncSync(fd);
-    fs15.closeSync(fd);
+    fs16.fsyncSync(fd);
+    fs16.closeSync(fd);
     fd = null;
-    fs15.renameSync(temp, filename);
+    fs16.renameSync(temp, filename);
   } catch (error) {
     if (fd !== null) {
       try {
-        fs15.closeSync(fd);
+        fs16.closeSync(fd);
       } catch {
       }
     }
     try {
-      fs15.unlinkSync(temp);
+      fs16.unlinkSync(temp);
     } catch {
     }
     throw error;
@@ -49741,14 +50417,14 @@ function validRecoveryMetadata(value, expectedId) {
   return exactKeys(item, LEGACY_RECOVERY_KEYS) && item.schemaVersion === 1 && item.id === expectedId && /^[0-9a-f]{32}$/.test(expectedId) && (item.state === "prepared" || item.state === "isolated" || item.state === "trash-failed" || item.state === "restore-failed") && typeof item.sourceName === "string" && /^[A-Za-z0-9][A-Za-z0-9._-]{0,159}$/.test(item.sourceName) && Number.isSafeInteger(item.sourceDev) && item.sourceDev >= 0 && Number.isSafeInteger(item.sourceIno) && item.sourceIno >= 0 && Number.isSafeInteger(item.isolatedAt) && item.isolatedAt > 0 && Number.isSafeInteger(item.updatedAt) && item.updatedAt > 0;
 }
 function createLegacyCleanupManager(options) {
-  const pluginDirectory = path16.resolve(options.pluginDirectory);
-  const allowedRoot = path16.join(pluginDirectory, "chroma_data");
-  const source = options.legacyDataPath ? path16.resolve(options.legacyDataPath) : null;
-  const quarantineRoot = path16.join(allowedRoot, ".analogy-quarantine");
+  const pluginDirectory = path17.resolve(options.pluginDirectory);
+  const allowedRoot = path17.join(pluginDirectory, "chroma_data");
+  const source = options.legacyDataPath ? path17.resolve(options.legacyDataPath) : null;
+  const quarantineRoot = path17.join(allowedRoot, ".analogy-quarantine");
   const recoveryDirectory2 = (id) => {
     if (!/^[0-9a-f]{32}$/.test(id))
       throw migrationError("LEGACY_CLEANUP_RECOVERY_INVALID");
-    const directory = path16.join(quarantineRoot, `legacy-${id}`);
+    const directory = path17.join(quarantineRoot, `legacy-${id}`);
     if (!isContainedOrEqual2(quarantineRoot, directory) || directory === quarantineRoot) {
       throw migrationError("LEGACY_CLEANUP_RECOVERY_INVALID");
     }
@@ -49758,27 +50434,27 @@ function createLegacyCleanupManager(options) {
     const directory = recoveryDirectory2(id);
     if (!safeDirectoryChain2(quarantineRoot, directory))
       throw migrationError("LEGACY_CLEANUP_RECOVERY_INVALID");
-    const metadataPath = path16.join(directory, "recovery.json");
-    const stat = fs15.lstatSync(metadataPath);
+    const metadataPath = path17.join(directory, "recovery.json");
+    const stat = fs16.lstatSync(metadataPath);
     if (!stat.isFile() || stat.isSymbolicLink() || stat.size > 16 * 1024) {
       throw migrationError("LEGACY_CLEANUP_RECOVERY_INVALID");
     }
-    const metadata = JSON.parse(fs15.readFileSync(metadataPath, "utf8"));
+    const metadata = JSON.parse(fs16.readFileSync(metadataPath, "utf8"));
     if (!validRecoveryMetadata(metadata, id))
       throw migrationError("LEGACY_CLEANUP_RECOVERY_INVALID");
-    const isolated = fs15.lstatSync(path16.join(directory, "data"));
+    const isolated = fs16.lstatSync(path17.join(directory, "data"));
     if (!isolated.isDirectory() || isolated.isSymbolicLink() || isolated.dev !== metadata.sourceDev || isolated.ino !== metadata.sourceIno) {
       throw migrationError("LEGACY_CLEANUP_RECOVERY_IDENTITY_MISMATCH");
     }
     return { directory, metadata };
   };
   const listRecoveries = async () => {
-    if (!fs15.existsSync(quarantineRoot))
+    if (!fs16.existsSync(quarantineRoot))
       return [];
     if (!safeDirectoryChain2(allowedRoot, quarantineRoot))
       throw migrationError("LEGACY_CLEANUP_RECOVERY_INVALID");
     const results = [];
-    for (const entry of fs15.readdirSync(quarantineRoot, { withFileTypes: true })) {
+    for (const entry of fs16.readdirSync(quarantineRoot, { withFileTypes: true })) {
       const match = /^legacy-([0-9a-f]{32})$/.exec(entry.name);
       if (!match || !entry.isDirectory() || entry.isSymbolicLink())
         continue;
@@ -49794,34 +50470,34 @@ function createLegacyCleanupManager(options) {
     if (confirmation !== LEGACY_CLEANUP_CONFIRMATION) {
       throw migrationError("LEGACY_CLEANUP_CONFIRMATION_REQUIRED");
     }
-    if (!source || !path16.isAbsolute(options.pluginDirectory) || !isContainedOrEqual2(allowedRoot, source) || source === allowedRoot || path16.basename(source).startsWith("."))
+    if (!source || !path17.isAbsolute(options.pluginDirectory) || !isContainedOrEqual2(allowedRoot, source) || source === allowedRoot || path17.basename(source).startsWith("."))
       throw migrationError("LEGACY_CLEANUP_UNAVAILABLE");
     if (!await options.isV2Completed())
       throw migrationError("LEGACY_CLEANUP_V2_NOT_COMPLETE");
-    if (!fs15.existsSync(source))
+    if (!fs16.existsSync(source))
       return { removed: 0, failed: 0, skipped: 1 };
     if (!safeDirectoryChain2(pluginDirectory, allowedRoot) || !safeDirectoryChain2(allowedRoot, source)) {
       throw migrationError("LEGACY_CLEANUP_UNSAFE_PATH");
     }
-    fs15.mkdirSync(quarantineRoot, { recursive: true, mode: 448 });
-    fs15.chmodSync(quarantineRoot, 448);
+    fs16.mkdirSync(quarantineRoot, { recursive: true, mode: 448 });
+    fs16.chmodSync(quarantineRoot, 448);
     if (!safeDirectoryChain2(allowedRoot, quarantineRoot))
       throw migrationError("LEGACY_CLEANUP_UNSAFE_PATH");
-    const sourceIdentity = fs15.lstatSync(source);
-    const quarantineIdentity = fs15.lstatSync(quarantineRoot);
+    const sourceIdentity = fs16.lstatSync(source);
+    const quarantineIdentity = fs16.lstatSync(quarantineRoot);
     if (!sourceIdentity.isDirectory() || sourceIdentity.isSymbolicLink() || sourceIdentity.dev !== quarantineIdentity.dev)
       throw migrationError("LEGACY_CLEANUP_UNSAFE_PATH");
     const id = (0, import_crypto11.randomUUID)().replace(/-/g, "");
     const directory = recoveryDirectory2(id);
-    const isolated = path16.join(directory, "data");
-    const metadataPath = path16.join(directory, "recovery.json");
-    fs15.mkdirSync(directory, { mode: 448 });
+    const isolated = path17.join(directory, "data");
+    const metadataPath = path17.join(directory, "recovery.json");
+    fs16.mkdirSync(directory, { mode: 448 });
     const now = Date.now();
     let metadata = {
       schemaVersion: 1,
       id,
       state: "prepared",
-      sourceName: path16.basename(source),
+      sourceName: path17.basename(source),
       sourceDev: sourceIdentity.dev,
       sourceIno: sourceIdentity.ino,
       isolatedAt: now,
@@ -49831,14 +50507,14 @@ function createLegacyCleanupManager(options) {
     try {
       if (!safeDirectoryChain2(pluginDirectory, allowedRoot) || !safeDirectoryChain2(allowedRoot, source) || !safeDirectoryChain2(allowedRoot, quarantineRoot) || !safeDirectoryChain2(quarantineRoot, directory))
         throw migrationError("LEGACY_CLEANUP_UNSAFE_PATH");
-      const finalIdentity = fs15.lstatSync(source);
+      const finalIdentity = fs16.lstatSync(source);
       if (!sameIdentity(sourceIdentity, finalIdentity))
         throw migrationError("LEGACY_CLEANUP_IDENTITY_CHANGED");
-      fs15.renameSync(source, isolated);
-      const isolatedIdentity = fs15.lstatSync(isolated);
+      fs16.renameSync(source, isolated);
+      const isolatedIdentity = fs16.lstatSync(isolated);
       if (!sameIdentity(sourceIdentity, isolatedIdentity)) {
         try {
-          fs15.renameSync(isolated, source);
+          fs16.renameSync(isolated, source);
         } catch {
         }
         throw migrationError("LEGACY_CLEANUP_IDENTITY_CHANGED");
@@ -49846,13 +50522,13 @@ function createLegacyCleanupManager(options) {
       metadata = { ...metadata, state: "isolated", updatedAt: Date.now() };
       writeJsonSyncAtomic(metadataPath, metadata);
     } catch (error) {
-      if (fs15.existsSync(source)) {
+      if (fs16.existsSync(source)) {
         try {
-          fs15.unlinkSync(metadataPath);
+          fs16.unlinkSync(metadataPath);
         } catch {
         }
         try {
-          fs15.rmdirSync(directory);
+          fs16.rmdirSync(directory);
         } catch {
         }
       }
@@ -49861,7 +50537,7 @@ function createLegacyCleanupManager(options) {
     try {
       const recovery = readRecovery(id);
       await options.trashItem(recovery.directory);
-      if (fs15.existsSync(recovery.directory))
+      if (fs16.existsSync(recovery.directory))
         throw migrationError("LEGACY_CLEANUP_TRASH_INCOMPLETE");
       return { removed: 1, failed: 0, skipped: 0 };
     } catch {
@@ -49877,13 +50553,13 @@ function createLegacyCleanupManager(options) {
     const recovery = readRecovery(id);
     try {
       await options.trashItem(recovery.directory);
-      if (fs15.existsSync(recovery.directory))
+      if (fs16.existsSync(recovery.directory))
         throw migrationError("LEGACY_CLEANUP_TRASH_INCOMPLETE");
       return { removed: 1, failed: 0 };
     } catch {
       const metadata = { ...recovery.metadata, state: "trash-failed", updatedAt: Date.now() };
       try {
-        writeJsonSyncAtomic(path16.join(recovery.directory, "recovery.json"), metadata);
+        writeJsonSyncAtomic(path17.join(recovery.directory, "recovery.json"), metadata);
       } catch {
       }
       return { removed: 0, failed: 1 };
@@ -49891,35 +50567,35 @@ function createLegacyCleanupManager(options) {
   };
   const restoreRecovery = async (id) => {
     const recovery = readRecovery(id);
-    const restoreTarget = path16.join(allowedRoot, recovery.metadata.sourceName);
+    const restoreTarget = path17.join(allowedRoot, recovery.metadata.sourceName);
     if (source && restoreTarget !== source)
       throw migrationError("LEGACY_CLEANUP_RECOVERY_INVALID");
-    if (fs15.existsSync(restoreTarget))
+    if (fs16.existsSync(restoreTarget))
       return { restored: 0, failed: 1 };
     try {
-      fs15.renameSync(path16.join(recovery.directory, "data"), restoreTarget);
-      const restored = fs15.lstatSync(restoreTarget);
+      fs16.renameSync(path17.join(recovery.directory, "data"), restoreTarget);
+      const restored = fs16.lstatSync(restoreTarget);
       if (restored.dev !== recovery.metadata.sourceDev || restored.ino !== recovery.metadata.sourceIno || !restored.isDirectory() || restored.isSymbolicLink()) {
         try {
-          fs15.renameSync(restoreTarget, path16.join(recovery.directory, "data"));
+          fs16.renameSync(restoreTarget, path17.join(recovery.directory, "data"));
         } catch {
         }
         throw migrationError("LEGACY_CLEANUP_RECOVERY_IDENTITY_MISMATCH");
       }
       try {
-        fs15.unlinkSync(path16.join(recovery.directory, "recovery.json"));
+        fs16.unlinkSync(path17.join(recovery.directory, "recovery.json"));
       } catch {
       }
       try {
-        fs15.rmdirSync(recovery.directory);
+        fs16.rmdirSync(recovery.directory);
       } catch {
       }
       return { restored: 1, failed: 0 };
     } catch {
-      if (fs15.existsSync(path16.join(recovery.directory, "recovery.json"))) {
+      if (fs16.existsSync(path17.join(recovery.directory, "recovery.json"))) {
         const metadata = { ...recovery.metadata, state: "restore-failed", updatedAt: Date.now() };
         try {
-          writeJsonSyncAtomic(path16.join(recovery.directory, "recovery.json"), metadata);
+          writeJsonSyncAtomic(path17.join(recovery.directory, "recovery.json"), metadata);
         } catch {
         }
       }
@@ -49930,23 +50606,23 @@ function createLegacyCleanupManager(options) {
 }
 
 // src/runtime/legacy-chroma-runtime-bridge.ts
-var fs16 = __toESM(require("fs"));
-var path17 = __toESM(require("path"));
+var fs17 = __toESM(require("fs"));
+var path18 = __toESM(require("path"));
 var import_crypto12 = require("crypto");
 var import_http3 = require("http");
 var import_net = require("net");
-var import_child_process5 = require("child_process");
+var import_child_process6 = require("child_process");
 function legacyError(code, cause) {
   return Object.assign(new Error(code), { code, ...cause === void 0 ? {} : { cause } });
 }
 function isContained4(root, candidate) {
-  const relative11 = path17.relative(path17.resolve(root), path17.resolve(candidate));
-  return Boolean(relative11) && relative11 !== ".." && !relative11.startsWith(`..${path17.sep}`) && !path17.isAbsolute(relative11);
+  const relative11 = path18.relative(path18.resolve(root), path18.resolve(candidate));
+  return Boolean(relative11) && relative11 !== ".." && !relative11.startsWith(`..${path18.sep}`) && !path18.isAbsolute(relative11);
 }
 async function requirePlainPath(candidate, code, kind) {
   let stat;
   try {
-    stat = await fs16.promises.lstat(candidate);
+    stat = await fs17.promises.lstat(candidate);
   } catch (error) {
     throw legacyError(code, error);
   }
@@ -49954,23 +50630,23 @@ async function requirePlainPath(candidate, code, kind) {
     throw legacyError(code);
   }
   try {
-    return await fs16.promises.realpath(candidate);
+    return await fs17.promises.realpath(candidate);
   } catch (error) {
     throw legacyError(code, error);
   }
 }
 async function discoverLegacyRuntime(input) {
   const pluginDir = await requirePlainPath(input.pluginDir, "LEGACY_RUNTIME_UNTRUSTED", "directory");
-  const expectedExecutable = input.platform === "win32-x64" ? path17.join(pluginDir, "chroma-venv", "Scripts", "chroma.exe") : path17.join(pluginDir, "chroma-venv", "bin", "chroma");
+  const expectedExecutable = input.platform === "win32-x64" ? path18.join(pluginDir, "chroma-venv", "Scripts", "chroma.exe") : path18.join(pluginDir, "chroma-venv", "bin", "chroma");
   const executablePath = await requirePlainPath(
     expectedExecutable,
     "LEGACY_RUNTIME_UNTRUSTED",
     "file"
   );
-  const trustedVenv = path17.join(pluginDir, "chroma-venv");
+  const trustedVenv = path18.join(pluginDir, "chroma-venv");
   if (!isContained4(trustedVenv, executablePath))
     throw legacyError("LEGACY_RUNTIME_UNTRUSTED");
-  const expectedLegacyRoot = path17.join(pluginDir, "chroma_data");
+  const expectedLegacyRoot = path18.join(pluginDir, "chroma_data");
   const legacyDataPath = await requirePlainPath(
     input.legacyDataPath,
     "LEGACY_DATA_PATH_UNSAFE",
@@ -49987,11 +50663,11 @@ async function discoverLegacyRuntime(input) {
 async function collectSourceEntries(root) {
   const entries = [];
   const visit = async (directory) => {
-    const names = await fs16.promises.readdir(directory);
+    const names = await fs17.promises.readdir(directory);
     names.sort((left, right) => left.localeCompare(right, "en"));
     for (const name of names) {
-      const absolutePath = path17.join(directory, name);
-      const stat = await fs16.promises.lstat(absolutePath);
+      const absolutePath = path18.join(directory, name);
+      const stat = await fs17.promises.lstat(absolutePath);
       if (stat.isSymbolicLink())
         throw legacyError("LEGACY_DATA_PATH_UNSAFE");
       if (stat.isDirectory()) {
@@ -50000,13 +50676,13 @@ async function collectSourceEntries(root) {
       }
       if (!stat.isFile())
         throw legacyError("LEGACY_DATA_PATH_UNSAFE");
-      const relativePath = path17.relative(root, absolutePath);
-      if (!relativePath || path17.isAbsolute(relativePath) || relativePath.startsWith(`..${path17.sep}`)) {
+      const relativePath = path18.relative(root, absolutePath);
+      if (!relativePath || path18.isAbsolute(relativePath) || relativePath.startsWith(`..${path18.sep}`)) {
         throw legacyError("LEGACY_DATA_PATH_UNSAFE");
       }
       entries.push({
         absolutePath,
-        relativePath: relativePath.split(path17.sep).join("/"),
+        relativePath: relativePath.split(path18.sep).join("/"),
         size: stat.size,
         mtimeMs: stat.mtimeMs,
         dev: stat.dev,
@@ -50037,18 +50713,18 @@ function identityFor3(entries) {
   return { digest: hash.digest("hex"), totalBytes, newestMtimeMs, fileCount: entries.length };
 }
 async function defaultAvailableBytes(directory) {
-  const statfs = await fs16.promises.statfs(directory);
+  const statfs = await fs17.promises.statfs(directory);
   return statfs.bavail * statfs.bsize;
 }
 async function createLegacySnapshot(options) {
   if (!/^[0-9a-f]{32}$/.test(options.migrationId))
     throw legacyError("LEGACY_MIGRATION_ID_INVALID");
-  const stagingRoot = path17.resolve(options.stagingRoot);
-  await fs16.promises.mkdir(stagingRoot, { recursive: true, mode: 448 });
-  const snapshotPath = path17.join(stagingRoot, `snapshot-${options.migrationId}`);
+  const stagingRoot = path18.resolve(options.stagingRoot);
+  await fs17.promises.mkdir(stagingRoot, { recursive: true, mode: 448 });
+  const snapshotPath = path18.join(stagingRoot, `snapshot-${options.migrationId}`);
   if (!isContained4(stagingRoot, snapshotPath))
     throw legacyError("LEGACY_SNAPSHOT_PATH_UNSAFE");
-  const stale = await fs16.promises.lstat(snapshotPath).catch((error) => {
+  const stale = await fs17.promises.lstat(snapshotPath).catch((error) => {
     if (error.code === "ENOENT")
       return null;
     throw error;
@@ -50056,7 +50732,7 @@ async function createLegacySnapshot(options) {
   if (stale) {
     if (!stale.isDirectory() || stale.isSymbolicLink())
       throw legacyError("LEGACY_SNAPSHOT_PATH_UNSAFE");
-    await fs16.promises.rm(snapshotPath, { recursive: true, force: true });
+    await fs17.promises.rm(snapshotPath, { recursive: true, force: true });
   }
   const sourceEntries = await collectSourceEntries(options.candidate.legacyDataPath);
   const sourceIdentity = identityFor3(sourceEntries);
@@ -50064,16 +50740,16 @@ async function createLegacySnapshot(options) {
   if (!Number.isFinite(available) || available < sourceIdentity.totalBytes) {
     throw legacyError("INSUFFICIENT_DISK_SPACE");
   }
-  const copyFile = options.copyFile ?? ((source, target, flags) => fs16.promises.copyFile(source, target, flags));
+  const copyFile = options.copyFile ?? ((source, target, flags) => fs17.promises.copyFile(source, target, flags));
   try {
-    await fs16.promises.mkdir(snapshotPath, { recursive: false, mode: 448 });
+    await fs17.promises.mkdir(snapshotPath, { recursive: false, mode: 448 });
     for (const entry of sourceEntries) {
-      const target = path17.join(snapshotPath, ...entry.relativePath.split("/"));
+      const target = path18.join(snapshotPath, ...entry.relativePath.split("/"));
       if (!isContained4(snapshotPath, target))
         throw legacyError("LEGACY_SNAPSHOT_PATH_UNSAFE");
-      await fs16.promises.mkdir(path17.dirname(target), { recursive: true, mode: 448 });
+      await fs17.promises.mkdir(path18.dirname(target), { recursive: true, mode: 448 });
       try {
-        await copyFile(entry.absolutePath, target, fs16.constants.COPYFILE_FICLONE);
+        await copyFile(entry.absolutePath, target, fs17.constants.COPYFILE_FICLONE);
       } catch (error) {
         const code = error?.code;
         if (!["ENOTSUP", "EINVAL", "EXDEV", "ENOSYS"].includes(code ?? ""))
@@ -50086,7 +50762,7 @@ async function createLegacySnapshot(options) {
       throw legacyError("LEGACY_SOURCE_CHANGED");
     return { snapshotPath, sourceIdentity };
   } catch (error) {
-    await fs16.promises.rm(snapshotPath, { recursive: true, force: true }).catch(() => void 0);
+    await fs17.promises.rm(snapshotPath, { recursive: true, force: true }).catch(() => void 0);
     throw error;
   }
 }
@@ -50213,7 +50889,7 @@ var LegacyChromaRuntimeBridge = class {
     const port = await (this.options.allocatePort ?? allocateLoopbackPort)();
     if (!validPort(port))
       throw legacyError("LEGACY_CHROMA_PORT_INVALID");
-    const spawnHook = this.options.spawn ?? ((executable, args, options) => (0, import_child_process5.spawn)(executable, [...args], options));
+    const spawnHook = this.options.spawn ?? ((executable, args, options) => (0, import_child_process6.spawn)(executable, [...args], options));
     const spawnOptions = {
       shell: false,
       cwd: snapshot.snapshotPath
@@ -50335,17 +51011,17 @@ var LegacyChromaRuntimeBridge = class {
     this.snapshot = null;
     if (!snapshot)
       return;
-    const stagingRoot = path17.resolve(this.options.stagingRoot);
-    const target = path17.resolve(snapshot.snapshotPath);
+    const stagingRoot = path18.resolve(this.options.stagingRoot);
+    const target = path18.resolve(snapshot.snapshotPath);
     if (!isContained4(stagingRoot, target))
       throw legacyError("LEGACY_SNAPSHOT_PATH_UNSAFE");
-    await fs16.promises.rm(target, { recursive: true, force: true });
+    await fs17.promises.rm(target, { recursive: true, force: true });
   }
 };
 
 // src/runtime/legacy-vector-migration.ts
-var fs17 = __toESM(require("fs"));
-var path18 = __toESM(require("path"));
+var fs18 = __toESM(require("fs"));
+var path19 = __toESM(require("path"));
 var import_crypto13 = require("crypto");
 function migrationError2(code, cause) {
   return Object.assign(new Error(code), { code, ...cause === void 0 ? {} : { cause } });
@@ -50364,14 +51040,14 @@ function cloneSnapshot2(snapshot) {
   return { ...snapshot };
 }
 async function atomicWriteJson3(filename, value) {
-  await fs17.promises.mkdir(path18.dirname(filename), { recursive: true, mode: 448 });
+  await fs18.promises.mkdir(path19.dirname(filename), { recursive: true, mode: 448 });
   const temporary = `${filename}.${process.pid}.${(0, import_crypto13.randomUUID)()}.tmp`;
   try {
-    await fs17.promises.writeFile(temporary, `${JSON.stringify(value)}
+    await fs18.promises.writeFile(temporary, `${JSON.stringify(value)}
 `, { encoding: "utf8", mode: 384 });
-    await fs17.promises.rename(temporary, filename);
+    await fs18.promises.rename(temporary, filename);
   } catch (error) {
-    await fs17.promises.rm(temporary, { force: true }).catch(() => void 0);
+    await fs18.promises.rm(temporary, { force: true }).catch(() => void 0);
     throw migrationError2("LEGACY_MIGRATION_CHECKPOINT_WRITE_FAILED", error);
   }
 }
@@ -50526,7 +51202,7 @@ var LegacyVectorMigration = class {
   async discard() {
     if (this.flight)
       throw migrationError2("LEGACY_MIGRATION_BUSY");
-    await fs17.promises.rm(this.options.checkpointPath, { force: true });
+    await fs18.promises.rm(this.options.checkpointPath, { force: true });
     this.snapshot = null;
   }
   begin(signal, resume) {
@@ -50681,7 +51357,7 @@ var LegacyVectorMigration = class {
   async readCheckpoint() {
     let body;
     try {
-      body = await fs17.promises.readFile(this.options.checkpointPath, "utf8");
+      body = await fs18.promises.readFile(this.options.checkpointPath, "utf8");
     } catch (error) {
       if (error.code === "ENOENT")
         return null;
@@ -50715,17 +51391,17 @@ var LegacyVectorMigration = class {
 
 // main.ts
 var crypto7 = __toESM(require("crypto"));
-var fs18 = __toESM(require("fs"));
-var path19 = __toESM(require("path"));
+var fs19 = __toESM(require("fs"));
+var path20 = __toESM(require("path"));
 function environmentCanStartServices(report) {
   return (report.chroma === "installed" || report.chroma === "running") && report.embeddingRuntime === "ready" && report.embeddingModel === "ready" && report.index === "ready" && (report.recommendedAction === "start-services" || report.recommendedAction === "none");
 }
 async function safeDirectoryBytes(root) {
   let total = 0;
   const visit = async (directory) => {
-    for (const name of await fs18.promises.readdir(directory)) {
-      const target = path19.join(directory, name);
-      const stat = await fs18.promises.lstat(target);
+    for (const name of await fs19.promises.readdir(directory)) {
+      const target = path20.join(directory, name);
+      const stat = await fs19.promises.lstat(target);
       if (stat.isSymbolicLink())
         throw new Error("LEGACY_DATA_PATH_UNSAFE");
       if (stat.isDirectory())
@@ -50767,6 +51443,7 @@ var Analogy = class extends import_obsidian9.Plugin {
     this.diagnosticRecorder = null;
     this.safeModeManager = null;
     this.semanticWalkActivationQueue = Promise.resolve();
+    this.mcpServerManager = null;
   }
   getSafeModeState() {
     return this.safeModeManager?.getState() ?? {
@@ -50854,7 +51531,7 @@ var Analogy = class extends import_obsidian9.Plugin {
     await this.loadSettings();
     setLocale(this.settings.uiLanguage || "en");
     const pluginDir = this.getPluginDir();
-    const buildId = "1.2.3+646b984.1786178200035" ? "1.2.3+646b984.1786178200035" : `${this.manifest.version}+dev`;
+    const buildId = "1.2.4+43b1ad1.1786185712469" ? "1.2.4+43b1ad1.1786185712469" : `${this.manifest.version}+dev`;
     this.diagnosticRecorder = new DiagnosticRecorder({
       pluginDir,
       pluginVersion: this.manifest.version,
@@ -51050,7 +51727,7 @@ var Analogy = class extends import_obsidian9.Plugin {
         runtimeVaultId
       })
     });
-    const buildId = "1.2.3+646b984.1786178200035" ? "1.2.3+646b984.1786178200035" : `${this.manifest.version}+dev`;
+    const buildId = "1.2.4+43b1ad1.1786185712469" ? "1.2.4+43b1ad1.1786185712469" : `${this.manifest.version}+dev`;
     const workerBundleSource = true ? 'var __create = Object.create;\nvar __defProp = Object.defineProperty;\nvar __getOwnPropDesc = Object.getOwnPropertyDescriptor;\nvar __getOwnPropNames = Object.getOwnPropertyNames;\nvar __getProtoOf = Object.getPrototypeOf;\nvar __hasOwnProp = Object.prototype.hasOwnProperty;\nvar __copyProps = (to, from, except, desc) => {\n  if (from && typeof from === "object" || typeof from === "function") {\n    for (let key of __getOwnPropNames(from))\n      if (!__hasOwnProp.call(to, key) && key !== except)\n        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n  }\n  return to;\n};\nvar __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(\n  // If the importer is in node compatibility mode or this is not an ESM\n  // file that has been converted to a CommonJS file using a Babel-\n  // compatible transform (i.e. "__esModule" has not been set), then set\n  // "default" to the CommonJS "module.exports" for node compatibility.\n  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,\n  mod\n));\n\n// src/local-vector/embedding-worker-protocol.ts\nfunction encodeMessage(msg) {\n  return JSON.stringify(msg) + "\\n";\n}\nfunction decodeMessage(line) {\n  const trimmed = line.trim();\n  if (!trimmed)\n    return null;\n  try {\n    return JSON.parse(trimmed);\n  } catch {\n    return null;\n  }\n}\n\n// src/local-vector/embedding.ts\nvar http = __toESM(require("http"));\nvar https = __toESM(require("https"));\nfunction finiteNonNegative(value) {\n  return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;\n}\nfunction sanitizeProgressFile(value) {\n  if (typeof value !== "string" || !value.trim())\n    return null;\n  const withoutQuery = value.trim().split(/[?#]/, 1)[0].replace(/\\\\/g, "/");\n  const basename = withoutQuery.slice(withoutQuery.lastIndexOf("/") + 1);\n  if (!basename || basename === "." || basename === "..")\n    return null;\n  try {\n    return decodeURIComponent(basename);\n  } catch {\n    return basename;\n  }\n}\nfunction normalizeEmbeddingInitializationProgress(progressInfo) {\n  if (!progressInfo || typeof progressInfo !== "object")\n    return null;\n  const progress = progressInfo;\n  const status = typeof progress.status === "string" ? progress.status.toLowerCase() : "";\n  let phase;\n  if (status === "ready")\n    phase = "ready";\n  else if (["progress", "download", "downloading", "initiate"].includes(status))\n    phase = "downloading";\n  else if (["done", "loading", "loaded"].includes(status))\n    phase = "loading";\n  else\n    return null;\n  const loadedBytes = finiteNonNegative(progress.loaded);\n  const totalCandidate = finiteNonNegative(progress.total);\n  const totalBytes = totalCandidate !== null && totalCandidate > 0 ? totalCandidate : null;\n  let percent = finiteNonNegative(progress.progress);\n  if (percent !== null && percent <= 1)\n    percent *= 100;\n  if (loadedBytes !== null && totalBytes !== null)\n    percent = loadedBytes / totalBytes * 100;\n  if (phase === "ready")\n    percent = 100;\n  if (percent !== null)\n    percent = Math.max(0, Math.min(100, Math.round(percent * 100) / 100));\n  return {\n    phase,\n    file: sanitizeProgressFile(progress.file),\n    loadedBytes,\n    totalBytes,\n    percent\n  };\n}\n\n// src/local-vector/embedding-worker.ts\nvar import_module = require("module");\nvar path = __toESM(require("path"));\nvar extractor = null;\nvar currentModelId = "";\nvar currentPooling = "mean";\nfunction logError(message, err) {\n  console.error(`[AnalogyWorker] ${message}`, err instanceof Error ? err.message : "");\n}\nasync function handleInitialize(req) {\n  try {\n    const moduleRoot = process.env.ANALOGY_RUNTIME_MODULE_ROOT;\n    if (!moduleRoot || !path.isAbsolute(moduleRoot)) {\n      throw new Error("ANALOGY_RUNTIME_MODULE_ROOT is required");\n    }\n    const runtimeRequire = (0, import_module.createRequire)(path.join(moduleRoot, "package.json"));\n    runtimeRequire(path.join(moduleRoot, "onnxruntime-node"));\n    const transformers = runtimeRequire(path.join(moduleRoot, "@huggingface", "transformers"));\n    if (req.modelHost) {\n      transformers.env.remoteHost = req.modelHost;\n      transformers.env.remotePathTemplate = "{model}/resolve/{revision}/";\n    }\n    transformers.env.cacheDir = req.cacheDir;\n    extractor = await transformers.pipeline("feature-extraction", req.modelId, {\n      dtype: req.dtype || "q8",\n      cache_dir: req.cacheDir,\n      ...req.modelRevision ? { revision: req.modelRevision } : {},\n      progress_callback: (progressInfo) => {\n        const progress = normalizeEmbeddingInitializationProgress(progressInfo);\n        if (!progress)\n          return;\n        const event = { id: req.id, type: "progress", progress };\n        process.stdout.write(encodeMessage(event));\n      }\n    });\n    currentModelId = req.modelId;\n    currentPooling = req.pooling;\n    process.stdout.write(encodeMessage({\n      id: req.id,\n      type: "progress",\n      progress: {\n        phase: "ready",\n        file: null,\n        loadedBytes: null,\n        totalBytes: null,\n        percent: 100\n      }\n    }));\n    return { id: req.id, ok: true };\n  } catch (err) {\n    logError("initialize failed", err);\n    return {\n      id: req.id,\n      ok: false,\n      error: { code: "WORKER_INIT_FAILED", message: err.message }\n    };\n  }\n}\nasync function handleEmbed(req) {\n  if (!extractor) {\n    return {\n      id: req.id,\n      ok: false,\n      error: { code: "WORKER_NOT_INITIALIZED", message: "Worker not initialized" }\n    };\n  }\n  try {\n    const output = await extractor(req.texts, { pooling: currentPooling, normalize: true });\n    const dims = output.dims ?? [req.texts.length, output.data.length / req.texts.length];\n    const [batch, dim] = dims;\n    const embeddings = [];\n    for (let i = 0; i < batch; i++) {\n      const row = [];\n      for (let j = 0; j < dim; j++) {\n        row.push(output.data[i * dim + j]);\n      }\n      embeddings.push(row);\n    }\n    return { id: req.id, ok: true, embeddings, memoryUsage: getMemoryUsage() };\n  } catch (err) {\n    logError("embed failed", err);\n    return {\n      id: req.id,\n      ok: false,\n      error: { code: "WORKER_EMBED_FAILED", message: err.message }\n    };\n  }\n}\nasync function handleDispose(req) {\n  try {\n    if (extractor && typeof extractor.dispose === "function") {\n      await extractor.dispose();\n    }\n  } catch (err) {\n    logError("dispose failed", err);\n  }\n  extractor = null;\n  currentModelId = "";\n  currentPooling = "mean";\n  return { id: req.id, ok: true };\n}\nfunction handleHealth(req) {\n  return { id: req.id, ok: true, memoryUsage: getMemoryUsage() };\n}\nfunction getMemoryUsage() {\n  const mu = process.memoryUsage();\n  return {\n    rss: Math.round(mu.rss / 1024 / 1024),\n    heapUsed: Math.round(mu.heapUsed / 1024 / 1024),\n    external: Math.round(mu.external / 1024 / 1024)\n  };\n}\nasync function handleRequest(req) {\n  switch (req.type) {\n    case "initialize":\n      return handleInitialize(req);\n    case "embed":\n      return handleEmbed(req);\n    case "dispose":\n      return handleDispose(req);\n    case "health":\n      return handleHealth(req);\n    default:\n      return {\n        id: req.id || "unknown",\n        ok: false,\n        error: { code: "WORKER_UNKNOWN_TYPE", message: "Unknown request type" }\n      };\n  }\n}\nvar buffer = "";\nprocess.stdin.setEncoding("utf-8");\nprocess.stdin.on("data", async (chunk) => {\n  buffer += chunk;\n  let lines = buffer.split("\\n");\n  buffer = lines.pop() || "";\n  for (const line of lines) {\n    const req = decodeMessage(line);\n    if (!req)\n      continue;\n    const response = await handleRequest(req);\n    process.stdout.write(encodeMessage(response));\n  }\n});\nprocess.stdin.on("end", () => {\n  if (buffer.trim()) {\n    const req = decodeMessage(buffer);\n    if (req) {\n      handleRequest(req).then((response) => {\n        process.stdout.write(encodeMessage(response));\n        process.exit(0);\n      });\n      return;\n    }\n  }\n  process.exit(0);\n});\nprocess.on("uncaughtException", (err) => {\n  logError("uncaughtException", err);\n  process.exit(1);\n});\n' : "";
     const embeddingRuntimeManager = new EmbeddingRuntimeManager({
       paths,
@@ -51107,7 +51784,7 @@ var Analogy = class extends import_obsidian9.Plugin {
       });
       if (report.index !== "legacy")
         return report;
-      const legacyDataPath2 = path19.join(this.getPluginDir(), "chroma_data", this.getVaultId());
+      const legacyDataPath2 = path20.join(this.getPluginDir(), "chroma_data", this.getVaultId());
       const legacyState = await createDeviceLocalIndexStateStore(
         paths.vaultRoot,
         "legacy",
@@ -51203,7 +51880,7 @@ var Analogy = class extends import_obsidian9.Plugin {
         const actualPort = this.chromaManager?.getPort() ?? (currentProcess.ownership === "analogy" ? currentProcess.port : this.runtimePort);
         const existingPending = await chromaDataMigration.resumePendingGeneration(
           paths.root,
-          path19.join(this.getPluginDir(), "chroma_data", this.getVaultId())
+          path20.join(this.getPluginDir(), "chroma_data", this.getVaultId())
         );
         const transition = existingPending?.modelShortName === modelConfig.shortName ? await chromaDataMigration.publishActiveLease({ ...existingPending, port: actualPort }) : await chromaDataMigration.begin(
           this.createActiveChromaGeneration(actualPort, modelConfig.shortName),
@@ -51278,7 +51955,7 @@ var Analogy = class extends import_obsidian9.Plugin {
     });
     const legacyMigration = {
       prepare: async (signal) => {
-        const legacyDataPath2 = path19.join(this.getPluginDir(), "chroma_data", this.getVaultId());
+        const legacyDataPath2 = path20.join(this.getPluginDir(), "chroma_data", this.getVaultId());
         const collectionName = `analogy_${this.getVaultId()}_${modelConfig.shortName}`;
         const candidate = await discoverLegacyRuntime({
           pluginDir: this.getPluginDir(),
@@ -51305,7 +51982,7 @@ var Analogy = class extends import_obsidian9.Plugin {
         );
         const managedRuntime = await embeddingRuntimeManager.resolve();
         legacyEmbeddingService = new EmbeddingService({
-          cacheDir: path19.join(paths.modelCache, modelConfig.shortName),
+          cacheDir: path20.join(paths.modelCache, modelConfig.shortName),
           pluginDir: this.getPluginDir(),
           remoteHost: this.settings.embeddingModelHost,
           modelConfig,
@@ -51326,14 +52003,14 @@ var Analogy = class extends import_obsidian9.Plugin {
           signal.addEventListener("abort", () => legacyBridgeController?.abort(), { once: true });
         const bridge = new LegacyChromaRuntimeBridge({
           candidate,
-          stagingRoot: path19.join(paths.vaultRoot, "legacy-migration"),
+          stagingRoot: path20.join(paths.vaultRoot, "legacy-migration"),
           migrationId: crypto7.createHash("sha256").update(`${runtimeVaultId}:${modelConfig.shortName}`, "utf8").digest("hex").slice(0, 32),
           collectionName,
           platform
         });
         legacySource = await bridge.prepare(legacyBridgeController.signal);
         legacyVectorMigration = new LegacyVectorMigration({
-          checkpointPath: path19.join(paths.vaultRoot, "legacy-vector-migration.json"),
+          checkpointPath: path20.join(paths.vaultRoot, "legacy-vector-migration.json"),
           source: legacySource,
           destination: {
             upsertRecords: (records) => legacyStagingStore.upsertRecords(records),
@@ -51393,8 +52070,8 @@ var Analogy = class extends import_obsidian9.Plugin {
           sourceBytes: legacySourceBytes
         }));
         try {
-          const checkpoint = path19.join(paths.vaultRoot, "legacy-vector-migration.json");
-          legacyCopyEvidence = fs18.existsSync(checkpoint) ? await legacyVectorMigration.resume(signal) : await legacyVectorMigration.start(signal);
+          const checkpoint = path20.join(paths.vaultRoot, "legacy-vector-migration.json");
+          legacyCopyEvidence = fs19.existsSync(checkpoint) ? await legacyVectorMigration.resume(signal) : await legacyVectorMigration.start(signal);
         } finally {
           unsubscribe();
         }
@@ -51531,7 +52208,7 @@ var Analogy = class extends import_obsidian9.Plugin {
       },
       chromaManager: chromaRuntimeManager,
       chromaStartOptions: (installed) => ({
-        executablePath: installed?.executablePath ?? path19.join(paths.chromaVersions, chromaAsset.id, chromaAsset.executableRelativePath),
+        executablePath: installed?.executablePath ?? path20.join(paths.chromaVersions, chromaAsset.id, chromaAsset.executableRelativePath),
         dataPath: paths.chromaDataV2,
         preferredPort: this.runtimePort,
         runtimeVersion: chromaAsset.version
@@ -51552,7 +52229,7 @@ var Analogy = class extends import_obsidian9.Plugin {
           this.chromaDataMigration = migration;
           const generation = await migration.resumePendingGeneration(
             paths.root,
-            path19.join(this.getPluginDir(), "chroma_data", this.getVaultId())
+            path20.join(this.getPluginDir(), "chroma_data", this.getVaultId())
           );
           if (!generation || generation.modelShortName !== modelConfig.shortName) {
             throw new Error("CHROMA_REBUILD_PENDING_MISSING");
@@ -51632,7 +52309,7 @@ var Analogy = class extends import_obsidian9.Plugin {
       const shell = require("electron")?.shell;
       if (!shell?.showItemInFolder)
         throw new Error("RUNTIME_REVEAL_UNAVAILABLE");
-      await fs18.promises.mkdir(paths.root, { recursive: true, mode: 448 });
+      await fs19.promises.mkdir(paths.root, { recursive: true, mode: 448 });
       shell.showItemInFolder(paths.root);
     };
     const trashItem = async (target) => {
@@ -51641,7 +52318,7 @@ var Analogy = class extends import_obsidian9.Plugin {
         throw new Error("RUNTIME_TRASH_UNAVAILABLE");
       await shell.trashItem(target);
     };
-    const legacyDataPath = path19.join(this.getPluginDir(), "chroma_data", this.getVaultId());
+    const legacyDataPath = path20.join(this.getPluginDir(), "chroma_data", this.getVaultId());
     const legacyCleanup = createLegacyCleanupManager({
       legacyDataPath,
       pluginDirectory: this.getPluginDir(),
@@ -51784,7 +52461,7 @@ var Analogy = class extends import_obsidian9.Plugin {
       resolveCollectionName: async () => serviceCollectionName,
       createVectorStore: () => new LocalVectorStore(),
       createEmbeddingService: (managedRuntime) => new EmbeddingService({
-        cacheDir: path19.join(input.paths.modelCache, modelConfig.shortName),
+        cacheDir: path20.join(input.paths.modelCache, modelConfig.shortName),
         pluginDir: this.getPluginDir(),
         remoteHost: this.settings.embeddingModelHost,
         modelConfig,
@@ -51859,7 +52536,7 @@ var Analogy = class extends import_obsidian9.Plugin {
       runtimeVaultId,
       modelShortName,
       port,
-      legacyDataPath: path19.join(this.getPluginDir(), "chroma_data", this.getVaultId())
+      legacyDataPath: path20.join(this.getPluginDir(), "chroma_data", this.getVaultId())
     });
   }
   async publishRuntimeState(port, modelShortName) {
@@ -51882,7 +52559,7 @@ var Analogy = class extends import_obsidian9.Plugin {
     this.chromaDataMigration = migration;
     const pending = await migration.resumePendingGeneration(
       this.runtimePaths.root,
-      path19.join(this.getPluginDir(), "chroma_data", this.getVaultId())
+      path20.join(this.getPluginDir(), "chroma_data", this.getVaultId())
     );
     const transition = pending?.modelShortName === modelConfig.shortName ? await migration.publishActiveLease({ ...pending, port }) : await migration.begin(
       this.createActiveChromaGeneration(port, modelConfig.shortName),
@@ -52117,7 +52794,7 @@ var Analogy = class extends import_obsidian9.Plugin {
     const coordinator = lifecycle.coordinator;
     if (!coordinator)
       return;
-    const buildId = "1.2.3+646b984.1786178200035" ? "1.2.3+646b984.1786178200035" : `${this.manifest.version}+dev`;
+    const buildId = "1.2.4+43b1ad1.1786185712469" ? "1.2.4+43b1ad1.1786185712469" : `${this.manifest.version}+dev`;
     const modal = new OnboardingModal(this.app, {
       coordinator,
       mode,
@@ -52171,6 +52848,56 @@ var Analogy = class extends import_obsidian9.Plugin {
       arch: typeof process !== "undefined" ? process.arch : "unknown"
     };
   }
+  getMcpServerConfig() {
+    const vaultPath = this.app.vault.adapter?.basePath ?? "";
+    const pluginDir = this.getPluginDir();
+    const serverPath = path20.join(pluginDir, "mcp-server", "dist", "index.js");
+    const config = {
+      mcpServers: {
+        "analogy-vault": {
+          command: "node",
+          args: [serverPath],
+          env: {
+            ANALOGY_VAULT_PATH: vaultPath,
+            ANALOGY_PLUGIN_DIR: pluginDir,
+            ANALOGY_MODEL: this.settings.embeddingModel || DEFAULT_MODEL_KEY
+          }
+        }
+      }
+    };
+    return {
+      json: JSON.stringify(config, null, 2),
+      serverPath,
+      serverReady: fs19.existsSync(serverPath)
+    };
+  }
+  getMcpServiceState() {
+    return this.mcpServerManager?.getState() ?? { status: "stopped", message: "" };
+  }
+  onMcpServiceStateChange(listener) {
+    return this.getOrCreateMcpServerManager().subscribe(listener);
+  }
+  async startMcpService() {
+    await this.getOrCreateMcpServerManager().start();
+  }
+  async stopMcpService() {
+    await this.getOrCreateMcpServerManager().stop();
+  }
+  getOrCreateMcpServerManager() {
+    if (!this.mcpServerManager) {
+      const pluginDir = this.getPluginDir();
+      const vaultPath = this.app.vault.adapter?.basePath ?? "";
+      this.mcpServerManager = new McpServerManager({
+        serverDir: path20.join(pluginDir, "mcp-server"),
+        env: {
+          ANALOGY_VAULT_PATH: vaultPath,
+          ANALOGY_PLUGIN_DIR: pluginDir,
+          ANALOGY_MODEL: this.settings.embeddingModel || DEFAULT_MODEL_KEY
+        }
+      });
+    }
+    return this.mcpServerManager;
+  }
   async onunload() {
     this.unloading = true;
     this.lifecycleGeneration += 1;
@@ -52178,6 +52905,10 @@ var Analogy = class extends import_obsidian9.Plugin {
     this.layoutReadyAbort = null;
     this.onboardingModal?.close();
     this.onboardingModal = null;
+    if (this.mcpServerManager) {
+      await this.mcpServerManager.dispose();
+      this.mcpServerManager = null;
+    }
     this.diagnosticRecorder?.updateStage("plugin.unload", "plugin.unload.start");
     void this.initLocalServicesPromise?.catch(() => void 0);
     const bootstrap = this.localServiceBootstrap;
@@ -52257,8 +52988,8 @@ var Analogy = class extends import_obsidian9.Plugin {
       if (await store.load() === void 0)
         await store.save(state);
     }
-    const legacyDataPath = path19.join(this.getPluginDir(), "chroma_data", this.getVaultId());
-    if (!runtimeState && (fs18.existsSync(legacyDataPath) || Object.keys(migrated.legacyIndexStates).length > 0 || migrated.legacyPort !== null)) {
+    const legacyDataPath = path20.join(this.getPluginDir(), "chroma_data", this.getVaultId());
+    if (!runtimeState && (fs19.existsSync(legacyDataPath) || Object.keys(migrated.legacyIndexStates).length > 0 || migrated.legacyPort !== null)) {
       const modelKey = this.settings.embeddingModel || DEFAULT_MODEL_KEY;
       const modelConfig = EMBEDDING_MODELS[modelKey] || EMBEDDING_MODELS[DEFAULT_MODEL_KEY];
       await migration.writeLegacyPointerForMigration(
@@ -52315,8 +53046,8 @@ var Analogy = class extends import_obsidian9.Plugin {
       name: t("semanticWalk.command.currentDocument"),
       callback: () => {
         const file = this.app.workspace.getActiveFile();
-        const path20 = file instanceof import_obsidian9.TFile && file.extension.toLowerCase() === "md" ? file.path : "";
-        return this.activateSemanticWalk({ type: "current-document", path: path20 });
+        const path21 = file instanceof import_obsidian9.TFile && file.extension.toLowerCase() === "md" ? file.path : "";
+        return this.activateSemanticWalk({ type: "current-document", path: path21 });
       }
     });
     this.addCommand({

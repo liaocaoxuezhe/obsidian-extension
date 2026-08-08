@@ -289,9 +289,9 @@ export function ChunkPicker({
   }, [documents, initialDocumentId, openDocument]);
 
   useEffect(() => {
-    if (initialMode !== "current") return;
+    if (mode !== "current") return;
     void openCurrent();
-  }, [currentDocumentPath, initialMode, openCurrent]);
+  }, [currentDocumentPath, mode, openCurrent]);
 
   const sortedSearchResults = useMemo(
     () => [...searchResults].sort((left, right) => left.distance - right.distance),

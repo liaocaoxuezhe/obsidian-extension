@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import type { ChunkRepository } from "./types";
+import type { ChunkRepository, IndexedChunk } from "./types";
 import type { ChunkRelationService } from "./relation-service";
 import { SemanticWalkController, type ConfirmHide, type ConfirmRestart, type WalkOperationResult } from "./walk-controller";
 import { SemanticWalkCanvas } from "./components/SemanticWalkCanvas";
@@ -11,6 +11,7 @@ import {
   type ChunkSelectionAction,
 } from "./components/ChunkPicker";
 import { WalkEmptyState } from "./components/WalkEmptyState";
+import { FreeTextStartDialog } from "./components/FreeTextStartDialog";
 import type { SemanticWalkOpenEvent } from "./SemanticWalkItemView";
 import { t } from "../util/i18n";
 import type { SemanticWalkDiagnosticRecorder } from "../diagnostics/diagnostic-types";
@@ -55,22 +56,34 @@ export function SemanticWalkView({
   model,
   className = "",
 }: SemanticWalkViewProps): JSX.Element {
+  const transientChunksRef = useRef(new Map<string, IndexedChunk>());
+  const freeTextIdRef = useRef(0);
+  const sessionRepository = useMemo<ChunkRepository>(() => ({
+    getChunk: async (chunkId, includeEmbedding) => transientChunksRef.current.get(chunkId)
+      ?? repository.getChunk(chunkId, includeEmbedding),
+    listChunksByDocument: (docId) => repository.listChunksByDocument(docId),
+    listIndexedDocuments: () => repository.listIndexedDocuments(),
+    getRandomChunk: () => repository.getRandomChunk(),
+  }), [repository]);
   const controller = useMemo(
     () => new SemanticWalkController({
-      repository,
+      repository: sessionRepository,
       relationService,
       diagnosticRecorder,
       model,
       getIndexRevision: fileBridge ? () => fileBridge.getIndexRevision() : undefined,
-      validateSource: fileBridge ? (chunk) => fileBridge.getFileValidity(chunk.path, chunk.mtime) : undefined,
+      validateSource: fileBridge
+        ? (chunk) => chunk.path ? fileBridge.getFileValidity(chunk.path, chunk.mtime) : "valid"
+        : undefined,
     }),
-    [repository, relationService, diagnosticRecorder, model, fileBridge],
+    [sessionRepository, relationService, diagnosticRecorder, model, fileBridge],
   );
   const [walkState, setWalkState] = useState(controller.getState());
   const [picker, setPicker] = useState<PickerState | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [newBatchBusy, setNewBatchBusy] = useState(false);
+  const [freeTextOpen, setFreeTextOpen] = useState(false);
   const [fileRevision, setFileRevision] = useState(0);
   const [currentDocumentSnapshot, setCurrentDocumentSnapshot] = useState<CurrentMarkdownDocument | null>(
     () => fileBridge?.getCurrentDocument() ?? null,
@@ -149,6 +162,42 @@ export function SemanticWalkView({
           : await controller.addAndExpand(chunkId);
       if (!isCurrentAction(actionGeneration)) return;
       applyOperationResult(result, action);
+    } catch (error) {
+      if (!isCurrentAction(actionGeneration)) return;
+      setFeedback(error instanceof Error ? error.message : String(error));
+    } finally {
+      if (isCurrentAction(actionGeneration)) setBusy(false);
+    }
+  };
+
+  const handleFreeTextStart = async (text: string) => {
+    if (serviceUnavailableReason) {
+      setFeedback(serviceUnavailableReason);
+      return;
+    }
+    const actionGeneration = ++actionGenerationRef.current;
+    const chunkId = `__analogy_free_text__:${++freeTextIdRef.current}`;
+    transientChunksRef.current.set(chunkId, {
+      chunkId,
+      docId: "__analogy_free_text__",
+      path: "",
+      title: t("semanticWalk.freeText.title"),
+      content: text,
+      chunkIndex: 0,
+      chunkCount: 1,
+      sectionLabel: "",
+      mtime: 0,
+    });
+    setBusy(true);
+    setFeedback(null);
+    try {
+      const start = await controller.setStart(chunkId, confirmRestart);
+      if (!isCurrentAction(actionGeneration)) return;
+      if (!applyOperationResult(start, "start")) return;
+      setFreeTextOpen(false);
+      const expansion = await controller.expand(chunkId);
+      if (!isCurrentAction(actionGeneration)) return;
+      applyOperationResult(expansion, "add-expand");
     } catch (error) {
       if (!isCurrentAction(actionGeneration)) return;
       setFeedback(error instanceof Error ? error.message : String(error));
@@ -237,6 +286,7 @@ export function SemanticWalkView({
       setBusy(false);
       setNewBatchBusy(false);
       setPicker(null);
+      setFreeTextOpen(false);
       setFeedback(null);
     } else if (request.type === "current-document") {
       setPicker({ mode: "current" });
@@ -273,7 +323,7 @@ export function SemanticWalkView({
   const viewClassName = `semantic-walk-view ${className}`.trim();
 
   return (
-    <section className={viewClassName} aria-label={t("semanticWalk.viewName")}>
+    <section className={viewClassName}>
       {hasNodes || newBatchBusy ? (
         <header className="semantic-walk-view__header">
           <div className="semantic-walk-view__summary">
@@ -337,9 +387,8 @@ export function SemanticWalkView({
 
         {!hasNodes ? (
           <WalkEmptyState
-            currentDocumentPath={liveCurrentDocumentPath}
-            onOpenCurrentDocument={() => setPicker({ mode: "current" })}
-            onOpenSearch={() => setPicker({ mode: "search" })}
+            onChooseNote={() => setPicker({ mode: "documents" })}
+            onOpenFreeText={() => setFreeTextOpen(true)}
             onPickRandom={() => { void handleRandom(); }}
             feedback={feedback || serviceUnavailableReason}
             busy={busy}
@@ -369,6 +418,14 @@ export function SemanticWalkView({
           busy={busy || Boolean(serviceUnavailableReason)}
           onSelect={(chunkId, action) => { void handleSelection(chunkId, action); }}
           onClose={() => setPicker(null)}
+        />
+      ) : null}
+      {freeTextOpen ? (
+        <FreeTextStartDialog
+          open
+          busy={busy || Boolean(serviceUnavailableReason)}
+          onClose={() => setFreeTextOpen(false)}
+          onStart={(text) => { void handleFreeTextStart(text); }}
         />
       ) : null}
     </section>
