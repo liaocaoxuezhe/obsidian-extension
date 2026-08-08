@@ -25,12 +25,15 @@ test/
 !test/
 test/*
 !test/embedding-model-behavior.test.js
+!test/embedding-runtime-attestation.test.js
 !test/helpers/
 test/helpers/*
 !test/helpers/download-pinned-chroma.js
 !test/fixtures/
 test/fixtures/*
 !test/fixtures/chroma-runtime-manifest.fixture.json
+!test/fixtures/github-cli-v2.50.0-windows-arm64.sigstore.json
+!test/fixtures/analogy-embedding-runtime-node22-v1-darwin-arm64.tar.gz.smoke-attestation.json
 
 # Private service and deployment assets must stay private.
 mcp-server/src/com*/

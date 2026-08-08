@@ -9,7 +9,7 @@
 		"build:styles": "tailwindcss -i ./tailwind.css -o ./styles.css --minify",
 		"lint": "eslint main.ts src package.json",
 		"typecheck": "tsc --noEmit",
-		"test:public": "node test/embedding-model-behavior.test.js && node test/embedding-worker-materialization.test.js && node test/embedding-service-safety.test.js && node test/embedding-worker-lifecycle.test.js && node test/community-worker-bundle.test.js && node test/release-version.test.js && node test/release-integrity.test.js",
+		"test:public": "node test/embedding-model-behavior.test.js && node test/embedding-runtime-attestation.test.js && node test/embedding-worker-materialization.test.js && node test/embedding-service-safety.test.js && node test/embedding-worker-lifecycle.test.js && node test/community-worker-bundle.test.js && node test/release-version.test.js && node test/release-integrity.test.js",
 		"check": "npm run lint && npm run typecheck && npm run test:public && npm run build",
 		"runtime:build": "node scripts/build-embedding-runtime.mjs",
 		"runtime:manifest": "node scripts/generate-runtime-manifest.mjs --input dist/runtime --output src/runtime/generated-embedding-runtime-manifest.ts --base-url https://github.com/liaocaoxuezhe/obsidian-extension/releases/download/runtime-node22-v1",

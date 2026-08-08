@@ -233,15 +233,27 @@ function verifyRekorDsseBody(bodyBytes, envelope, leaf) {
   if (body.spec.payloadHash.value !== sha256Bytes(payload).toString("hex")) {
     throw new Error("Rekor canonicalized body is not bound to the current DSSE payload");
   }
-  const rekorEnvelope = {
-    payload: envelope.payload,
-    payloadType: envelope.payloadType,
-    signatures: envelope.signatures.map((signature) => ({
-      sig: signature.sig,
-      keyid: signature.keyid || "",
-    })),
-  };
-  if (body.spec.envelopeHash.value !== sha256Bytes(Buffer.from(JSON.stringify(rekorEnvelope), "utf8")).toString("hex")) {
+  const rekorEnvelopeCandidates = [
+    {
+      payload: envelope.payload,
+      payloadType: envelope.payloadType,
+      signatures: envelope.signatures.map((signature) => ({
+        sig: signature.sig,
+        keyid: signature.keyid || "",
+      })),
+    },
+    {
+      payload: envelope.payload,
+      payloadType: envelope.payloadType,
+      signatures: envelope.signatures.map((signature) => (
+        signature.keyid ? { keyid: signature.keyid, sig: signature.sig } : { sig: signature.sig }
+      )),
+    },
+  ];
+  const envelopeHashMatches = rekorEnvelopeCandidates.some((candidate) => (
+    body.spec.envelopeHash.value === sha256Bytes(Buffer.from(JSON.stringify(candidate), "utf8")).toString("hex")
+  ));
+  if (!envelopeHashMatches) {
     throw new Error("Rekor canonicalized body is not bound to the current serialized DSSE envelope");
   }
   return body;
