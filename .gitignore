@@ -42,6 +42,7 @@ test/*
 !test/sidebar-search-tabs.test.js
 !test/summary-models.test.js
 !test/public-boundary.test.js
+!test/api-contract.test.js
 !test/helpers/
 test/helpers/*
 !test/helpers/download-pinned-chroma.js

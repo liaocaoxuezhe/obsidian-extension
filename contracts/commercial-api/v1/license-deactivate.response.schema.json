@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://analogypkm.com/contracts/commercial-api/v1/license-deactivate.response.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "data"],
+  "properties": {
+    "code": {"const": 0},
+    "message": {"type": "string"},
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "deactivated"],
+      "properties": {
+        "status": {"type": "string", "minLength": 1},
+        "deactivated": {"type": "boolean"}
+      }
+    }
+  }
+}
