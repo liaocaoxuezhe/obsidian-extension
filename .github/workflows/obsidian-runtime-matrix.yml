@@ -79,7 +79,19 @@ jobs:
       - name: Build Community plugin
         run: npm run build
       - name: Run unit, contract, worker, Chroma and Community harnesses
+        env:
+          ANALOGY_TEST_EXECUTION_MANIFEST: artifacts/test-execution/runtime-${{ matrix.key }}.json
         run: npm run test:runtime
+      - name: Verify runtime test execution manifest
+        if: always()
+        run: node scripts/verify-test-execution-set.mjs --set runtime --execution artifacts/test-execution/runtime-${{ matrix.key }}.json
+      - name: Upload runtime test execution manifest
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: runtime-test-execution-${{ matrix.key }}-${{ github.sha }}
+          path: artifacts/test-execution/runtime-${{ matrix.key }}.json
+          if-no-files-found: error
       - name: Build native embedding runtime
         run: node scripts/build-embedding-runtime.mjs --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --node-version 22.23.2 --output dist/runtime
       - name: Run fresh-cache native inference smoke

@@ -39,7 +39,21 @@ jobs:
         run: npm run typecheck
 
       - name: Run public regression tests
+        env:
+          ANALOGY_TEST_EXECUTION_MANIFEST: artifacts/test-execution/public.json
         run: npm run test:public
+
+      - name: Verify public test execution manifest
+        if: always()
+        run: node scripts/verify-test-execution-set.mjs --set public --execution artifacts/test-execution/public.json
+
+      - name: Upload public test execution manifest
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: public-test-execution-${{ github.sha }}
+          path: artifacts/test-execution/public.json
+          if-no-files-found: error
 
       - name: Enforce tracked and workspace repository boundary
         run: |

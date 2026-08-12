@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "jobs": {
+    "public-ci": {
+      "workflow": ".github/workflows/ci.yml",
+      "runners": [
+        "public"
+      ]
+    },
+    "runtime-matrix": {
+      "workflow": ".github/workflows/obsidian-runtime-matrix.yml",
+      "runners": [
+        "runtime"
+      ]
+    }
+  }
+}

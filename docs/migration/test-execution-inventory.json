@@ -1,0 +1,1390 @@
+{
+  "schemaVersion": 1,
+  "sourceInventory": {
+    "path": "obsidian-extension/docs/migration/obsidian-repository-split-inventory.json",
+    "sha256": "80a9624ab6d3af9aafd68e0ca1336928abe1de548e0823ea4fbd05d195a97716"
+  },
+  "assets": [
+    {
+      "path": "test/api-contract.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "api-contract",
+      "conflictAction": "retain-public"
+    },
+    {
+      "path": "test/chroma-data-rebuild.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:e03baf22dac48c381f41bd372f8bc03c340ba70f27c82189378bf12649c8c7db"
+      ]
+    },
+    {
+      "path": "test/chroma-process-auto-start.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:991bada56eed461b310f9c72788e96c2b651e1425410e759d93274e47583aaf6"
+      ]
+    },
+    {
+      "path": "test/chroma-process-cwd.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:4b21cb17ad114499c2c8be953361a0c97d895784b01250ba01b64870c5e85b16",
+        "cross-repository-content-diff",
+        "source-sha256:4f13af2e2721b2b11a1eb7ed5ffeaa0b88af17d55123ca3cd88aaefcee0897b5"
+      ]
+    },
+    {
+      "path": "test/chroma-runtime-manager.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:711579ccca2c73f5d343a32fa485a831d536ff91cb5bd8e12693561c836d80a0"
+      ]
+    },
+    {
+      "path": "test/chroma-standalone-integration.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:00b8dd131942dade5e0e2105c752b4fd5860ffaf82305b0dec11760df2961043"
+      ]
+    },
+    {
+      "path": "test/community-install-runtime.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:9f74d91e362cf23df6c762c8c9fc726517f5f1b9cedad8bbb540a7c54ef7f0eb",
+        "cross-repository-content-diff",
+        "source-sha256:7e683ce2169fab9a4862d42d84ab463178669dd83bd55bec15a312e562e64afd"
+      ]
+    },
+    {
+      "path": "test/community-three-file-onboarding.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:3fce843b024d22c0ba17051ee9ba5257252c06196e555d651cd497090914989e"
+      ]
+    },
+    {
+      "path": "test/community-worker-bundle.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:ccf6628664f62f26ea0178806933c89da937853f08cf6df609797fc22b93d8ed"
+      ]
+    },
+    {
+      "path": "test/diagnostic-recorder.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin-diagnostics",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:be846e7345b0ac83e11a11dcca41662ce3bc076ab86e8569d8940fd5d359d025"
+      ]
+    },
+    {
+      "path": "test/diagnostic-redaction.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin-diagnostics",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:2bd09b4b0d478da93b53ed84d8003befbd49d4d1dc5808a748399ba9f8dd3056"
+      ]
+    },
+    {
+      "path": "test/diagnostic-report-snapshot.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin-diagnostics",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:9f9eae2a59f2dedef813d3caa5d8d62b61f70319b7d97b668d38ae356dac0369"
+      ]
+    },
+    {
+      "path": "test/document-indexer-stop.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:746655a2423df6673813f0d9c14fafd92d2d06fd7574c7b1637c194d1fa0f2de",
+        "cross-repository-content-diff",
+        "source-sha256:fddfa10698fc324e79eb2794928e317dcb30d0c6ded8673862207fdc2b11a1df"
+      ]
+    },
+    {
+      "path": "test/document-indexer-summary-pipeline.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:4f55bd249b3361b8624020cffffcfacd2de07e03ae1657fb4eb09a989bafb4bf",
+        "cross-repository-content-diff",
+        "source-sha256:e1e242ff7621bdf193b8c7530135e63fac6273cf5e20e5ff3e167765955b37ed"
+      ]
+    },
+    {
+      "path": "test/document-rename-outdated.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:44803af01686bf834b96878eb2a9940d78b2d5d40a2be4d9619e10b208e78846",
+        "cross-repository-content-diff",
+        "source-sha256:868ec1b3d74cbf603948d8070015a48988159e3191b2d74580852aef099ebfc2"
+      ]
+    },
+    {
+      "path": "test/document-search-input-limit.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:151483f39a3ad56f8bcaac3db9cf1e35c42388759a1666250c7f8d5255166f9a",
+        "cross-repository-content-diff",
+        "source-sha256:da50246b8e0ac05b0237dea9992dce0a46e43497994ea7a18d1b09689c58b7f0"
+      ]
+    },
+    {
+      "path": "test/document-summarizer.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:41f6f82358d2ed9e89468e8ff4830fa4196bd35af9c93dfa47feb484bae24b05"
+      ]
+    },
+    {
+      "path": "test/embedding-env-fetch.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:b9aa8e6817927b90963bd7a92abd0f32f0f3fc50550fd7ddeb05de7cbd376ec5",
+        "cross-repository-identical-content"
+      ]
+    },
+    {
+      "path": "test/embedding-model-behavior.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:50239d1d4ea37a06f912c3b9aa8a6598703b9bf60c5ce21cef1900166efd39ee"
+      ]
+    },
+    {
+      "path": "test/embedding-model-progress.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:be50d91bbfc0f4630f4431dfbd0c62c3cb5ef438d1df247ffa34cb4e0c4bc9f2"
+      ]
+    },
+    {
+      "path": "test/embedding-runtime-attestation.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:ad97bdc5314f946603cc52cd36e61424397f53e3888fecbae2eda7f95874936f",
+        "cross-repository-content-diff",
+        "source-sha256:6a49c1a688d9657b521da0e09b163ca8bd2884ccdbe403f7f3e4ae78af43167e"
+      ]
+    },
+    {
+      "path": "test/embedding-runtime-auto-install.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:5de71720180da29a6cc108ba2c95698d1712fec39ed86aeac238add724becf37"
+      ]
+    },
+    {
+      "path": "test/embedding-runtime-error-message.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:5b2a56ff61fb4c8741dcdc82589958c7d5558e0b2fc1d776359ef90ea476dff5"
+      ]
+    },
+    {
+      "path": "test/embedding-runtime-lockfile.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:a9b3f30dac9ea882981750e29b745f5afaed9d8f68e14b25256a31fb9fc60915"
+      ]
+    },
+    {
+      "path": "test/embedding-runtime-manager.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:01ac57b6ca326d2317b083f3ae6761ca4dd891ef7f7b138d0e85c66180d6c3d2"
+      ]
+    },
+    {
+      "path": "test/embedding-runtime-manifest-binding.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:e248364ef4409f4746e1f7cb0a3c640307d665ed9c8438f1c1efd9c2bf48726b"
+      ]
+    },
+    {
+      "path": "test/embedding-runtime-package.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:4f133d4af1781f97511639aee7d9fbc354ddfec21c53d156fd427146c041cad1"
+      ]
+    },
+    {
+      "path": "test/embedding-runtime-release-chain.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:20147e7e16e30c38cd986b7bd27cb7ec54e62927ae841f1b1eb1f658f4b4c8c2"
+      ]
+    },
+    {
+      "path": "test/embedding-service-safety.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:c60b337b902cd14b3772810c1fc88201534b6aab59b0d43e678f8d943443245d",
+        "cross-repository-content-diff",
+        "source-sha256:d684e293c252f6bfc5dc3943a874d7f7f39756f72e3d2c1cee0b155cedf2cb32"
+      ]
+    },
+    {
+      "path": "test/embedding-session-lifecycle.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:0c9a2fd516dfd3d2609a77a9b1f568a82c031a5c90454f9e6f9472834a2e3314",
+        "cross-repository-content-diff",
+        "source-sha256:bd4722776d5229b55a0f29e889c38d352a9bf14d3958ad94f82fdf18566c9819"
+      ]
+    },
+    {
+      "path": "test/embedding-worker-environment.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:f852c66bd051ed03c432edea26876f07a2ec1405dda8a756ca0b6a07a55d5be1"
+      ]
+    },
+    {
+      "path": "test/embedding-worker-lifecycle.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:b83c6e75f0bd1267e7fba5c72673f1e5767d04fe295b38d15677f911bb8bae9b",
+        "cross-repository-content-diff",
+        "source-sha256:b96014514d0f0a7db612e0c7a4b9b00086058707668ddbbed2139e4664f0418c"
+      ]
+    },
+    {
+      "path": "test/embedding-worker-materialization.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:5ed494197353d2f970b86080e7b1c31dcea6831bb059c20488c0d143179e1eed"
+      ]
+    },
+    {
+      "path": "test/embedding-worker-protocol.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:a23c30d1e836c947ee3f81404bec67bbe03b833cd235c5e9fcb1dc1b33bc9b03"
+      ]
+    },
+    {
+      "path": "test/error-boundary-actions.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:4814387090eb085e9d92b8d666e8ae125f1fd7f2644d6fcdb6b68dbb1ba09a65"
+      ]
+    },
+    {
+      "path": "test/excluded-paths.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:bf9e8e046b62459028333fb3e727aea1da6cec1386297fa997da5466d1c8bd32",
+        "cross-repository-identical-content"
+      ]
+    },
+    {
+      "path": "test/fixtures/analogy-embedding-runtime-node22-v1-darwin-arm64.tar.gz.smoke-attestation.json",
+      "kind": "support",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:9c37cd5dd832bfd205c36f448f3b33ce1e4b57c89bcdece966cf0fcc34dd0f0a",
+        "cross-repository-identical-content"
+      ]
+    },
+    {
+      "path": "test/fixtures/chroma-runtime-manifest.fixture.json",
+      "kind": "support",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:df4dd7f3f7ec41dbc17dbe55fde02c516b99d2f55fcbf21ffac02c5be0909eda",
+        "cross-repository-identical-content"
+      ]
+    },
+    {
+      "path": "test/fixtures/embedding-worker-fixture.cjs",
+      "kind": "support",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:4648bad98e9da7376026c0c511f40b484ff7fe06f65959035995008437985276",
+        "cross-repository-identical-content"
+      ]
+    },
+    {
+      "path": "test/fixtures/github-cli-v2.50.0-windows-arm64.sigstore.json",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:ae69bd3f4f16836995f3d02b19ae431fe64a1ab1385e06440a57a10ac30748ef",
+        "cross-repository-identical-content"
+      ]
+    },
+    {
+      "path": "test/fixtures/node-v22.23.2-darwin-x64-mach-o-header.hex",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:9000f6c789b385c42311a60be56c5e56962cb9fa804e675ab9b68042e9919a04"
+      ]
+    },
+    {
+      "path": "test/fixtures/public-boundary/release/main.js",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "repository-boundary-fixture",
+      "conflictAction": "retain-public"
+    },
+    {
+      "path": "test/fixtures/public-boundary/tracked/mcp-server/src/commercial/server.ts",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "repository-boundary-fixture",
+      "conflictAction": "retain-public"
+    },
+    {
+      "path": "test/fixtures/public-boundary/workspace/test/commercial-leak.test.js",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "repository-boundary-fixture",
+      "conflictAction": "retain-public"
+    },
+    {
+      "path": "test/fixtures/runtime-vault-id.json",
+      "kind": "support",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:5d6d1cc764022436bc5477ce76d259cb4e4e8a62d94d0c1f9087e95141126d3c"
+      ]
+    },
+    {
+      "path": "test/helpers/create-semantic-walk-vault.js",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "replace-ignored-generated-vault-with-temp-helper"
+    },
+    {
+      "path": "test/helpers/download-pinned-chroma.js",
+      "kind": "support",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:949e95ffa5e420607ee3722309e5cae173282e4b4c6ff9fcb7c44b3b12184660",
+        "cross-repository-identical-content"
+      ]
+    },
+    {
+      "path": "test/init-clears-runtime-error.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:7e121144537793d673347cc9f3b7d5e29a20ee1d681811a34b662bc1d7c2080b",
+        "cross-repository-identical-content"
+      ]
+    },
+    {
+      "path": "test/legacy-chroma-real-migration.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:cec46ce69e5ddda77fb1947e8b1a3b0252d69eb2a1cf1cde64bbd8f7f1def729"
+      ]
+    },
+    {
+      "path": "test/legacy-chroma-runtime-bridge.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:ce3f13ebc05174549c53e7d1abb24b60d7ed4bceac6dc98831546ef930caa1b0"
+      ]
+    },
+    {
+      "path": "test/legacy-vector-migration.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:b77108c9d176abdc7d0599051a636fafdb59d7d2983fbe9d71d75d9f56c450fa"
+      ]
+    },
+    {
+      "path": "test/license-api.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "license-client",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:c9fdb46480c7345815eebf0b48f4cf83200f48078117dde215ae755b7f643a1e",
+        "cross-repository-identical-content"
+      ]
+    },
+    {
+      "path": "test/license-limits.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "license-client",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:9b283316854de453ed34836b23dee979201ea2ce5f9796ca6508bbff32e01da1",
+        "cross-repository-identical-content"
+      ]
+    },
+    {
+      "path": "test/local-development-plugin-build.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:50f7f419ca45d76673afb216f814fa8c64e0e3c46982fa9d36572f368dcfa0fa",
+        "cross-repository-content-diff",
+        "source-sha256:e7fb36cb46ca8e11f91997e03fff77c2ca3ce440cb44e37691d0568cc7d7e380"
+      ]
+    },
+    {
+      "path": "test/local-plugin-artifact-safety.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:27c4200058df066d1ddf3749238b70743a280168e8e283c7778336cf4f84c419"
+      ]
+    },
+    {
+      "path": "test/mcp-chroma-v2-compatibility.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:e1db2f39c7600c3f57f860f31c6539c40eaa04908806ebf0b331667a893aeb6b"
+      ]
+    },
+    {
+      "path": "test/node-runtime-resolution.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:0d1e15e60b8cf6f372da16433df0f68c6be5d0b1e918c4710be645a3501d2244"
+      ]
+    },
+    {
+      "path": "test/obsidian-chunk-newlines.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:f70088ea2476e4ded3d7caa1d07e38859650534f1a29821689e25180275b922a",
+        "cross-repository-content-diff",
+        "source-sha256:9b06abbcfb93d7901450d639a2266609fc97afbbd9b1d8a40223d150255dede4"
+      ]
+    },
+    {
+      "path": "test/obsidian-recover-index-state.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:f20229cfd0dc15cb7fd38e52761ec88c3fcffab5b42ce4df385bdd7d49db964d",
+        "cross-repository-content-diff",
+        "source-sha256:7ef4bea4cd5931caaf85144de5b0bd974e7330e96f96361afa2f2d78e8437b4f"
+      ]
+    },
+    {
+      "path": "test/obsidian-short-chunk-merge.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:89e0e60469183049301e9e123563a7908c8d4620e6d4dd164859fbcf68cd898c",
+        "cross-repository-content-diff",
+        "source-sha256:98f5c2cb8cf867bb251783206ba09e8cd68af504cf470954cc10730537925fcf"
+      ]
+    },
+    {
+      "path": "test/obsidian-style-assignment.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:c5b273fee6df860a4100a3608c7ab976fd9afd6f6c6501ad467e78e3f9370020",
+        "cross-repository-content-diff",
+        "source-sha256:9c7f3db34ecbab92076bb0df09e0f13b2d1d3d6eb8d52fa42a77fa1ccd067792"
+      ]
+    },
+    {
+      "path": "test/ollama-client.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:41118df7c946e91c4ad83e52fa4238ee99a3fc0eec3df45ee0c58516b2593f05",
+        "cross-repository-content-diff",
+        "source-sha256:eb085f022229661b6e76878599325978b864080aea412c3a33dced95dae98edb"
+      ]
+    },
+    {
+      "path": "test/ollama-pull-stream.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:120ebc4b21b5a1ecb06498ba4631dd5cdbd1f7b5b0515fe0898cd2d70cc9dbb3"
+      ]
+    },
+    {
+      "path": "test/onboarding-coordinator.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:e6088766927c1bd41bcaa27ed63e0ca9eef4eba0fe04b8c4b27bd3677771bda2"
+      ]
+    },
+    {
+      "path": "test/onboarding-main-registration.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:3863500691e3e614ce34485f58e5dd05db092d3d9d556b680dc4f0e7288357bb"
+      ]
+    },
+    {
+      "path": "test/onboarding-store.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:41ecc47da6820fd842168d1ddb62bdef6477c2c3cdbcec3fb8c3785db83bfa44"
+      ]
+    },
+    {
+      "path": "test/onboarding-view-browser-runner.tsx",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:be7389b94b9ca73753a6a882392f3648469b4ad2e3b12be95f2090fed2e4298c"
+      ]
+    },
+    {
+      "path": "test/onboarding-view-browser.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:f925911b4228b72814a661c66126db7218a3ef5fac7aac1c7890031f0f54164e"
+      ]
+    },
+    {
+      "path": "test/public-boundary.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "repository-boundary",
+      "conflictAction": "retain-public"
+    },
+    {
+      "path": "test/quick-index-coordinator.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:1ae109e3ae7c7aedf05e99faa80c6b4eead13adc526537e773998135556b0026"
+      ]
+    },
+    {
+      "path": "test/release-integrity.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:34b168d1ce206692400198625fc52acbc047e6f9dce4f32b8ab553e8b1632e93",
+        "cross-repository-content-diff",
+        "source-sha256:ee027959755422699483b11daffcddea465a8b03d0c8f2ff208c55313858a468"
+      ]
+    },
+    {
+      "path": "test/release-version.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:7f7b91d01f7103e5930f459572c23ffdc472919d9c0524ff6183283f981228db"
+      ]
+    },
+    {
+      "path": "test/review-local-runtime.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:f0f663891e28e919210c4e2dd921a9a53f7858c298f1433865c9e635eb63db42",
+        "cross-repository-content-diff",
+        "source-sha256:83bec251d14955291617df71eb0899bebba5b821081beace6840c8188578616f"
+      ]
+    },
+    {
+      "path": "test/runtime-archive-security.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:ad3e7a96125dcd8b8545eee04167b24b587448b5f07b09a3a885fdd6bbffd637"
+      ]
+    },
+    {
+      "path": "test/runtime-atomic-installer.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:1a6da11089a0e1306ca09d72b178b2eeb3d1027252d64556e346dca3b7fd2514"
+      ]
+    },
+    {
+      "path": "test/runtime-downloader.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:ad562731280be9a7e4dfe047ad15b491cab374d21d6bef4d7fb4bd2a41f9e746"
+      ]
+    },
+    {
+      "path": "test/runtime-fault-injection.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:c1c00480155e763ecfcf85c2e91a25124375b12d8b0356c0d5a2b4a6ea84d134"
+      ]
+    },
+    {
+      "path": "test/runtime-manifest.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:efc063ae63d182ce98ef4590bc1879c79c8adb0cde1938d58174d33cc20acc05"
+      ]
+    },
+    {
+      "path": "test/runtime-platform-detector.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:cea7ad25d2cc057956b079505fdfd005a70f6208d6cd50908ab4f7280e326d59"
+      ]
+    },
+    {
+      "path": "test/runtime-recovery.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:35f3e8b5d7504d9a1f5cddbbeb7ccc9ed018b73124487597dc52e5881a0dae04"
+      ]
+    },
+    {
+      "path": "test/runtime-settings-and-sidebar-browser-runner.tsx",
+      "kind": "support",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:d9cd979508804c8cf5fe69db49b50ad71acfc3e556c3a83793f6e1d070ccb1a4"
+      ]
+    },
+    {
+      "path": "test/runtime-settings-and-sidebar.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:77715dbe475b35c904f52d284bf2b08005906d9fe6141ef6481b2503b72f9b10"
+      ]
+    },
+    {
+      "path": "test/runtime-vault-identity.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:ecb9225bf595ef7fd29ed6e237d592ac09000db6c228711baafb00be71b15d42"
+      ]
+    },
+    {
+      "path": "test/runtime-verifier.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:e55839bda10e2560914e99d8c7d7b5fc1f04cce4b72ebf80690cf0664f9d3ee1"
+      ]
+    },
+    {
+      "path": "test/runtime-version-display.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:d0a4cb5a99b05c17ec425da7e29cec95bb4c88ee21f0796f666b2725d291de0e"
+      ]
+    },
+    {
+      "path": "test/safe-mode-recovery-actions.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:d1de306fc3060dd0bc43476d6bfb087916d24b177d8722f87cc9cd32c9fd7996"
+      ]
+    },
+    {
+      "path": "test/search-document-summary.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:6a4c5836eb30e0b2e74a464589fdc13e8e07a508517eeabe07f09b2dee3d53c8",
+        "cross-repository-content-diff",
+        "source-sha256:a87a51ff7ce3d24776b86261433b62201344e24198424d6441707a8086963386"
+      ]
+    },
+    {
+      "path": "test/search-exclude-paths.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:f5386dba68efe9de9208a624f5b0aa30cb765642c5542d754629a7fe59baa346",
+        "cross-repository-content-diff",
+        "source-sha256:c0e1bf5732fe5be150bbbb0c0a50736473f595239b3e3edc807d5044501bc942"
+      ]
+    },
+    {
+      "path": "test/search-result-cache.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:8d901fcad90199850483e724dbf89700fda427702a5d5f52262ca1c2341cddb3",
+        "cross-repository-content-diff",
+        "source-sha256:4d4dcdcf1fbeb3587ed31b3e418a5aa3b5705757af9ec9d743b9999999f89bc8"
+      ]
+    },
+    {
+      "path": "test/search-tabs.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:737e119132540cd531bf1da3f6958c71af07dc4a4502e424146250e9bebf363e"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-acceptance.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:1de91a6885db00f5e153a666daa39a322fa2e611c3facb37b1a054a92ca4a0bf"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-canvas-browser-runner.tsx",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:d15b520a872c818b8f934f63910c982f2d5c132948131a821e5ea76afc93a3b5"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-canvas-browser.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:855519d6f37be6ab47323804faa3777e1fcd3081ff90d0f2001494e672095e24"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-canvas-harness.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:7e91f691c02e081e8ca2d4f7e4ba0a2e61f1347e4085925496578c111cafd902"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-canvas-harness.tsx",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "move-private-only"
+    },
+    {
+      "path": "test/semantic-walk-card-styles.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:23d87dfdccb53f768f53582b36875229318a49ac46e1c997c1d58c47ad031ccf",
+        "cross-repository-content-diff",
+        "source-sha256:7fbb37afb5cf381bdec47f8a600cadaa8bd09445bb544a7e002be72a93be3899"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-chunk-picker.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:fc7bd4c77a0f3499a4e5c1bc821b8f2e443f7f2daff460fc5bb68b756d212856"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-chunk-repository.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:20eb2bfc93b554419321ea4fe25159db4393ba4e3ea189983b60d4fd8a374401"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-file-bridge.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:03912d104c39233d6f7474ccc3beb93a0522c5cc4bb097a75b158d135f8c1b43"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-file-state-ui.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:7abc4ae56bfa54b41894fbea07e93e877245debd4c404a060147032846ffa40c"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-graph-interactions.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:d8c450af4597fda6bba49f7d359de9500e7bb90e464233133d4f56ffa863afc4"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-graph-reducer.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:d1de0584dc2da065d646117758553e258b40e354b8421ba151da127c95a95ebb"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-layout.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:c7c64e34af9ca5be2aed37bd2b33e09ca44c738992fca19dd6052d8a9b1734b9"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-mode-cache-relation.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:5fabb763e469e79cfb77437c02b8f87b689ee869dc874dcf6cdf5ed1d3462d13"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-picker-browser-runner.tsx",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:f8746bceee085389d7b3630a05eeceed8d4ac1ba4ba629198330811ec75a17bd"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-picker-browser.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:0fd2536250c0662c5b893387d0c52713d48922af9e681127d54a3a2149d7f1bb"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-relation-service.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:ae9114e255553204b1a138676e901224bf9a857fc0fa8a374405587b40c62044"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-search-result.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:fec667dc10d424fd1f678c9068933f64d51218a4afdb25049e03069992102339"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-sidebar-entry.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:82f7153b951e04424038b9ec14ea5e0fbe5be549f923cb7d7cde0eacd183f72a"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-similarity.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:60a2b8c04396d68eb702877f3955016d48e701c11c42a6f29e9a571562806540"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-toolbar-mode.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:8cf42f73405feb15fb005db74da4da08c3bc9482787b764a7111cd9fb7bffb71"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-view-registration.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:fd6888b0d39f2d7335f8222ead20d6273f3b60e957e763ce00dda163499ddfa5"
+      ]
+    },
+    {
+      "path": "test/settings-chroma-start-button.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:369955b7d52cbe17af20e521ea87b39fc0952f66f345d5d2cd8f10059659fc3b",
+        "cross-repository-content-diff",
+        "source-sha256:41186f211e92571ff2ce56772bdf9b023ff0c59f90b940c21130f4bd43b34126"
+      ]
+    },
+    {
+      "path": "test/sidebar-search-i18n.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:76cbc57b7cef56feed9c964281d97145fb1965cac1992ed69bbd6a38317de17d",
+        "cross-repository-content-diff",
+        "source-sha256:5161d9c57cd9b96c923008fd440df6cd64a81b5c141c343e0e4bbd397219a9de"
+      ]
+    },
+    {
+      "path": "test/sidebar-search-tabs.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:4cee5b6c39d9a567602e146d953835369804ef15572f52fe166d35edf456a1db",
+        "cross-repository-content-diff",
+        "source-sha256:b63303762b2d245ef5d4048d51394a5a3b7b6ad8b9332ce7808ab51314e264ef"
+      ]
+    },
+    {
+      "path": "test/summary-models.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:6720baa0dd359cf1b363ed4c64daa0a35d5026659a721fdb5ddf94b562f7506e",
+        "cross-repository-content-diff",
+        "source-sha256:75f0ababe504b5b40a1901292430e0c2f672ce441c583a0c71688123adefcac4"
+      ]
+    },
+    {
+      "path": "test/test-ci-manifest.json",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "test-execution",
+      "conflictAction": "task-5a-new"
+    },
+    {
+      "path": "test/test-execution-set.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "repository-boundary",
+      "conflictAction": "task-5a-new"
+    },
+    {
+      "path": "test/test-runner-manifest.json",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "test-execution",
+      "conflictAction": "task-5a-new"
+    },
+    {
+      "path": "test/vault-folder-selection.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:c2bc1f0c8d90d675887ba35fbb1366e079f8f070b6340f57fe23adfaff4d5c67"
+      ]
+    }
+  ],
+  "platformSkips": [
+    {
+      "path": "test/chroma-standalone-integration.test.js",
+      "when": {
+        "envMissing": "ANALOGY_CHROMA_BIN"
+      },
+      "reason": "Pinned Chroma CLI is provisioned by the native runtime workflow; local runs without it skip this native contract.",
+      "platform": "local-without-pinned-chroma",
+      "workflowJob": "runtime-matrix/native-runtime"
+    },
+    {
+      "path": "test/legacy-chroma-real-migration.test.js",
+      "when": {
+        "envMissing": "ANALOGY_LEGACY_CHROMA_BIN"
+      },
+      "reason": "The cross-version migration contract requires an explicitly provisioned Chroma 0.5.23 binary.",
+      "platform": "environment-without-legacy-chroma",
+      "workflowJob": "runtime-matrix/native-runtime"
+    },
+    {
+      "path": "test/mcp-chroma-v2-compatibility.test.js",
+      "when": {
+        "envMissing": "ANALOGY_CHROMA_BIN"
+      },
+      "reason": "The real MCP-to-Chroma v2 compatibility contract requires the pinned Chroma CLI provisioned by the native runtime workflow.",
+      "platform": "local-without-pinned-chroma",
+      "workflowJob": "runtime-matrix/native-runtime"
+    }
+  ]
+}
