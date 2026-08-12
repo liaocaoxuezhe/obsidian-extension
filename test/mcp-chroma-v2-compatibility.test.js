@@ -249,7 +249,7 @@ test("managed v2 rebuild publishes the exact child-owned Chroma port and collect
     ANALOGY_VAULT_PATH: vaultPath,
     ANALOGY_PLUGIN_DIR: pluginDir,
     ANALOGY_LOCAL_DATA_ROOT: localDataRoot,
-  }, { platform: "darwin", homeDirectory: root });
+  }, { platform: process.platform === "win32" ? "win32" : "darwin", homeDirectory: root });
   const { ChromaClient } = loadTypeScriptTree(path.join(
     process.cwd(), "mcp-server/src/chroma-client.ts",
   ));
