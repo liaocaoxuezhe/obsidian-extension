@@ -108,8 +108,12 @@ test("streams chunked HTTPS responses into a non-executable owner-only part and 
   assert.equal(result.path, partPath);
   assert.equal(result.resumed, false);
   assert.deepEqual(await fs.promises.readFile(partPath), body);
-  assert.equal((await fs.promises.stat(partPath)).mode & 0o777, 0o600);
-  assert.equal((await fs.promises.stat(partPath)).mode & 0o111, 0);
+  const partStat = await fs.promises.stat(partPath);
+  assert.equal(partStat.isFile(), true);
+  if (process.platform !== "win32") {
+    assert.equal(partStat.mode & 0o777, 0o600);
+    assert.equal(partStat.mode & 0o111, 0);
+  }
   assert.deepEqual(JSON.parse(await fs.promises.readFile(`${partPath}.meta.json`, "utf8")), {
     schemaVersion: 1,
     assetId: asset.id,
