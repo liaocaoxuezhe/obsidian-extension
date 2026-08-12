@@ -512,6 +512,10 @@ test("legacy cleanup recovery inventory, retry, and restore are path-free produc
 test("real bilingual React panels expose setup, progress, repair and ready actions without legacy UI", async () => {
   const chromeCandidates = [
     process.env.ANALOGY_TEST_CHROME,
+    process.env.ProgramFiles && path.join(process.env.ProgramFiles, "Google/Chrome/Application/chrome.exe"),
+    process.env["ProgramFiles(x86)"] && path.join(process.env["ProgramFiles(x86)"], "Google/Chrome/Application/chrome.exe"),
+    process.env.ProgramFiles && path.join(process.env.ProgramFiles, "Microsoft/Edge/Application/msedge.exe"),
+    process.env["ProgramFiles(x86)"] && path.join(process.env["ProgramFiles(x86)"], "Microsoft/Edge/Application/msedge.exe"),
     "/usr/bin/google-chrome",
     "/usr/bin/chromium",
     "/usr/bin/chromium-browser",
