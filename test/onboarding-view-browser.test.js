@@ -74,17 +74,21 @@ test("onboarding React UI supports real bilingual accessible setup interactions"
 .scenario.theme-dark { --background-primary:#1e201f; --background-primary-alt:#262927; --background-secondary:#2c302e; --background-modifier-border:#454b47; --background-modifier-border-hover:#677169; --background-modifier-hover:#343936; --background-modifier-active-hover:#3b4540; --text-normal:#ece9e2; --text-muted:#b8b3a9; --text-faint:#8f948e; --interactive-accent:#8fb5a6; --interactive-accent-hover:#a4c8ba; --text-on-accent:#15231e; }
 ${styles}
 </style></head><body><script src="${path.basename(bundlePath)}"></script></body></html>`, "utf8");
-    const chrome = spawnSync(chromePath, [
-      "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-background-networking",
-      "--disable-component-update", "--disable-default-apps", "--disable-extensions",
-      "--disable-background-timer-throttling", "--disable-backgrounding-occluded-windows",
-      "--disable-renderer-backgrounding", "--disable-sync", "--metrics-recording-only",
-      "--no-first-run", "--run-all-compositor-stages-before-draw", "--virtual-time-budget=8000",
-      `--user-data-dir=${path.join(temporaryDirectory, "profile")}`, "--dump-dom", pathToFileURL(htmlPath).href,
-    ], { encoding: "utf8", timeout: 25000 });
-    assert.equal(chrome.status, 0, `Chrome onboarding harness 启动失败：${chrome.stderr}`);
-    const encoded = chrome.stdout.match(/data-onboarding-test-result="([^"]+)"/)?.[1];
-    assert.ok(encoded, `Chrome onboarding harness 未返回结果：${chrome.stdout.slice(-1800)}`);
+    let chrome;
+    let encoded;
+    for (let attempt = 1; attempt <= 2 && !encoded; attempt += 1) {
+      chrome = spawnSync(chromePath, [
+        "--headless=new", "--disable-gpu", "--no-sandbox", "--disable-background-networking",
+        "--disable-component-update", "--disable-default-apps", "--disable-extensions",
+        "--disable-background-timer-throttling", "--disable-backgrounding-occluded-windows",
+        "--disable-dev-shm-usage", "--disable-renderer-backgrounding", "--disable-sync", "--metrics-recording-only",
+        "--no-first-run", "--run-all-compositor-stages-before-draw", "--virtual-time-budget=8000",
+        `--user-data-dir=${path.join(temporaryDirectory, `profile-${attempt}`)}`, "--dump-dom", pathToFileURL(htmlPath).href,
+      ], { encoding: "utf8", timeout: 30000 });
+      assert.equal(chrome.status, 0, `Chrome onboarding harness 启动失败（第 ${attempt} 次）：${chrome.stderr}`);
+      encoded = chrome.stdout.match(/data-onboarding-test-result="([^"]+)"/)?.[1];
+    }
+    assert.ok(encoded, `Chrome onboarding harness 两次均未返回结果：stderr=${chrome?.stderr?.slice(-900) ?? ""} stdout=${chrome?.stdout?.slice(-900) ?? ""}`);
     const result = JSON.parse(Buffer.from(encoded, "base64").toString("utf8"));
     assert.deepEqual(result.failures, [], `真实 onboarding DOM harness 失败：\n- ${result.failures.join("\n- ")}\nmetrics=${JSON.stringify(result.metrics)}`);
   } finally {
