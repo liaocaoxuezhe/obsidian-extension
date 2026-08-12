@@ -123,7 +123,11 @@ function waitForResponse(child, expectedId, timeoutMs = 2000) {
         "custom model hosts must preserve the transformers Hub path template",
       );
     } finally {
-      child.kill("SIGTERM");
+      if (child.exitCode === null && child.signalCode === null) {
+        const closed = new Promise((resolve) => child.once("close", resolve));
+        child.kill("SIGTERM");
+        await closed;
+      }
     }
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
