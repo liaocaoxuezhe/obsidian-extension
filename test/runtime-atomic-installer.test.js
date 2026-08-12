@@ -154,7 +154,10 @@ test("successful install atomically publishes a JSON pointer from a UTF-8 path",
   });
   const pointer = await modules().readCurrentRuntime(paths, "chroma");
 
-  assert.deepEqual(seen, [{ body: "safe runtime", ownerExecutable: true }]);
+  assert.deepEqual(seen, [{
+    body: "safe runtime",
+    ownerExecutable: process.platform === "win32" ? false : true,
+  }]);
   assert.deepEqual(pointer, {
     schemaVersion: 1,
     kind: "chroma",
@@ -519,7 +522,9 @@ test("managed directories remain private after publication", async (t) => {
   const input = await inputFor(localDataRoot, paths, "runtime-private", Buffer.from("safe"));
   await modules().installRuntime({ ...input, smokeTest: async () => undefined });
   for (const directory of [paths.root, paths.staging, paths.chromaVersions, paths.current]) {
-    assert.equal((await fs.promises.stat(directory)).mode & 0o777, 0o700);
+    const stat = await fs.promises.stat(directory);
+    assert.equal(stat.isDirectory(), true);
+    if (process.platform !== "win32") assert.equal(stat.mode & 0o777, 0o700);
   }
 });
 

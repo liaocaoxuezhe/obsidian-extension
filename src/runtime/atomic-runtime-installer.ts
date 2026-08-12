@@ -144,6 +144,15 @@ async function openRegularFile(
   mode?: number,
   code = "RUNTIME_UNSAFE_FILE",
 ): Promise<fs.promises.FileHandle> {
+  let expected: fs.Stats | undefined;
+  if ((flags & fs.constants.O_CREAT) === 0) {
+    try {
+      expected = await fs.promises.lstat(filename);
+    } catch (error) {
+      throw runtimeError(code, error);
+    }
+    if (!expected.isFile() || expected.isSymbolicLink()) throw runtimeError(code);
+  }
   let handle: fs.promises.FileHandle;
   try {
     handle = await fs.promises.open(filename, flags | (fs.constants.O_NOFOLLOW ?? 0), mode);
@@ -152,7 +161,10 @@ async function openRegularFile(
   }
   try {
     const stat = await handle.stat();
-    if (!stat.isFile()) throw runtimeError(code);
+    if (!stat.isFile()
+      || (expected && (stat.dev !== expected.dev || stat.ino !== expected.ino))) {
+      throw runtimeError(code);
+    }
     return handle;
   } catch (error) {
     await handle.close().catch(() => undefined);
