@@ -168,7 +168,6 @@ test("plugin and MCP clients reject a legacy-only Chroma endpoint", async (t) =>
 
 test("managed v2 rebuild publishes the exact child-owned Chroma port and collection consumed by MCP", async (t) => {
   const root = await fs.promises.mkdtemp(path.join(require("node:os").tmpdir(), "analogy-mcp-e2e-"));
-  t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
   const vaultPath = path.join(root, "测试 Vault");
   const pluginDir = path.join(vaultPath, ".obsidian", "plugins", "analogy-rag-in-your-vault");
   const localDataRoot = path.join(root, "local-data");
@@ -187,6 +186,7 @@ test("managed v2 rebuild publishes the exact child-owned Chroma port and collect
   const legacyHashBefore = crypto.createHash("sha256").update(await fs.promises.readFile(legacyFile)).digest("hex");
 
   const server = await startPinnedChroma(t, process.env.ANALOGY_CHROMA_BIN, { dataDirectory: v2DataPath });
+  t.after(() => fs.promises.rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }));
   assert.equal(server.dataDirectory, v2DataPath);
   const modelShortName = "bge-small-en-v1.5";
   const { ChromaDataMigration, createChromaDataGeneration } = loadTypeScriptTree(path.join(
