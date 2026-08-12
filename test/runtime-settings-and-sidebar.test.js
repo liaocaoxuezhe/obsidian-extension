@@ -512,6 +512,9 @@ test("legacy cleanup recovery inventory, retry, and restore are path-free produc
 test("real bilingual React panels expose setup, progress, repair and ready actions without legacy UI", async () => {
   const chromeCandidates = [
     process.env.ANALOGY_TEST_CHROME,
+    "/usr/bin/google-chrome",
+    "/usr/bin/chromium",
+    "/usr/bin/chromium-browser",
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
     "/Applications/Chromium.app/Contents/MacOS/Chromium",
   ].filter(Boolean);
