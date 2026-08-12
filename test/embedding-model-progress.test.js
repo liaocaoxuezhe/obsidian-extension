@@ -577,10 +577,11 @@ test("EmbeddingService returns to idle after cancellation and retries with the m
     { phase: "downloading", file: "weights.onnx", loadedBytes: 2, totalBytes: 4, percent: 50 },
   ]);
   const workerOptions = globalThis.__task7ServiceState.workerOptions;
+  const expectedWorkerRoot = path.dirname(path.dirname(managedRuntime.root));
   assert.equal(workerOptions.execPath, managedRuntime.nodeExecutable);
   assert.equal(workerOptions.moduleRoot, managedRuntime.moduleRoot);
-  assert.equal(workerOptions.workerDir, path.normalize("/managed/runtime/worker"));
-  assert.equal(workerOptions.workerRoot, path.normalize("/managed/runtime"));
+  assert.equal(workerOptions.workerDir, path.join(expectedWorkerRoot, "worker"));
+  assert.equal(workerOptions.workerRoot, expectedWorkerRoot);
   assert.equal(globalThis.__task7ServiceState.initializeArgs[1][5], "fixed-revision");
   delete globalThis.__task7ServiceState;
 });
