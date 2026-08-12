@@ -571,6 +571,7 @@ async function loadMainBoundary() {
     define: {
       __ANALOGY_BUILD_ID__: JSON.stringify("test-build"),
       __ANALOGY_EMBEDDING_WORKER_SOURCE__: JSON.stringify("worker-source"),
+      "process.platform": JSON.stringify("darwin"),
     },
     plugins: [{
       name: "task-10-diagnostic-recorder",
