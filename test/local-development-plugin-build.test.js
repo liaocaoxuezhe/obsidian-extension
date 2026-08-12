@@ -143,6 +143,14 @@ test("build:local bundles the installed runtime binding and deploys all plugin f
   const packRoot = path.join(installedPath, "analogy-embedding-runtime-node22-v1");
   const archiveBytes = Buffer.from("local-build-integration-runtime", "utf8");
   const archiveSha256 = sha256(archiveBytes);
+  const mcpBuildPath = path.join(projectRoot, "mcp-server", "dist", "index.js");
+  const existingMcpBuild = fs.existsSync(mcpBuildPath) ? fs.readFileSync(mcpBuildPath) : null;
+  fs.mkdirSync(path.dirname(mcpBuildPath), { recursive: true });
+  fs.writeFileSync(mcpBuildPath, "// local development deployment test fixture\n", "utf8");
+  t.after(() => {
+    if (existingMcpBuild) fs.writeFileSync(mcpBuildPath, existingMcpBuild);
+    else fs.rmSync(path.dirname(mcpBuildPath), { recursive: true, force: true });
+  });
   fs.mkdirSync(path.join(runtimeRoot, "current"), { recursive: true });
   fs.mkdirSync(path.join(runtimeRoot, "downloads"), { recursive: true });
   fs.mkdirSync(packRoot, { recursive: true });
