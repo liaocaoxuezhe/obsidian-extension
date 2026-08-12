@@ -197,7 +197,6 @@ test("client uses managed spawn settings, ignores late progress, and can retry a
     "src/local-vector/embedding-worker-client.ts",
   );
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "analogy-client-progress-中文-"));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const moduleRoot = path.join(root, "managed modules");
   const workerDir = path.join(root, "managed worker");
   const stateFile = path.join(root, "state.json");
@@ -238,7 +237,10 @@ test("client uses managed spawn settings, ignores late progress, and can retry a
     timeoutMs: 5_000,
     terminationGraceMs: 50,
   });
-  t.after(() => client.dispose());
+  t.after(async () => {
+    await client.dispose();
+    fs.rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  });
 
   const first = client.initialize("fixture/model", "q8", "mean", path.join(root, "cache"), undefined, "rev-1", (event) => {
     progress.push(event);
@@ -577,8 +579,8 @@ test("EmbeddingService returns to idle after cancellation and retries with the m
   const workerOptions = globalThis.__task7ServiceState.workerOptions;
   assert.equal(workerOptions.execPath, managedRuntime.nodeExecutable);
   assert.equal(workerOptions.moduleRoot, managedRuntime.moduleRoot);
-  assert.equal(workerOptions.workerDir, "/managed/runtime/worker");
-  assert.equal(workerOptions.workerRoot, "/managed/runtime");
+  assert.equal(workerOptions.workerDir, path.normalize("/managed/runtime/worker"));
+  assert.equal(workerOptions.workerRoot, path.normalize("/managed/runtime"));
   assert.equal(globalThis.__task7ServiceState.initializeArgs[1][5], "fixed-revision");
   delete globalThis.__task7ServiceState;
 });
