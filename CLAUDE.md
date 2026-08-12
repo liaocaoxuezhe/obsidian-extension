@@ -1,8 +1,5 @@
-当前仓库是 /Users/zhangyu/PycharmProjects/Analogy/analogy/obsidian-extension 的开源版本。用来给 obsdian 官方审核和发布新版本。
+当前仓库是 Analogy Obsidian 插件、公开本地 MCP 和 Runtime 的唯一开发与发布源，不再从旧混合目录同步源码。
 
-从 /Users/zhangyu/PycharmProjects/Analogy/analogy/obsidian-extension 同步过来的方法，需要参考 /Users/zhangyu/PycharmProjects/Analogy/obsidian-extension-release/docs/open-source-sync-notes.md
-
-需要包装当前版本作为一个单独的包开源后，obsidan 用户里可以独立使用。
+本地真实 Obsidian 测试使用 `npm run build:local`；CI 与正式发布使用各自的显式构建流程。商业服务实现只在私有 `obsidian-commercial-service` 仓库维护。
 
 开源的位置：https://github.com/liaocaoxuezhe/obsidian-extension
-

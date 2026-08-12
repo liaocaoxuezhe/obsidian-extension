@@ -19,6 +19,17 @@ test/tmp-transformers-cache/
 
 # Internal docs and tests are not part of the public Obsidian plugin source release.
 docs/
+!docs/
+docs/*
+!docs/release.md
+!docs/privacy.md
+!docs/mcp-server.md
+!docs/local-runtime.md
+!docs/local-build-testing.md
+!docs/archive/
+docs/archive/*
+!docs/archive/obsidian-review-local-runtime-fix.md
+!docs/archive/open-source-sync-notes.md
 test/
 
 # Public managed-runtime verification helpers are reviewed release assets.

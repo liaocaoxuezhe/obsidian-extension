@@ -6,6 +6,7 @@
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
 		"build": "npm run build:styles && node esbuild.config.mjs production",
+		"build:local": "npm run build:styles && node esbuild.config.mjs local",
 		"build:styles": "tailwindcss -i ./tailwind.css -o ./styles.css --minify",
 		"lint": "eslint main.ts src package.json",
 		"typecheck": "tsc --noEmit",
