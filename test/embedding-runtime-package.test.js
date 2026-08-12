@@ -604,8 +604,10 @@ test("runtime builder uses npm bundled with pinned Node instead of ambient npm",
   assert.doesNotMatch(fs.readFileSync(`${hostArchivePath}.manifest.json`, "utf8"), /example\.invalid|inherited-proxy|analogy-secret/);
 });
 
-test("Windows cached Node ZIP extraction retries once into a clean directory", () => {
+test("Windows cached Node ZIP extraction is PATH-independent and retries into a clean directory", () => {
   const source = fs.readFileSync(path.join(extensionRoot, "scripts", "build-embedding-runtime.mjs"), "utf8");
+  assert.match(source, /process\.env\.SystemRoot \|\| process\.env\.WINDIR \|\| "C:\\\\Windows"/);
+  assert.match(source, /"System32", "tar\.exe"/);
   assert.match(source, /process\.platform !== "win32" \|\| asset\.archive !== "zip"/);
   assert.match(source, /rm\(destination, \{ recursive: true, force: true \}\)/);
 });

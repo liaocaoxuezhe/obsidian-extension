@@ -241,18 +241,21 @@ async function runExecutable(executable, args, options = {}) {
 
 async function extractNodeArchive(archivePath, asset, destination) {
   await fs.promises.mkdir(destination, { recursive: true });
+  const tarExecutable = process.platform === "win32"
+    ? path.join(process.env.SystemRoot || process.env.WINDIR || "C:\\Windows", "System32", "tar.exe")
+    : "tar";
   const args = asset.archive === "tar.gz"
     ? ["-xzf", archivePath, "-C", destination]
     : ["-xf", archivePath, "-C", destination];
   try {
-    await runExecutable("tar", args, { timeout: 180_000 });
+    await runExecutable(tarExecutable, args, { timeout: 180_000 });
   } catch (error) {
     if (process.platform !== "win32" || asset.archive !== "zip") throw error;
     // Windows runner antivirus/indexing can transiently make bsdtar fail while
     // reopening a verified cached ZIP. Retry once into a clean extraction root.
     await fs.promises.rm(destination, { recursive: true, force: true });
     await fs.promises.mkdir(destination, { recursive: true });
-    await runExecutable("tar", args, { timeout: 180_000 });
+    await runExecutable(tarExecutable, args, { timeout: 180_000 });
   }
 }
 
