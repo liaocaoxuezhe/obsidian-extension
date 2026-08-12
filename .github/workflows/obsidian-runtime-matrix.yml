@@ -84,12 +84,13 @@ jobs:
         run: npm run build:ci
       - name: Build pinned ONNX Runtime 1.26.0 Intel overlay
         if: matrix.key == 'darwin-x64'
+        timeout-minutes: 45
         shell: bash
         run: |
           git clone --filter=blob:none --no-checkout https://github.com/microsoft/onnxruntime "$RUNNER_TEMP/onnxruntime"
           git -C "$RUNNER_TEMP/onnxruntime" checkout 8c546c37b43caaca1fa25db430dab94b901cf277
           git -C "$RUNNER_TEMP/onnxruntime" submodule update --init --recursive --depth 1
-          "$RUNNER_TEMP/onnxruntime/build.sh" --config Release --parallel --skip_tests --build_shared_lib --build_nodejs --cmake_extra_defines CMAKE_OSX_ARCHITECTURES=x86_64 onnxruntime_BUILD_UNIT_TESTS=OFF
+          "$RUNNER_TEMP/onnxruntime/build.sh" --config Release --parallel 2 --skip_tests --build_shared_lib --build_nodejs --cmake_extra_defines CMAKE_OSX_ARCHITECTURES=x86_64 onnxruntime_BUILD_UNIT_TESTS=OFF
           node scripts/package-ort-native-overlay.mjs --input "$RUNNER_TEMP/onnxruntime" --output "$RUNNER_TEMP/ort-overlay"
           echo "ANALOGY_ORT_NATIVE_OVERLAY=$RUNNER_TEMP/ort-overlay" >> "$GITHUB_ENV"
       - name: Run unit, contract, worker, Chroma and Community harnesses
