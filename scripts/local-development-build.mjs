@@ -199,6 +199,23 @@ export function deployLocalPluginFiles(sourceRoot, targetRoot) {
     requireRegularFile(sourcePath, `LOCAL_DEVELOPMENT_PLUGIN_FILE_MISSING:${name}`);
     writeAtomic(path.join(target, name), fs.readFileSync(sourcePath));
   }
+  const mcpSource = path.join(source, "mcp-server");
+  requireRealDirectory(mcpSource, "LOCAL_DEVELOPMENT_MCP_SOURCE_INVALID");
+  requireRegularFile(path.join(mcpSource, "package.json"), "LOCAL_DEVELOPMENT_MCP_PACKAGE_MISSING");
+  requireRegularFile(path.join(mcpSource, "dist", "index.js"), "LOCAL_DEVELOPMENT_MCP_BUILD_MISSING");
+  const mcpTarget = path.join(target, "mcp-server");
+  let targetStat = null;
+  try {
+    targetStat = fs.lstatSync(mcpTarget);
+  } catch (error) {
+    if (error?.code !== "ENOENT") throw error;
+  }
+  if (targetStat) {
+    const stat = targetStat;
+    if (!stat.isSymbolicLink()) fail("LOCAL_DEVELOPMENT_MCP_TARGET_CONFLICT");
+    fs.unlinkSync(mcpTarget);
+  }
+  fs.symlinkSync(mcpSource, mcpTarget, process.platform === "win32" ? "junction" : "dir");
 }
 
 function parseOptions(values) {
@@ -237,7 +254,7 @@ function main() {
   }
   if (command === "deploy") {
     deployLocalPluginFiles(requiredOption(options, "source"), requiredOption(options, "target"));
-    console.log(`[local-development] deployed main.js, manifest.json, and styles.css`);
+    console.log(`[local-development] deployed main.js, manifest.json, styles.css, and the local MCP development link`);
     return;
   }
   fail("LOCAL_DEVELOPMENT_COMMAND_INVALID");

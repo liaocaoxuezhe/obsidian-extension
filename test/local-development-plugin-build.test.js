@@ -94,6 +94,9 @@ test("deploy copies the complete three-file local plugin artifact", (t) => {
   fs.writeFileSync(path.join(sourceRoot, "main.js"), "local-main", "utf8");
   fs.writeFileSync(path.join(sourceRoot, "manifest.json"), "{\"id\":\"analogy-rag-in-your-vault\"}\n", "utf8");
   fs.writeFileSync(path.join(sourceRoot, "styles.css"), ".local-style{}\n", "utf8");
+  fs.mkdirSync(path.join(sourceRoot, "mcp-server", "dist"), { recursive: true });
+  fs.writeFileSync(path.join(sourceRoot, "mcp-server", "package.json"), "{}\n", "utf8");
+  fs.writeFileSync(path.join(sourceRoot, "mcp-server", "dist", "index.js"), "mcp-entry\n", "utf8");
 
   const result = runScript([
     "deploy",
@@ -105,6 +108,28 @@ test("deploy copies the complete three-file local plugin artifact", (t) => {
   assert.equal(fs.readFileSync(path.join(targetRoot, "main.js"), "utf8"), "local-main");
   assert.equal(fs.readFileSync(path.join(targetRoot, "manifest.json"), "utf8"), "{\"id\":\"analogy-rag-in-your-vault\"}\n");
   assert.equal(fs.readFileSync(path.join(targetRoot, "styles.css"), "utf8"), ".local-style{}\n");
+  assert.equal(fs.realpathSync(path.join(targetRoot, "mcp-server")), fs.realpathSync(path.join(sourceRoot, "mcp-server")));
+  assert.equal(fs.readFileSync(path.join(targetRoot, "mcp-server", "dist", "index.js"), "utf8"), "mcp-entry\n");
+});
+
+test("deploy replaces a stale MCP development link", (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "analogy-local-deploy-stale-link-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const sourceRoot = path.join(root, "source");
+  const targetRoot = path.join(root, "target");
+  fs.mkdirSync(path.join(sourceRoot, "mcp-server", "dist"), { recursive: true });
+  fs.mkdirSync(targetRoot, { recursive: true });
+  for (const name of ["main.js", "manifest.json", "styles.css"]) {
+    fs.writeFileSync(path.join(sourceRoot, name), `${name}\n`, "utf8");
+  }
+  fs.writeFileSync(path.join(sourceRoot, "mcp-server", "package.json"), "{}\n", "utf8");
+  fs.writeFileSync(path.join(sourceRoot, "mcp-server", "dist", "index.js"), "mcp-entry\n", "utf8");
+  fs.symlinkSync(path.join(root, "missing-mcp-server"), path.join(targetRoot, "mcp-server"), "dir");
+
+  const result = runScript(["deploy", "--source", sourceRoot, "--target", targetRoot]);
+
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.equal(fs.realpathSync(path.join(targetRoot, "mcp-server")), fs.realpathSync(path.join(sourceRoot, "mcp-server")));
 });
 
 test("build:local bundles the installed runtime binding and deploys all plugin files", (t) => {
