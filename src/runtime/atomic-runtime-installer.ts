@@ -239,6 +239,17 @@ async function fsyncDirectory(directory: string): Promise<void> {
   }
 }
 
+async function fsyncRegularFile(handle: fs.promises.FileHandle): Promise<void> {
+  try {
+    await handle.sync();
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (process.platform !== "win32" || (code !== "EPERM" && code !== "EINVAL" && code !== "ENOTSUP")) {
+      throw error;
+    }
+  }
+}
+
 async function syncTree(root: string): Promise<void> {
   const entries = await fs.promises.readdir(root, { withFileTypes: true });
   for (const entry of entries) {
@@ -253,7 +264,7 @@ async function syncTree(root: string): Promise<void> {
     if (!stat.isFile()) throw runtimeError("RUNTIME_UNSAFE_INSTALLED_TREE");
     const handle = await openRegularFile(entryPath, fs.constants.O_RDONLY, undefined, "RUNTIME_UNSAFE_INSTALLED_TREE");
     try {
-      await handle.sync();
+      await fsyncRegularFile(handle);
     } finally {
       await handle.close();
     }
