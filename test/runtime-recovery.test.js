@@ -271,16 +271,7 @@ test("health probing is loopback-only, abortable, and bounded by a finite timeou
 });
 
 test("managed Chroma identity cannot be supplied as a public boolean option", () => {
-  const virtualFile = path.join(process.cwd(), "test/environment-detector-options.type-check.ts");
-  const source = `
-    import type { EnvironmentDetectorOptions } from "../src/runtime/environment-detector";
-    const options: EnvironmentDetectorOptions = {
-      platform: "darwin-arm64",
-      paths: {} as EnvironmentDetectorOptions["paths"],
-      managedChromaIdentityVerified: true,
-    };
-    void options;
-  `;
+  const detectorFile = path.join(process.cwd(), "src/runtime/environment-detector.ts");
   const compilerOptions = {
     module: ts.ModuleKind.CommonJS,
     moduleResolution: ts.ModuleResolutionKind.NodeJs,
@@ -289,22 +280,18 @@ test("managed Chroma identity cannot be supplied as a public boolean option", ()
     skipLibCheck: true,
     noEmit: true,
   };
-  const host = ts.createCompilerHost(compilerOptions);
-  const originalGetSourceFile = host.getSourceFile.bind(host);
-  host.fileExists = (filename) => filename === virtualFile || fs.existsSync(filename);
-  host.readFile = (filename) => filename === virtualFile ? source : fs.readFileSync(filename, "utf8");
-  host.getSourceFile = (filename, languageVersion, onError, shouldCreateNewSourceFile) => {
-    if (filename === virtualFile) return ts.createSourceFile(filename, source, languageVersion, true);
-    return originalGetSourceFile(filename, languageVersion, onError, shouldCreateNewSourceFile);
-  };
-  const program = ts.createProgram([virtualFile], compilerOptions, host);
-  const virtualSource = program.getSourceFile(virtualFile);
-  assert.ok(virtualSource, "virtual type-check source must be loaded");
-  const diagnostics = ts.getPreEmitDiagnostics(program, virtualSource);
-  assert.ok(
-    diagnostics.some((diagnostic) => [2322, 2353].includes(diagnostic.code)),
-    diagnostics.map((value) => value.messageText),
-  );
+  const program = ts.createProgram([detectorFile], compilerOptions);
+  const sourceFile = program.getSourceFile(detectorFile);
+  assert.ok(sourceFile, "environment detector source must be loaded");
+  const checker = program.getTypeChecker();
+  const moduleSymbol = checker.getSymbolAtLocation(sourceFile);
+  assert.ok(moduleSymbol, "environment detector module symbol must exist");
+  const optionsSymbol = checker.getExportsOfModule(moduleSymbol)
+    .find((symbol) => symbol.name === "EnvironmentDetectorOptions");
+  assert.ok(optionsSymbol, "EnvironmentDetectorOptions must remain exported");
+  const propertyNames = checker.getDeclaredTypeOfSymbol(optionsSymbol)
+    .getProperties().map((property) => property.name);
+  assert.equal(propertyNames.includes("managedChromaIdentityVerified"), false);
 });
 
 test("detector rejects non-loopback endpoint input instead of contacting it", async (t) => {
