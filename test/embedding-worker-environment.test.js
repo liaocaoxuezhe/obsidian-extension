@@ -126,7 +126,7 @@ function waitForResponse(child, expectedId, timeoutMs = 2000) {
       child.kill("SIGTERM");
     }
   } finally {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+    fs.rmSync(tmpDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
   }
 
   console.log("Embedding worker environment tests passed");
