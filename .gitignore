@@ -31,6 +31,7 @@ docs/archive/*
 !docs/migration/
 docs/migration/*
 !docs/migration/test-execution-inventory.json
+!docs/migration/plugin-feature-reconciliation.md
 !docs/archive/obsidian-review-local-runtime-fix.md
 !docs/archive/open-source-sync-notes.md
 test/
