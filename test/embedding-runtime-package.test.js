@@ -600,7 +600,7 @@ test("runtime builder uses npm bundled with pinned Node instead of ambient npm",
     NPM_TOKEN: "analogy-secret-must-not-leak",
   });
   assert.equal(result.status, 0, `${result.stdout}${result.stderr}`);
-  assert.match(result.stdout, /node-v22\.23\.2-[^\\/]+[\\/](?:lib[\\/]node_modules|node_modules)[\\/]npm[\\/]bin[\\/]npm-cli\.js/);
+  assert.match(result.stdout.replaceAll("\\", "/"), /node-v22\.23\.2-[^/]+\/(?:lib\/node_modules|node_modules)\/npm\/bin\/npm-cli\.js/);
   assert.doesNotMatch(fs.readFileSync(`${hostArchivePath}.manifest.json`, "utf8"), /example\.invalid|inherited-proxy|analogy-secret/);
 });
 
