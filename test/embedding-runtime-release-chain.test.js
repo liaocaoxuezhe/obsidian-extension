@@ -15,6 +15,13 @@ const fixtureRoot = path.join(repositoryRoot, "test", ".runtime", "signed-releas
 const packRootName = "analogy-embedding-runtime-node22-v1";
 const baseUrl = "https://github.com/liaocaoxuezhe/obsidian-extension/releases/download/runtime-node22-v1";
 
+test("runtime manifest directory durability follows platform support", () => {
+  const source = fs.readFileSync(path.join(scriptsRoot, "generate-runtime-manifest.mjs"), "utf8");
+  assert.match(source, /async function fsyncDirectory/);
+  assert.match(source, /if \(process\.platform === "win32"\) return/);
+  assert.match(source, /await fsyncDirectory\(path\.dirname\(filename\)\)/);
+});
+
 function sha256Bytes(bytes) {
   return crypto.createHash("sha256").update(bytes).digest("hex");
 }

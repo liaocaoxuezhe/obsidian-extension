@@ -46,6 +46,12 @@ function requireRealDirectory(directory, label) {
   if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error(`${label} must be a real directory: ${directory}`);
 }
 
+async function fsyncDirectory(directory) {
+  if (process.platform === "win32") return;
+  const directoryHandle = await fs.promises.open(directory, "r");
+  try { await directoryHandle.sync(); } finally { await directoryHandle.close(); }
+}
+
 async function writeAtomic(filename, body) {
   await fs.promises.mkdir(path.dirname(filename), { recursive: true });
   requireRealDirectory(path.dirname(filename), "Atomic output parent");
@@ -58,8 +64,7 @@ async function writeAtomic(filename, body) {
     await handle.close();
     handle = null;
     await fs.promises.rename(temporary, filename);
-    const directoryHandle = await fs.promises.open(path.dirname(filename), "r");
-    try { await directoryHandle.sync(); } finally { await directoryHandle.close(); }
+    await fsyncDirectory(path.dirname(filename));
   } finally {
     if (handle) await handle.close().catch(() => {});
     await fs.promises.rm(temporary, { force: true });
