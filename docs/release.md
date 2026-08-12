@@ -8,6 +8,7 @@ This repository is the only source for plugin development and releases. Do not c
 
 ```bash
 npm ci
+npm run check
 npm run release:prepare
 ```
 
@@ -44,3 +45,5 @@ Add this entry to `obsidianmd/obsidian-releases` `community-plugins.json`:
 ```
 
 Create release tags only from this repository after all CI gates pass.
+
+For the repository-split candidate, prepare version `1.2.5`, create the bare `1.2.5` tag from a clean reviewed commit, and mark the resulting GitHub Release as a prerelease until downloaded assets and a real Obsidian install pass acceptance. The tag, `package.json`, `package-lock.json`, `manifest.json`, and `versions.json` entry must remain identical.

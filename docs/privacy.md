@@ -34,10 +34,11 @@ Analogy uses browser `localStorage` for small pieces of UI and license state, in
 Analogy may use the network for these purposes:
 
 - downloading embedding model files from the configured model host;
-- optional license validation against the configured license server;
-- optional external payment or account pages configured by the project owner.
+- license validation and deactivation at `https://analogy.zexing.club/api/v1/obsidian/license/*`;
+- external purchase and account pages at `https://analogy.zexing.club/analogy` and `/analogy/account`.
 
 License validation sends license and activation metadata, such as license key, plugin version, local device identifier, and vault identifier. It does not send note contents.
+Payment pages open in the browser; the plugin does not receive Stripe credentials or payment-card data. When the license service is unavailable, cached active state is honored only through its server-provided grace period, then local free limits apply.
 
 ## MCP access
 
