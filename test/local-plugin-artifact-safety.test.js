@@ -35,11 +35,27 @@ test("local deployment gate accepts a published runtime bundle with exactly thre
     'const source = "published";',
     'const url = "https://github.com/Nixum/analogy/releases/download/runtime-node22-v1/runtime.tar.gz";',
   ].join("\n"));
-  fs.writeFileSync(path.join(root, "manifest.json"), '{"id":"analogy-rag-in-your-vault","version":"1.1.9"}\n');
+  const version = require(path.join(process.cwd(), "package.json")).version;
+  fs.writeFileSync(path.join(root, "manifest.json"), `${JSON.stringify({
+    id: "analogy-rag-in-your-vault",
+    version,
+  })}\n`);
   fs.writeFileSync(path.join(root, "styles.css"), "body{}\n");
 
   const result = spawnSync(process.execPath, [verifier, root], { encoding: "utf8" });
   assert.equal(result.status, 0, result.stderr);
+});
+
+test("local deployment gate rejects an artifact from a stale plugin version", () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "analogy-local-artifact-gate-"));
+  test.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  fs.writeFileSync(path.join(root, "main.js"), 'const source = "published";\n');
+  fs.writeFileSync(path.join(root, "manifest.json"), '{"id":"analogy-rag-in-your-vault","version":"1.2.4"}\n');
+  fs.writeFileSync(path.join(root, "styles.css"), "body{}\n");
+
+  const result = spawnSync(process.execPath, [verifier, root], { encoding: "utf8" });
+  assert.notEqual(result.status, 0);
+  assert.match(`${result.stdout}\n${result.stderr}`, /LOCAL_PLUGIN_MANIFEST_INVALID/);
 });
 
 test("published runtime renderer keeps the internal manifest binding required at startup", async () => {

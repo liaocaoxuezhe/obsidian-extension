@@ -9,7 +9,8 @@
 - `build:local` 只在构建时读取本机已验证的运行时绑定，不修改仓库中用于正式发布的生成清单。
 - 本地部署必须同时更新 `main.js`、`manifest.json` 和 `styles.css`，不能只复制 `main.js`。
 - 如果验证过程中运行过 `npm run build:ci` 或 `npm run build:release`，必须在交付用户刷新前再次运行 `npm run build:local`，确保开发插件目录里最后留下的是本地产物。
-- 正式发布仍使用 `npm run release:prepare`，不得用本地构建代替三平台运行时发布和签名验证。
+- 发布候选仍使用 `npm run release:prepare`，不得用本地构建代替受支持平台的 Runtime 发布和签名验证。当前受支持发布范围为 Apple Silicon macOS（`darwin-arm64`）和 Windows x64（`win32-x64`）；Intel Mac Runtime 已经用户批准延期，未验证产物不得进入 Manifest 或 Release。
+- `release:prepare` 只在本地准备并验证候选资产，不会授权或执行发布。创建/推送 Tag、运行带 `publish=true` 的 Runtime Workflow 或创建 GitHub Release 前，必须取得用户针对本次发布的明确授权。
 
 ## 2. 当前开发环境
 

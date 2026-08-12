@@ -4,6 +4,8 @@ Analogy uses the Obsidian community plugin release flow. The GitHub release tag 
 
 This repository is the only source for plugin development and releases. Do not copy source or generated assets from the retired mixed repository.
 
+Preparing assets and publishing them are separate operations. `npm run release:prepare` only creates and verifies a local candidate. It does not authorize a tag, a Runtime publication, a GitHub Release, a staged rollout, or an Obsidian community submission. Obtain explicit user approval for the specific release immediately before any of those external changes.
+
 ## Prepare assets
 
 ```bash
@@ -44,6 +46,8 @@ Add this entry to `obsidianmd/obsidian-releases` `community-plugins.json`:
 }
 ```
 
-Create release tags only from this repository after all CI gates pass.
+Create release tags only from this repository after all CI gates pass and the user has completed acceptance and explicitly authorized that release. Pushing a matching tag automatically invokes `.github/workflows/release.yml` and can create a public GitHub Release, so tag creation/push is a publishing action, not a harmless preparation step.
 
-For the repository-split candidate, prepare version `1.2.5`, create the bare `1.2.5` tag from a clean reviewed commit, and mark the resulting GitHub Release as a prerelease until downloaded assets and a real Obsidian install pass acceptance. The tag, `package.json`, `package-lock.json`, `manifest.json`, and `versions.json` entry must remain identical.
+For the repository-split candidate, prepare version `1.2.5` and stop before creating the tag. After user acceptance and a new explicit publication authorization, create the bare `1.2.5` tag from the accepted clean commit and let the GitHub workflow build the release assets. The tag, `package.json`, `package-lock.json`, `manifest.json`, and `versions.json` entry must remain identical. Do not use a staged or gray rollout.
+
+The managed Runtime currently publishes only `darwin-arm64` and `win32-x64`. Intel Mac (`darwin-x64`) publication is deferred by explicit user decision; do not add an unverified Intel archive to the runtime manifest or full-runtime ZIP.

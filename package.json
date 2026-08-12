@@ -24,7 +24,7 @@
 		"test:runtime": "node scripts/verify-test-execution-set.mjs && node scripts/run-runtime-tests.mjs",
 		"setup:local": "node scripts/install-local-runtime.mjs",
 		"release:prepare": "npm run build:release && node scripts/prepare-release.mjs",
-		"release:verify:local-plugin": "node scripts/verify-local-plugin-artifact.mjs release/1.2.4/community",
+		"release:verify:local-plugin": "node scripts/verify-local-plugin-artifact.mjs",
 		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
 	"keywords": [

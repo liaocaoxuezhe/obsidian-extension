@@ -3,7 +3,11 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const artifactRoot = path.resolve(process.argv[2] || "");
+const repositoryRoot = process.cwd();
+const packageMetadata = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "package.json"), "utf8"));
+const requestedRoot = process.argv[2]
+  || path.join("release", packageMetadata.version, "community");
+const artifactRoot = path.resolve(requestedRoot);
 const requiredFiles = ["main.js", "manifest.json", "styles.css"];
 
 function fail(code) {
@@ -29,7 +33,7 @@ if (bundle.includes("development-fixture") || bundle.includes("example.invalid")
 }
 
 const manifest = JSON.parse(fs.readFileSync(path.join(artifactRoot, "manifest.json"), "utf8"));
-if (manifest.id !== "analogy-rag-in-your-vault" || typeof manifest.version !== "string") {
+if (manifest.id !== "analogy-rag-in-your-vault" || manifest.version !== packageMetadata.version) {
   fail("LOCAL_PLUGIN_MANIFEST_INVALID");
 }
 

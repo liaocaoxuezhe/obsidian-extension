@@ -927,6 +927,7 @@
       "testNames": [
         "local deployment gate rejects a development runtime fixture bundle",
         "local deployment gate accepts a published runtime bundle with exactly three files",
+        "local deployment gate rejects an artifact from a stale plugin version",
         "published runtime renderer keeps the internal manifest binding required at startup"
       ],
       "testNamesSource": "task-1-inventory"
