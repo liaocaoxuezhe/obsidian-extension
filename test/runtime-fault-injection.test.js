@@ -94,8 +94,13 @@ test("release workflow gates publication on every supported native runner and pu
     "macos-14", "windows-2025", "node-version: 22.23.2", "run-native-runtime-smoke.mjs",
     "cosign attest-blob", "id-token: write", "needs: [native-runtime]",
     "gh release download", "prepare-release.mjs --runtime-only --runtime-staging redownload",
-    "npm run test:runtime",
+    "npm run test:runtime", "ANALOGY_ORT_NATIVE_OVERLAY", "$RUNNER_TEMP/ort-overlay",
   ]) assert.ok(workflow.includes(required), required);
+  assert.ok(
+    workflow.indexOf("Build pinned ONNX Runtime 1.26.0 Intel overlay")
+      < workflow.indexOf("Run unit, contract, worker, Chroma and Community harnesses"),
+    "the Intel overlay must exist before darwin-x64 tests invoke the native runtime builder",
+  );
   assert.doesNotMatch(workflow, /continue-on-error:\s*true/);
 
   const pkg = JSON.parse(fs.readFileSync(path.join(extensionRoot, "package.json"), "utf8"));

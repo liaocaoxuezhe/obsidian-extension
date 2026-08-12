@@ -264,13 +264,19 @@ function readJson(filename) {
 }
 
 function runNativeBuilder(environmentOverrides = {}) {
-  return spawnSync(process.execPath, [
+  const builderArguments = [
     path.join(extensionRoot, "scripts", "build-embedding-runtime.mjs"),
     "--platform", process.platform,
     "--arch", process.arch,
     "--node-version", "22.23.2",
     "--output", runtimeOutputRoot,
-  ], {
+  ];
+  const overlay = environmentOverrides.ANALOGY_ORT_NATIVE_OVERLAY
+    ?? process.env.ANALOGY_ORT_NATIVE_OVERLAY;
+  if (hostPlatformKey === "darwin-x64" && overlay) {
+    builderArguments.push("--ort-native-overlay", overlay);
+  }
+  return spawnSync(process.execPath, builderArguments, {
     cwd: extensionRoot,
     encoding: "utf8",
     env: { ...process.env, ...environmentOverrides },

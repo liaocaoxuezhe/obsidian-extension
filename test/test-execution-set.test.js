@@ -1,4 +1,6 @@
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
 const { pathToFileURL } = require("node:url");
@@ -115,4 +117,17 @@ test("every test records its Task 1 conflict decision and test-name baseline", a
   const errors = verifyTestExecutionSet(configured);
   assert.ok(errors.includes("CONFLICT_ACTION_MISSING: test/kept.test.js"));
   assert.ok(errors.includes("TEST_NAMES_MISSING: test/kept.test.js"));
+});
+
+test("a hung test process is terminated by the per-test timeout", async (t) => {
+  const runnerUrl = pathToFileURL(path.join(__dirname, "..", "scripts", "run-test-set.mjs")).href;
+  const {runSingleNodeTest} = await import(runnerUrl);
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "analogy-test-timeout-"));
+  t.after(() => fs.rmSync(directory, {recursive: true, force: true}));
+  const hanging = path.join(directory, "hang.js");
+  fs.writeFileSync(hanging, "setInterval(() => {}, 1000);\n", "utf8");
+  const startedAt = Date.now();
+  const result = runSingleNodeTest(hanging, {timeoutMs: 100});
+  assert.equal(result.timedOut, true);
+  assert.ok(Date.now() - startedAt < 2_000);
 });

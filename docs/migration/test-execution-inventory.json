@@ -2055,7 +2055,8 @@
         "modern test module extensions are treated as executable tests",
         "a Task 1 test name cannot disappear silently from a retained file",
         "an explicit Task 1 test-name rename preserves the semantic inventory",
-        "every test records its Task 1 conflict decision and test-name baseline"
+        "every test records its Task 1 conflict decision and test-name baseline",
+        "a hung test process is terminated by the per-test timeout"
       ],
       "testNamesSource": "introduced-after-task-1"
     },

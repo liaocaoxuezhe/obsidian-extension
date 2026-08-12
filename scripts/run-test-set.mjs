@@ -51,6 +51,36 @@ function workspaceFingerprint() {
   return crypto.createHash("sha256").update(result.stdout).digest("hex");
 }
 
+function configuredTestTimeoutMs() {
+  const raw = process.env.ANALOGY_TEST_TIMEOUT_MS || "600000";
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 1_000 || value > 1_800_000) {
+    throw new Error(`INVALID_TEST_TIMEOUT_MS: ${raw}`);
+  }
+  return value;
+}
+
+export function runSingleNodeTest(testPath, options = {}) {
+  const arguments_ = ["--test", "--test-concurrency=1", testPath];
+  if (options.reporter) arguments_.splice(2, 0, `--test-reporter=${options.reporter}`);
+  const childEnvironment = {...(options.env || process.env)};
+  delete childEnvironment.NODE_TEST_CONTEXT;
+  const result = spawnSync(process.execPath, arguments_, {
+    cwd: options.cwd || repositoryRoot,
+    env: childEnvironment,
+    stdio: options.stdio || "inherit",
+    windowsHide: true,
+    timeout: options.timeoutMs ?? configuredTestTimeoutMs(),
+    killSignal: "SIGKILL",
+  });
+  return {
+    status: result.status,
+    signal: result.signal,
+    error: result.error,
+    timedOut: result.error?.code === "ETIMEDOUT",
+  };
+}
+
 export function runTestSet(setName) {
   const runnerManifest = readJson("test/test-runner-manifest.json");
   const inventory = readJson("docs/migration/test-execution-inventory.json");
@@ -132,21 +162,22 @@ export function runTestSet(setName) {
     testEntry.status = "started";
     testEntry.startedAt = new Date().toISOString();
     writeManifest(output, manifest);
-    const arguments_ = ["--test", "--test-concurrency=1", testEntry.path];
-    if (process.env.ANALOGY_TEST_REPORTER) {
-      arguments_.splice(2, 0, `--test-reporter=${process.env.ANALOGY_TEST_REPORTER}`);
-    }
-    const result = spawnSync(process.execPath, arguments_, {
+    const result = runSingleNodeTest(testEntry.path, {
       cwd: repositoryRoot,
       env: process.env,
-      stdio: "inherit",
-      windowsHide: true,
+      reporter: process.env.ANALOGY_TEST_REPORTER,
     });
     testEntry.completedAt = new Date().toISOString();
     testEntry.exitCode = result.status ?? 1;
+    if (result.signal) testEntry.signal = result.signal;
+    if (result.timedOut) testEntry.errorCode = "TEST_TIMEOUT";
     testEntry.status = result.status === 0 ? "completed" : "failed";
     writeManifest(output, manifest);
-    if (result.error) throw result.error;
+    if (result.timedOut) {
+      console.error(`TEST_TIMEOUT: ${testEntry.path}`);
+    } else if (result.error) {
+      throw result.error;
+    }
     if (result.status !== 0) {
       failed = true;
       break;
