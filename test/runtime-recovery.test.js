@@ -298,8 +298,10 @@ test("managed Chroma identity cannot be supplied as a public boolean option", ()
     return originalGetSourceFile(filename, languageVersion, onError, shouldCreateNewSourceFile);
   };
   const program = ts.createProgram([virtualFile], compilerOptions, host);
+  const virtualSource = program.getSourceFile(virtualFile);
+  assert.ok(virtualSource, "virtual type-check source must be loaded");
   const diagnostics = ts.getPreEmitDiagnostics(program)
-    .filter((diagnostic) => diagnostic.file?.fileName === virtualFile);
+    .filter((diagnostic) => diagnostic.file === virtualSource);
   assert.ok(
     diagnostics.some((diagnostic) => [2322, 2353].includes(diagnostic.code)),
     diagnostics.map((value) => value.messageText),
