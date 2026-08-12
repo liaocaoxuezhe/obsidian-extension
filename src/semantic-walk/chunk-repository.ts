@@ -1,7 +1,7 @@
 import type { LocalVectorStore, ChromaGetResponse } from "../local-vector/vector-store";
 import type { ChunkRepository, IndexedChunk, IndexedDocumentEntry } from "./types";
 
-type ChunkStore = Pick<LocalVectorStore, "getChunks">;
+type ChunkStore = Pick<LocalVectorStore, "getChunks" | "listIndexedDocumentEntries">;
 
 export class ChromaChunkRepository implements ChunkRepository {
   constructor(private readonly vectorStore: ChunkStore) {}
@@ -17,25 +17,7 @@ export class ChromaChunkRepository implements ChunkRepository {
   }
 
   async listIndexedDocuments(): Promise<IndexedDocumentEntry[]> {
-    const response = await this.vectorStore.getChunks({ includeDocuments: false });
-    const entries = new Map<string, IndexedDocumentEntry>();
-    for (const chunk of this.toChunks(response)) {
-      const existing = entries.get(chunk.docId);
-      if (existing) {
-        existing.chunkCount++;
-        if (chunk.mtime > existing.mtime) existing.mtime = chunk.mtime;
-        if (chunk.needsReindex) existing.needsReindex = true;
-      } else {
-        entries.set(chunk.docId, {
-          docId: chunk.docId,
-          path: chunk.path,
-          mtime: chunk.mtime,
-          chunkCount: 1,
-          ...(chunk.needsReindex ? { needsReindex: true } : {}),
-        });
-      }
-    }
-    return Array.from(entries.values());
+    return await this.vectorStore.listIndexedDocumentEntries();
   }
 
   async getRandomChunk(): Promise<IndexedChunk | null> {
