@@ -11,6 +11,7 @@ async function loadModule() {
     platform: "node",
     format: "cjs",
     write: false,
+    external: ["@huggingface/transformers"],
   });
   const module = { exports: {} };
   const fn = new Function("module", "exports", "require", result.outputFiles[0].text);
@@ -57,7 +58,16 @@ function mockHttpClient(clientName) {
   );
 
   // ---------- 2. After installNodeFetch, env.fetch is replaced ----------
-  const transformers = require("@huggingface/transformers");
+  const transformersPath = require.resolve("@huggingface/transformers");
+  const originalTransformers = require.cache[transformersPath];
+  const transformers = { env: { fetch: (...args) => globalThis.fetch(...args) } };
+  require.cache[transformersPath] = {
+    id: transformersPath, filename: transformersPath, loaded: true, exports: transformers,
+  };
+  process.on("exit", () => {
+    if (originalTransformers) require.cache[transformersPath] = originalTransformers;
+    else delete require.cache[transformersPath];
+  });
   const originalEnvFetch = transformers.env.fetch;
   installNodeFetch(transformers);
   assert.notStrictEqual(

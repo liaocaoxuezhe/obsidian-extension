@@ -1226,6 +1226,6 @@ test("default release refuses the checked-in development runtime fixture before 
   });
 
   assert.notEqual(result.status, 0);
-  assert.match(`${result.stdout}${result.stderr}`, /Default release requires a published embedding runtime manifest; development fixture is forbidden/);
+  assert.match(`${result.stdout}${result.stderr}`, /RELEASE_RUNTIME_FIXTURE_FORBIDDEN/);
   assert.equal(fs.existsSync(path.join(fixtureRoot, "release")), false, "fixture rejection must happen before release mutation");
 });
