@@ -41,5 +41,10 @@ jobs:
       - name: Run public regression tests
         run: npm run test:public
 
+      - name: Enforce tracked and workspace repository boundary
+        run: |
+          node scripts/check-public-boundary.mjs --mode tracked
+          node scripts/check-public-boundary.mjs --mode workspace
+
       - name: Build production plugin
         run: npm run build
