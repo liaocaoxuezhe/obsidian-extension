@@ -11,6 +11,9 @@ const esbuild = require("esbuild");
 
 const chromeCandidates = [
   process.env.ANALOGY_TEST_CHROME,
+  "/usr/bin/google-chrome",
+  "/usr/bin/chromium",
+  "/usr/bin/chromium-browser",
   "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
   "/Applications/Chromium.app/Contents/MacOS/Chromium",
 ].filter(Boolean);
