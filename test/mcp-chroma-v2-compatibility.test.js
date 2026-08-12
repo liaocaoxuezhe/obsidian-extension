@@ -176,7 +176,7 @@ test("managed v2 rebuild publishes the exact child-owned Chroma port and collect
   const { deriveRuntimeVaultId } = loadTypeScriptTree(path.join(
     process.cwd(), "src/runtime/vault-identity.ts",
   ));
-  const runtimeVaultId = deriveRuntimeVaultId(vaultPath, "darwin-arm64");
+  const runtimeVaultId = deriveRuntimeVaultId(vaultPath, `${process.platform}-${process.arch}`);
   const vaultRuntimeRoot = path.join(localDataRoot, "vaults", runtimeVaultId);
   const v2DataPath = path.join(vaultRuntimeRoot, "chroma_data_v2");
   const legacyDataPath = path.join(pluginDir, "chroma_data", "legacy-id");
