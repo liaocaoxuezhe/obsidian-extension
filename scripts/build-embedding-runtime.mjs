@@ -244,7 +244,16 @@ async function extractNodeArchive(archivePath, asset, destination) {
   const args = asset.archive === "tar.gz"
     ? ["-xzf", archivePath, "-C", destination]
     : ["-xf", archivePath, "-C", destination];
-  await runExecutable("tar", args, { timeout: 180_000 });
+  try {
+    await runExecutable("tar", args, { timeout: 180_000 });
+  } catch (error) {
+    if (process.platform !== "win32" || asset.archive !== "zip") throw error;
+    // Windows runner antivirus/indexing can transiently make bsdtar fail while
+    // reopening a verified cached ZIP. Retry once into a clean extraction root.
+    await fs.promises.rm(destination, { recursive: true, force: true });
+    await fs.promises.mkdir(destination, { recursive: true });
+    await runExecutable("tar", args, { timeout: 180_000 });
+  }
 }
 
 function collectInstalledPackages(nodeModulesRoot) {
