@@ -13,7 +13,7 @@ const buildId = `${version}+test.community-worker.${process.pid}`;
 const artifactDir = path.join(root, "artifacts", buildId);
 
 try {
-  execFileSync(process.execPath, ["esbuild.config.mjs", "production"], {
+  execFileSync(process.execPath, ["esbuild.config.mjs", "ci"], {
     cwd: root,
     stdio: "inherit",
     env: { ...process.env, ANALOGY_BUILD_ID: buildId },

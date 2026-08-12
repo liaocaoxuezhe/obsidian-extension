@@ -7,6 +7,7 @@ import os from "os";
 import { execSync } from "child_process";
 import crypto from "crypto";
 import { extractGeneratedRuntimeManifestSha256 } from "./scripts/runtime-manifest-binding.mjs";
+import { assertBuildMode } from "./scripts/build-mode-guard.mjs";
 import {
 	createLocalDevelopmentRuntimeManifest,
 	deployLocalPluginFiles,
@@ -20,9 +21,14 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const buildMode = process.argv[2] || "watch";
-const prod = buildMode === "production";
+if (!["watch", "local", "ci", "release"].includes(buildMode)) {
+	throw new Error(`BUILD_MODE_REQUIRED: unknown esbuild mode ${buildMode}; use local, ci, or release`);
+}
+const prod = buildMode === "ci" || buildMode === "release";
 const localDevelopment = buildMode === "local";
+const releaseBuild = buildMode === "release";
 const oneShot = prod || localDevelopment;
+if (oneShot) assertBuildMode(buildMode);
 const externalModules = [
 	"obsidian",
 	"electron",
@@ -96,17 +102,21 @@ function localDataRoot() {
 }
 
 const buildId = computeBuildId();
-const localRuntimeManifest = localDevelopment
-	? createLocalDevelopmentRuntimeManifest({
-		localDataRoot: localDataRoot(),
-		platform: localRuntimePlatform(),
-	})
-	: null;
+let localRuntimeManifest = null;
+if (localDevelopment) {
+	try {
+		localRuntimeManifest = createLocalDevelopmentRuntimeManifest({
+			localDataRoot: localDataRoot(),
+			platform: localRuntimePlatform(),
+		});
+	} catch (error) {
+		const code = error instanceof Error ? error.message : String(error);
+		throw new Error(`${code}: run npm run setup:local, then retry npm run build:local`);
+	}
+}
 const generatedRuntimeManifestSource = localRuntimeManifest?.source
 	?? fs.readFileSync("src/runtime/generated-embedding-runtime-manifest.ts", "utf8");
-const embeddingRuntimePublicManifestSha256 = extractGeneratedRuntimeManifestSha256(generatedRuntimeManifestSource, {
-	allowExactDevelopmentFixture: !localDevelopment,
-});
+const embeddingRuntimePublicManifestSha256 = extractGeneratedRuntimeManifestSha256(generatedRuntimeManifestSource);
 const embeddingRuntimeBuildBinding = `ANALOGY_EMBEDDING_RUNTIME_MANIFEST_SHA256:${embeddingRuntimePublicManifestSha256}`;
 const workerBuild = await esbuild.build({
 	entryPoints: ["src/local-vector/embedding-worker.ts"],
@@ -181,7 +191,7 @@ if (oneShot) {
 		return hash.digest("hex");
 	}
 
-	if (prod) {
+	if (releaseBuild) {
 		const artifactsDir = path.join("artifacts", buildId);
 		fs.mkdirSync(artifactsDir, { recursive: true });
 		const buildInfo = {
@@ -206,13 +216,6 @@ if (oneShot) {
 		fs.copyFileSync("package-lock.json", path.join(artifactsDir, "package-lock.json"));
 		console.log(`[esbuild] archived build artifacts to ${artifactsDir}`);
 
-		const installedPluginDir = path.join(".obsidian", "plugins", "obsidian-extension");
-		if (fs.existsSync(installedPluginDir)) {
-			fs.copyFileSync("main.js", path.join(installedPluginDir, "main.js"));
-			if (fs.existsSync("main.js.map")) {
-				fs.copyFileSync("main.js.map", path.join(installedPluginDir, "main.js.map"));
-			}
-		}
 	}
 	if (localDevelopment) {
 		const installedPluginDir = path.resolve(

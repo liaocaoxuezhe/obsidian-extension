@@ -3,12 +3,14 @@
   "jobs": {
     "public-ci": {
       "workflow": ".github/workflows/ci.yml",
+      "workflowJob": "validate",
       "runners": [
         "public"
       ]
     },
     "runtime-matrix": {
       "workflow": ".github/workflows/obsidian-runtime-matrix.yml",
+      "workflowJob": "native-runtime",
       "runners": [
         "runtime"
       ]

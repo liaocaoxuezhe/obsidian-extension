@@ -82,6 +82,20 @@ function chromaGetResponse(entries, nested) {
     },
   });
 
+  store.apiVersion = "v2";
+  store.count = async () => 2;
+  store.requestJson = async () => ({
+    ids: ["Complete::chunk-0", "Legacy::chunk-0"],
+    metadatas: [
+      { doc_id: "Complete", path: "Complete.md", mtime: 2, chunk_index: 0, chunk_count: 1, section_label: "标题" },
+      { doc_id: "Legacy", path: "Legacy.md", mtime: 1 },
+    ],
+  });
+  assert.deepStrictEqual(await store.listIndexedDocumentEntries(), [
+    { docId: "Complete", path: "Complete.md", mtime: 2, chunkCount: 1 },
+    { docId: "Legacy", path: "Legacy.md", mtime: 1, chunkCount: 1, needsReindex: true },
+  ]);
+
   const { ChromaChunkRepository } = await loadModule("semantic-walk/chunk-repository.ts");
   let unboundedGetCalls = 0;
   const pagedEntries = [{

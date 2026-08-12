@@ -144,6 +144,7 @@ test/*
 !test/vault-folder-selection.test.js
 !test/public-boundary.test.js
 !test/api-contract.test.js
+!test/build-mode-guard.test.js
 !test/test-execution-set.test.js
 !test/test-runner-manifest.json
 !test/test-ci-manifest.json

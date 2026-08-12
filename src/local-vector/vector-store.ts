@@ -45,6 +45,7 @@ export interface IndexedDocumentEntry {
   path: string;
   mtime: number;
   chunkCount: number;
+  needsReindex?: boolean;
 }
 
 export interface ChromaVectorRecord {
@@ -243,16 +244,23 @@ export class LocalVectorStore {
       const existing = entries.get(docId);
       const path = typeof meta?.path === "string" && meta.path ? meta.path : docId;
       const mtime = this.normalizeMtime(meta?.mtime);
+      const metadataComplete = typeof meta?.path === "string" && meta.path.length > 0
+        && Number.isFinite(Number(meta?.mtime))
+        && Number.isFinite(Number(meta?.chunk_index))
+        && Number.isFinite(Number(meta?.chunk_count))
+        && Object.prototype.hasOwnProperty.call(meta ?? {}, "section_label");
       if (existing) {
         existing.chunkCount++;
         if (mtime > existing.mtime) existing.mtime = mtime;
         if (!existing.path && path) existing.path = path;
+        if (!metadataComplete) existing.needsReindex = true;
       } else {
         entries.set(docId, {
           docId,
           path,
           mtime,
           chunkCount: 1,
+          ...(!metadataComplete ? { needsReindex: true } : {}),
         });
       }
     }

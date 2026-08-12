@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { parse as parseYaml } from "yaml";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -14,11 +15,24 @@ function sameSet(left, right) {
   return difference(left, right).length === 0 && difference(right, left).length === 0;
 }
 
-export function verifyTestExecutionSet({ inventory, runnerManifest, ciManifest, trackedAssets, diskTests }) {
+function isTestFile(pathname) {
+  if (pathname.includes("/fixtures/") || pathname.includes("/helpers/")) return false;
+  return /\.(?:test|spec)\.(?:js|cjs|mjs|ts|tsx)$/.test(pathname);
+}
+
+export function extractTestNames(content) {
+  return [...content.matchAll(/(?:^|[^\w])(test|it)\s*\(\s*(["'`])([^\n]*?)\2/gm)]
+    .map((match) => match[3]);
+}
+
+export function verifyTestExecutionSet({ inventory, runnerManifest, ciManifest, trackedAssets, diskTests, diskTestNames = {} }) {
   const errors = [];
   const expected = inventory.assets.map((entry) => entry.path);
+  const uniqueExpected = new Set(expected);
+  if (uniqueExpected.size !== expected.length) errors.push("INVENTORY_DUPLICATE_PATH");
   const runnerNames = Object.keys(runnerManifest.sets);
   const runnerAssets = runnerNames.flatMap((name) => runnerManifest.sets[name].assets || []);
+  if (new Set(runnerAssets).size !== runnerAssets.length) errors.push("RUNNER_DUPLICATE_ASSET");
   const ciRunnerNames = Object.values(ciManifest.jobs).flatMap((job) => job.runners || []);
   const ciAssets = ciRunnerNames.flatMap((name) => runnerManifest.sets[name]?.assets || []);
 
@@ -33,6 +47,32 @@ export function verifyTestExecutionSet({ inventory, runnerManifest, ciManifest, 
   for (const runner of ciRunnerNames) {
     if (!runnerNames.includes(runner)) errors.push(`CI_UNKNOWN_RUNNER: ${runner}`);
   }
+  for (const entry of inventory.assets) {
+    if (!entry.runner || !runnerManifest.sets[entry.runner]) errors.push(`INVENTORY_UNKNOWN_RUNNER: ${entry.path}`);
+    else if (!runnerManifest.sets[entry.runner].assets.includes(entry.path)) errors.push(`INVENTORY_RUNNER_MISMATCH: ${entry.path}`);
+    if (isTestFile(entry.path) && entry.kind !== "test") errors.push(`TEST_KIND_MISMATCH: ${entry.path}`);
+    if (!isTestFile(entry.path) && entry.kind === "test") errors.push(`SUPPORT_KIND_MISMATCH: ${entry.path}`);
+    if (!entry.conflictAction) errors.push(`CONFLICT_ACTION_MISSING: ${entry.path}`);
+    if (entry.kind === "test") {
+      if (!Array.isArray(entry.testNames)) errors.push(`TEST_NAMES_MISSING: ${entry.path}`);
+      else {
+        const currentNames = diskTestNames[entry.path] || [];
+        for (const testName of difference(entry.testNames, currentNames)) {
+          const renamed = entry.testNameRenames?.[testName];
+          if (!renamed || !currentNames.includes(renamed)) {
+            errors.push(`TEST_NAME_REMOVED: ${entry.path} :: ${testName}`);
+          }
+        }
+        for (const [previous, current] of Object.entries(entry.testNameRenames || {})) {
+          if (!entry.testNames.includes(previous) || !currentNames.includes(current)) {
+            errors.push(`TEST_NAME_RENAME_INVALID: ${entry.path} :: ${previous} -> ${current}`);
+          }
+        }
+      }
+    }
+    const ciJob = ciManifest.jobs[entry.ciJob];
+    if (!ciJob || !ciJob.runners?.includes(entry.runner)) errors.push(`INVENTORY_CI_OWNERSHIP_MISMATCH: ${entry.path}`);
+  }
   for (const skip of inventory.platformSkips || []) {
     if (!expected.includes(skip.path)) errors.push(`SKIP_NOT_EXPECTED: ${skip.path}`);
     if (!skip.reason || !skip.platform || !skip.workflowJob || !skip.when?.envMissing) {
@@ -45,10 +85,7 @@ export function verifyTestExecutionSet({ inventory, runnerManifest, ciManifest, 
 function trackedTestAssets() {
   const result = spawnSync("git", ["ls-files", "-z", "test"], { cwd: repositoryRoot, encoding: "utf8" });
   if (result.status !== 0) throw new Error(result.stderr || "git ls-files failed");
-  return result.stdout.split("\0").filter(Boolean).filter((pathname) =>
-    pathname.includes("/fixtures/")
-    || pathname.includes("/helpers/")
-    || /(?:\.test\.js|\.tsx?|test-(?:runner|ci)-manifest\.json)$/.test(pathname));
+  return result.stdout.split("\0").filter(Boolean);
 }
 
 function diskTestFiles(root) {
@@ -58,11 +95,21 @@ function diskTestFiles(root) {
       if (entry.name === "node_modules") continue;
       const absolute = path.join(directory, entry.name);
       if (entry.isDirectory()) walk(absolute);
-      else if (entry.name.endsWith(".test.js")) found.push(path.relative(root, absolute).split(path.sep).join("/"));
+      else {
+        const relative = path.relative(root, absolute).split(path.sep).join("/");
+        if (isTestFile(relative)) found.push(relative);
+      }
     }
   }
   walk(path.join(root, "test"));
   return found;
+}
+
+function diskTestNameMap(root, paths) {
+  return Object.fromEntries(paths.map((pathname) => [
+    pathname,
+    extractTestNames(fs.readFileSync(path.join(root, pathname), "utf8")),
+  ]));
 }
 
 function verifyExecutionManifest(filename, setName, inventory, runnerManifest) {
@@ -88,19 +135,41 @@ function main() {
   const inventory = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "docs/migration/test-execution-inventory.json"), "utf8"));
   const runnerManifest = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "test/test-runner-manifest.json"), "utf8"));
   const ciManifest = JSON.parse(fs.readFileSync(path.join(repositoryRoot, "test/test-ci-manifest.json"), "utf8"));
+  const diskTests = diskTestFiles(repositoryRoot);
   const errors = verifyTestExecutionSet({
     inventory,
     runnerManifest,
     ciManifest,
     trackedAssets: trackedTestAssets(),
-    diskTests: diskTestFiles(repositoryRoot),
+    diskTests,
+    diskTestNames: diskTestNameMap(repositoryRoot, diskTests),
   });
   for (const [jobName, job] of Object.entries(ciManifest.jobs)) {
-    const workflow = fs.readFileSync(path.join(repositoryRoot, job.workflow), "utf8");
-    for (const runner of job.runners) {
-      if (!workflow.includes(`npm run test:${runner}`)) errors.push(`WORKFLOW_RUNNER_MISSING: ${jobName}/${runner}`);
+    const workflow = parseYaml(fs.readFileSync(path.join(repositoryRoot, job.workflow), "utf8"));
+    const workflowJob = workflow.jobs?.[job.workflowJob];
+    if (!workflowJob) {
+      errors.push(`WORKFLOW_JOB_MISSING: ${jobName}/${job.workflowJob}`);
+      continue;
     }
-    if (!workflow.includes("actions/upload-artifact")) errors.push(`WORKFLOW_MANIFEST_UPLOAD_MISSING: ${jobName}`);
+    const steps = workflowJob.steps || [];
+    for (const runner of job.runners) {
+      const executionPath = `artifacts/test-execution/${runner}`;
+      const testStep = steps.find((step) => String(step.run || "").includes(`npm run test:${runner}`));
+      if (!testStep) errors.push(`WORKFLOW_RUNNER_MISSING: ${jobName}/${runner}`);
+      else if (!String(testStep.env?.ANALOGY_TEST_EXECUTION_MANIFEST || "").includes(executionPath)) {
+        errors.push(`WORKFLOW_EXECUTION_ENV_MISMATCH: ${jobName}/${runner}`);
+      }
+      const verifyStep = steps.find((step) => String(step.run || "").includes("verify-test-execution-set.mjs")
+        && String(step.run || "").includes(`--set ${runner}`));
+      if (!verifyStep || verifyStep.if !== "always()" || !String(verifyStep.run).includes(executionPath)) {
+        errors.push(`WORKFLOW_VERIFY_STEP_INVALID: ${jobName}/${runner}`);
+      }
+      const uploadStep = steps.find((step) => String(step.uses || "").startsWith("actions/upload-artifact")
+        && String(step.with?.path || "").includes(executionPath));
+      if (!uploadStep || uploadStep.if !== "always()" || uploadStep.with?.["if-no-files-found"] !== "error") {
+        errors.push(`WORKFLOW_UPLOAD_STEP_INVALID: ${jobName}/${runner}`);
+      }
+    }
   }
   const executionIndex = process.argv.indexOf("--execution");
   const setIndex = process.argv.indexOf("--set");

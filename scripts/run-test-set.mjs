@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import os from "node:os";
+import crypto from "node:crypto";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -31,6 +31,26 @@ function activeSkip(pathname, inventory) {
     && !process.env[entry.when.envMissing]);
 }
 
+function sha256Files(pathnames) {
+  const hash = crypto.createHash("sha256");
+  for (const pathname of [...pathnames].sort()) {
+    hash.update(pathname);
+    hash.update("\0");
+    hash.update(fs.readFileSync(path.join(repositoryRoot, pathname)));
+    hash.update("\0");
+  }
+  return hash.digest("hex");
+}
+
+function workspaceFingerprint() {
+  const result = spawnSync("git", ["status", "--porcelain=v1", "--untracked-files=all"], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  });
+  if (result.status !== 0) throw new Error(result.stderr || "git status failed");
+  return crypto.createHash("sha256").update(result.stdout).digest("hex");
+}
+
 export function runTestSet(setName) {
   const runnerManifest = readJson("test/test-runner-manifest.json");
   const inventory = readJson("docs/migration/test-execution-inventory.json");
@@ -56,6 +76,16 @@ export function runTestSet(setName) {
     commitSha: commitSha(),
     job: process.env.GITHUB_JOB || "local",
     platform: { os: process.platform, arch: process.arch, node: process.version },
+    contentSha256: sha256Files([
+      set.runner,
+      "scripts/run-test-set.mjs",
+      "scripts/verify-test-execution-set.mjs",
+      "test/test-runner-manifest.json",
+      "test/test-ci-manifest.json",
+      "docs/migration/test-execution-inventory.json",
+      ...set.assets,
+    ]),
+    workspaceFingerprint: workspaceFingerprint(),
     runner: set.runner,
     set: setName,
     enumeratedPaths: [...set.assets],
@@ -69,12 +99,15 @@ export function runTestSet(setName) {
     const previous = JSON.parse(fs.readFileSync(output, "utf8"));
     const sameExecution = previous.commitSha === manifest.commitSha
       && previous.set === setName
+      && JSON.stringify(previous.platform) === JSON.stringify(manifest.platform)
+      && previous.contentSha256 === manifest.contentSha256
+      && previous.workspaceFingerprint === manifest.workspaceFingerprint
       && JSON.stringify(previous.enumeratedPaths) === JSON.stringify(manifest.enumeratedPaths);
     if (!sameExecution) throw new Error(`TEST_RESUME_MANIFEST_MISMATCH: ${output}`);
     const previousByPath = new Map((previous.tests || []).map((entry) => [entry.path, entry]));
     manifest.tests = manifest.tests.map((entry) => {
       const prior = previousByPath.get(entry.path);
-      return prior?.status === "completed" ? prior : entry;
+      return prior?.status === "completed" && prior.exitCode === 0 && prior.completedAt ? prior : entry;
     });
   }
   writeManifest(output, manifest);

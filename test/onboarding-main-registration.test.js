@@ -575,10 +575,17 @@ async function loadMainBoundary() {
     plugins: [{
       name: "task-10-diagnostic-recorder",
       setup(build) {
+        build.onResolve({ filter: /runtime\/platform-detector$/ }, () => ({
+          path: "platform-detector", namespace: "task-10",
+        }));
         build.onResolve({ filter: /diagnostics\/diagnostic-recorder$/ }, () => ({
           path: "diagnostic-recorder", namespace: "task-10",
         }));
-        build.onLoad({ filter: /.*/, namespace: "task-10" }, () => ({
+        build.onLoad({ filter: /^platform-detector$/, namespace: "task-10" }, () => ({
+          loader: "js",
+          contents: 'exports.detectSupportedPlatform = () => "darwin-arm64";',
+        }));
+        build.onLoad({ filter: /^diagnostic-recorder$/, namespace: "task-10" }, () => ({
           loader: "js",
           contents: `
             class DiagnosticRecorder {

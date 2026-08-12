@@ -77,7 +77,7 @@ jobs:
           node test/helpers/download-pinned-chroma.js --version cli-1.4.4 --output "$output"
           echo "ANALOGY_CHROMA_BIN=${{ github.workspace }}/$output" >> "$GITHUB_ENV"
       - name: Build Community plugin
-        run: npm run build
+        run: npm run build:ci
       - name: Run unit, contract, worker, Chroma and Community harnesses
         env:
           ANALOGY_TEST_EXECUTION_MANIFEST: artifacts/test-execution/runtime-${{ matrix.key }}.json

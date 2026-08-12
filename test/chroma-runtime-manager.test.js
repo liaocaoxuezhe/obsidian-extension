@@ -704,8 +704,9 @@ test("ChromaProcessManager facade keeps the active getters when a changed start 
   const firstDataPath = await temporaryDataPath(t);
   const secondDataPath = `${firstDataPath}-changed`;
   const child = new FakeChild();
+  const executablePath = path.resolve(firstDataPath, process.platform === "win32" ? "chroma.exe" : "chroma");
   const facade = new ChromaProcessManager({
-    executablePath: "/runtime/chroma",
+    executablePath,
     spawn: () => child,
     isPortAvailable: async () => true,
     probeHealth: compatibleProbe,

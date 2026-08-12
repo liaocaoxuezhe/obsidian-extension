@@ -5,6 +5,7 @@
       "runner": "scripts/run-public-tests.mjs",
       "assets": [
         "test/api-contract.test.js",
+        "test/build-mode-guard.test.js",
         "test/community-worker-bundle.test.js",
         "test/diagnostic-recorder.test.js",
         "test/diagnostic-redaction.test.js",

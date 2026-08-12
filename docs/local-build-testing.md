@@ -5,10 +5,10 @@
 ## 1. 核心规则
 
 - 在真实 Obsidian 中测试本地源码时，必须使用 `npm run build:local`。
-- 不要把普通 `npm run build` 的产物作为真实 Obsidian 本地测试包。普通构建允许仓库中的 `development-fixture`，该 fixture 使用 `example.invalid`，无法完成真实运行时初始化。
+- `npm run build` 已被硬门禁禁止；CI 只能使用 `npm run build:ci`，正式发布内部使用 `npm run build:release`，真实 Obsidian 本地测试只使用 `npm run build:local`。
 - `build:local` 只在构建时读取本机已验证的运行时绑定，不修改仓库中用于正式发布的生成清单。
 - 本地部署必须同时更新 `main.js`、`manifest.json` 和 `styles.css`，不能只复制 `main.js`。
-- 如果验证过程中运行过 `npm run build`，必须在交付用户刷新前再次运行 `npm run build:local`，确保开发插件目录里最后留下的是本地产物。
+- 如果验证过程中运行过 `npm run build:ci` 或 `npm run build:release`，必须在交付用户刷新前再次运行 `npm run build:local`，确保开发插件目录里最后留下的是本地产物。
 - 正式发布仍使用 `npm run release:prepare`，不得用本地构建代替三平台运行时发布和签名验证。
 
 ## 2. 当前开发环境
@@ -174,7 +174,7 @@ rg -n "<本机指针中的 SHA-256>" /path/to/vault/.obsidian/plugins/analogy/ma
 
 ### `DOWNLOAD_NETWORK_ERROR` 且 stage 为 `downloading-embedding-runtime`
 
-先检查实际加载的 `main.js` 是否包含 `example.invalid`。如果包含，说明最后部署的是普通构建或旧 fixture；重新执行 `npm run build:local`，再关闭并开启插件。
+先检查实际加载的 `main.js` 是否包含 `example.invalid`。如果包含，说明仍在加载旧 fixture；重新执行 `npm run build:local`，再关闭并开启插件。
 
 ### `LOCAL_DEVELOPMENT_RUNTIME_*`
 
