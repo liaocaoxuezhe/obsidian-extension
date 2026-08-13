@@ -386,7 +386,11 @@ export class ChromaRuntimeManager {
         this.withStopSignal((this.hooks.isPortAvailable ?? this.isPortAvailable)(port, remaining)),
         remaining,
       );
-      if (availability.kind === "timeout") break;
+      if (availability.kind === "timeout") {
+        const failure = errorWithCode("CHROMA_START_TIMEOUT", `127.0.0.1:${preferredPort}\n${this.getLogTail()}`.trim());
+        this.lastError = failure.message;
+        throw failure;
+      }
       if (availability.value.kind === "cancelled") throw errorWithCode("CHROMA_START_CANCELLED");
       if (!availability.value.value) continue;
       const mkdirRemaining = Math.max(0, readinessDeadline - this.now());
@@ -394,7 +398,11 @@ export class ChromaRuntimeManager {
         this.withStopSignal(fs.promises.mkdir(options.dataPath, { recursive: true })),
         mkdirRemaining,
       );
-      if (mkdir.kind === "timeout") break;
+      if (mkdir.kind === "timeout") {
+        const failure = errorWithCode("CHROMA_START_TIMEOUT", `127.0.0.1:${preferredPort}\n${this.getLogTail()}`.trim());
+        this.lastError = failure.message;
+        throw failure;
+      }
       if (mkdir.value.kind === "cancelled") throw errorWithCode("CHROMA_START_CANCELLED");
       if (this.stopRequested) throw errorWithCode("CHROMA_START_CANCELLED");
       if (this.now() >= readinessDeadline) break;

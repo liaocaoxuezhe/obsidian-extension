@@ -1507,6 +1507,7 @@ test("a hanging data-directory creation is bounded by the total startup deadline
   fs.promises.mkdir = async () => new Promise(() => undefined);
   t.after(() => { fs.promises.mkdir = originalMkdir; });
   const manager = new ChromaRuntimeManager({
+    now: () => 0,
     startTimeoutMs: 45,
     stopTimeoutMs: 15,
     isPortAvailable: async () => true,
