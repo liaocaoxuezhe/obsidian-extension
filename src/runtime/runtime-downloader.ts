@@ -339,8 +339,12 @@ async function streamToPart(
     emitProgress(current);
   };
   const cancel = () => {
-    response.destroy(downloadError("DOWNLOAD_CANCELLED"));
-    output?.destroy(downloadError("DOWNLOAD_CANCELLED"));
+    // The AbortSignal is the authoritative cancellation reason. Destroying a
+    // stream with an Error can emit before the async iterator/write pipeline
+    // has attached its rejection handler (notably on Windows), surfacing an
+    // uncaught exception instead of the bounded DOWNLOAD_CANCELLED result.
+    response.destroy();
+    output?.destroy();
   };
   signal.addEventListener("abort", cancel, { once: true });
   try {

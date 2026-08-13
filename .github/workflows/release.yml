@@ -78,6 +78,9 @@ jobs:
       - name: Prepare release directory
         run: npm run release:prepare
 
+      - name: Enforce release repository boundary
+        run: node scripts/check-public-boundary.mjs --mode release --root "release/$RELEASE_TAG"
+
       - name: Assemble release assets
         run: |
           mkdir -p release-assets

@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://analogypkm.com/contracts/commercial-api/v1/license-validate.response.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["code", "data"],
+  "properties": {
+    "code": {"const": 0},
+    "message": {"type": "string"},
+    "data": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "plan", "max_pages", "validated_at", "grace_days"],
+      "properties": {
+        "status": {"enum": ["active", "inactive", "revoked", "expired"]},
+        "plan": {"enum": ["free", "personal_lifetime", "team", "pro"]},
+        "max_pages": {"type": "integer", "minimum": 0},
+        "expires_at": {"type": ["string", "null"]},
+        "validated_at": {"type": "string", "minLength": 1},
+        "grace_days": {"type": "integer", "minimum": 0},
+        "max_redemptions": {"type": "integer", "minimum": 0},
+        "redemption_count": {"type": "integer", "minimum": 0},
+        "remaining_redemptions": {"type": "integer", "minimum": 0}
+      }
+    }
+  }
+}

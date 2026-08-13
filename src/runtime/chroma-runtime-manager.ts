@@ -386,7 +386,11 @@ export class ChromaRuntimeManager {
         this.withStopSignal((this.hooks.isPortAvailable ?? this.isPortAvailable)(port, remaining)),
         remaining,
       );
-      if (availability.kind === "timeout") break;
+      if (availability.kind === "timeout") {
+        const failure = errorWithCode("CHROMA_START_TIMEOUT", `127.0.0.1:${preferredPort}\n${this.getLogTail()}`.trim());
+        this.lastError = failure.message;
+        throw failure;
+      }
       if (availability.value.kind === "cancelled") throw errorWithCode("CHROMA_START_CANCELLED");
       if (!availability.value.value) continue;
       const mkdirRemaining = Math.max(0, readinessDeadline - this.now());
@@ -394,7 +398,11 @@ export class ChromaRuntimeManager {
         this.withStopSignal(fs.promises.mkdir(options.dataPath, { recursive: true })),
         mkdirRemaining,
       );
-      if (mkdir.kind === "timeout") break;
+      if (mkdir.kind === "timeout") {
+        const failure = errorWithCode("CHROMA_START_TIMEOUT", `127.0.0.1:${preferredPort}\n${this.getLogTail()}`.trim());
+        this.lastError = failure.message;
+        throw failure;
+      }
       if (mkdir.value.kind === "cancelled") throw errorWithCode("CHROMA_START_CANCELLED");
       if (this.stopRequested) throw errorWithCode("CHROMA_START_CANCELLED");
       if (this.now() >= readinessDeadline) break;
@@ -836,7 +844,18 @@ export class ChromaRuntimeManager {
       };
       return this.getState();
     }
+    if (!this.processExists(lease.pid)) {
+      await store.clearIfTokenMatches(lease.token);
+      return null;
+    }
+    if (!await this.inspectLease(lease)) {
+      await store.isolate(lease);
+      return null;
+    }
     await this.terminateLeaseProcess(lease);
+    if (!await this.waitForProcessExit(lease.pid, this.stopTimeoutMs)) {
+      throw errorWithCode("CHROMA_STOP_FAILED", `PID ${lease.pid} is still running`);
+    }
     await store.clearIfTokenMatches(lease.token);
     return null;
   }
@@ -852,6 +871,17 @@ export class ChromaRuntimeManager {
   private async terminateLeaseProcess(lease: PersistedChromaProcessLease): Promise<void> {
     if (this.hooks.terminateProcess) await this.hooks.terminateProcess(lease.pid);
     else process.kill(lease.pid, this.platform === "win32" ? undefined : "SIGTERM");
+  }
+
+  private async waitForProcessExit(pid: number, timeoutMs: number): Promise<boolean> {
+    let remainingMs = Math.max(0, timeoutMs);
+    while (this.processExists(pid) && remainingMs > 0) {
+      const delayMs = Math.min(100, remainingMs);
+      await (this.hooks.waitMs?.(delayMs)
+        ?? new Promise((resolve) => setTimeout(resolve, delayMs)));
+      remainingMs -= delayMs;
+    }
+    return !this.processExists(pid);
   }
 
   private async terminateAdoptedLease(lease: PersistedChromaProcessLease): Promise<void> {

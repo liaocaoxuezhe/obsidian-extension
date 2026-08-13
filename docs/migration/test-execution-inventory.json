@@ -1,0 +1,2125 @@
+{
+  "schemaVersion": 1,
+  "sourceInventory": {
+    "path": "obsidian-extension/docs/migration/obsidian-repository-split-inventory.json",
+    "sha256": "bbf85b39c9a89b479278fb95a4f26141031b1de42b25104aa2af407fa2c6fb45"
+  },
+  "assets": [
+    {
+      "path": "test/api-contract.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "api-contract",
+      "conflictAction": "retain-public",
+      "testNames": [
+        "public request schemas require stable snake_case fields",
+        "client parses active, revoked, and expired v1 response fixtures",
+        "activation-limit and server errors have stable numeric codes"
+      ],
+      "testNamesSource": "introduced-after-task-1"
+    },
+    {
+      "path": "test/build-mode-guard.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "build-mode",
+      "conflictAction": "task-6-new",
+      "testNames": [
+        "ambiguous and unknown build modes fail before producing output",
+        "mutually exclusive mode markers and a mismatched declared mode fail",
+        "build:local fails clearly when the local runtime is missing",
+        "release preparation rejects a development fixture before reading release metadata",
+        "build:ci neither deploys a local plugin nor creates an uploadable release directory",
+        "all former ambiguous build callers use an explicit mode"
+      ],
+      "testNamesSource": "introduced-after-task-1"
+    },
+    {
+      "path": "test/chroma-data-rebuild.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:e03baf22dac48c381f41bd372f8bc03c340ba70f27c82189378bf12649c8c7db"
+      ],
+      "testNames": [
+        "CLI 1.4.4 generation always selects device-local v2 data and runtime-vault collection",
+        "device-local index state isolates generation and model while preserving rollback state",
+        "atomic runtime-state writes remove temporary files after write and sync failures",
+        "synchronized plugin settings are sanitized of active port and every generation index state",
+        "rebuild commits completion and path-free runtime state only after all verification gates",
+        "failed smoke query retains both data directories and the previous generation pointer",
+        "embedding, state-save, count, and smoke failures preserve one pending generation for retry",
+        "superseding pending and completing a third generation retire only unreferenced staging artifacts",
+        "rollback atomically restores the complete legacy port, model and collection pointer",
+        "legacy vector completion requires exact copy evidence before atomically replacing the legacy pointer",
+        "discarding a pending legacy migration removes only its staging generation",
+        "publishing a restarted completed v2 lease updates its port without reopening pending rebuild",
+        "rollback restores the previous completed v2 model collection as well as legacy",
+        "legacy cleanup requires explicit confirmation and completed v2 pointer",
+        "legacy cleanup isolates on the source volume and exposes durable list, retry, and restore recovery",
+        "legacy cleanup fails closed on simulated EXDEV without moving or trashing the live source",
+        "DocumentIndexer production rebuild returns independently verifiable file, chunk, state and smoke evidence",
+        "DocumentIndexer reconciliation re-embeds only new changed renamed or metadata-incomplete documents",
+        "DocumentIndexer adopts copied legacy vectors without embedding and leaves only new or changed notes pending",
+        "DocumentIndexer canonicalizes decomposed Chinese document identities to NFC across state and Chroma metadata",
+        "DocumentIndexer retry clears deleted, renamed, and out-of-scope stale documents before a smaller selection",
+        "plugin and MCP derive the same runtime Vault ID from the shared cross-platform fixture",
+        "MCP discovers the active path-free device-local generation and permits a validated port override",
+        "MCP rejects unknown state keys, partial ports, and model overrides without completed generation evidence",
+        "MCP Chroma client fails closed on an invalid discovered port",
+        "runtime-state serializes lease publication with begin and preserves the pending transition",
+        "complete uses revision and transition-token CAS and rejects a superseded generation",
+        "concurrent completion serializes evidence with CAS and a losing completion cannot overwrite it",
+        "rebuild evidence rejects failed selection and equal-count stale document substitution",
+        "runtime-state parser rejects unknown and path-like fields",
+        "legacy Task14 v2 state is durably upgraded to a recoverable pending transition",
+        "completed scope readiness survives normal index changes but rejects tampered durable evidence"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/chroma-process-auto-start.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:991bada56eed461b310f9c72788e96c2b651e1425410e759d93274e47583aaf6"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/chroma-process-cwd.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:4b21cb17ad114499c2c8be953361a0c97d895784b01250ba01b64870c5e85b16",
+        "cross-repository-content-diff",
+        "source-sha256:4f13af2e2721b2b11a1eb7ed5ffeaa0b88af17d55123ca3cd88aaefcee0897b5"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/chroma-runtime-manager.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:711579ccca2c73f5d343a32fa485a831d536ff91cb5bd8e12693561c836d80a0"
+      ],
+      "testNames": [
+        "Vault lease stores publish and clear only their own token",
+        "manager publishes a Vault lease and adopts a verified healthy process without spawning",
+        "identity mismatch isolates a stale lease without terminating that PID",
+        "unhealthy verified lease exits before a replacement opens the same Vault database",
+        "unhealthy verified lease times out with a frozen clock instead of spinning forever",
+        "unhealthy lease is reverified before termination to avoid killing a reused PID",
+        "managed start spawns the installed executable directly with literal arguments",
+        "Windows start uses the exe path and hides the child window without a command shell",
+        "default ownership scans past ${name} on port 8000",
+        "only an explicitly configured compatible endpoint is external and it is never stopped",
+        "an explicitly configured incompatible endpoint is rejected without stopping or spawning",
+        "all ports occupied from 8000 through 8099 returns CHROMA_PORT_CONFLICT",
+        "health requires the pinned v2 heartbeat and v2 wire version",
+        "startup timeout is 30 seconds and stops the owned child",
+        "a ready owned process with the wrong v2 version fails immediately",
+        "startup logs retain at most the last 200 lines and 32 KiB",
+        "log limits count an unfinished line and preserve valid UTF-8 at the byte boundary",
+        "macOS stop escalates from SIGTERM to SIGKILL after five seconds",
+        "Windows stop calls kill and verifies the exit event",
+        "expected-lease stop is an atomic no-op after a replacement process becomes current",
+        "an unconditional no-process stop does not poison the next managed start",
+        "ChromaProcessManager facade preserves callers while delegating to the installed runtime",
+        "ChromaProcessManager facade reports a missing installed executable without spawning",
+        "ChromaProcessManager facade keeps the active getters when a changed start is rejected",
+        "a nonexistent executable settles spawn error and close without hanging",
+        "error followed by close-only settles once and clears child listeners",
+        "a pre-spawn error stays terminal when a child already has a PID and external health looks ready",
+        "SIGKILL without an exit event fails within the bounded stop deadline",
+        "a spawned child kill EPERM is not terminal and remains owned until a retry stops it",
+        "startup timeout propagates cleanup failure and retains the owned child for retry",
+        "startup cleanup kill EPERM propagates stop failure and retains ownership",
+        "a retained owned child clears itself if its terminal event arrives after stop failed",
+        "sequential identical starts are healthy-idempotent and leave one stoppable child",
+        "concurrent identical starts serialize to one owned process",
+        "an owned process cannot be overwritten by a changed external start",
+        "a port stolen after availability check causes an early child exit and scans the next port",
+        "external health cannot make a child that never emitted its ready signal owned",
+        "the pinned child ready log is required before compatible health becomes owned",
+        "ANSI-colored pinned child ready log becomes owned after compatible health",
+        "a child argument or data-directory exit is CHROMA_EXITED instead of a port conflict",
+        "stop immediately cancels a hanging health recheck after ordinary child exit",
+        "stop immediately cancels a hanging availability recheck after ordinary child exit",
+        "split UTF-8 and interleaved stdout/stderr never share decoder remainder",
+        "a hung health probe obeys the total startup deadline and cleans the child",
+        "stop during a hung start wakes readiness and leaves no owned child",
+        "a hanging HTTP response is destroyed at the configured health timeout",
+        "a drip-fed HTTP response is destroyed at the absolute health deadline",
+        "a hanging data-directory creation is bounded by the total startup deadline",
+        "readiness stability grace cannot exceed the total startup deadline",
+        "an early child exit clears the five-second stop timer so Node can exit",
+        "managed preferred port ${preferredPort} is rejected with a stable code",
+        "external port ${preferredPort} is rejected with a stable code"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/chroma-standalone-integration.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:00b8dd131942dade5e0e2105c752b4fd5860ffaf82305b0dec11760df2961043"
+      ],
+      "testNames": [
+        "pinned Chroma downloader reuses an already validated executable",
+        "Chroma CLI 1.4.4 satisfies the Analogy vector contract"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/community-install-runtime.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:9f74d91e362cf23df6c762c8c9fc726517f5f1b9cedad8bbb540a7c54ef7f0eb",
+        "cross-repository-content-diff",
+        "source-sha256:7e683ce2169fab9a4862d42d84ab463178669dd83bd55bec15a312e562e64afd"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/community-three-file-onboarding.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:3fce843b024d22c0ba17051ee9ba5257252c06196e555d651cd497090914989e"
+      ],
+      "testNames": [
+        "runtime setup diagnostics accept only the documented allowlist",
+        "Community three-file install completes managed onboarding outside the plugin directory"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/community-worker-bundle.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:ccf6628664f62f26ea0178806933c89da937853f08cf6df609797fc22b93d8ed"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/diagnostic-recorder.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin-diagnostics",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:be846e7345b0ac83e11a11dcca41662ce3bc076ab86e8569d8940fd5d359d025"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/diagnostic-redaction.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin-diagnostics",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:2bd09b4b0d478da93b53ed84d8003befbd49d4d1dc5808a748399ba9f8dd3056"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/diagnostic-report-snapshot.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin-diagnostics",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:9f9eae2a59f2dedef813d3caa5d8d62b61f70319b7d97b668d38ae356dac0369"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/document-indexer-stop.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:746655a2423df6673813f0d9c14fafd92d2d06fd7574c7b1637c194d1fa0f2de",
+        "cross-repository-content-diff",
+        "source-sha256:fddfa10698fc324e79eb2794928e317dcb30d0c6ded8673862207fdc2b11a1df"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/document-indexer-summary-pipeline.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:4f55bd249b3361b8624020cffffcfacd2de07e03ae1657fb4eb09a989bafb4bf",
+        "cross-repository-content-diff",
+        "source-sha256:e1e242ff7621bdf193b8c7530135e63fac6273cf5e20e5ff3e167765955b37ed"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/document-rename-outdated.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:44803af01686bf834b96878eb2a9940d78b2d5d40a2be4d9619e10b208e78846",
+        "cross-repository-content-diff",
+        "source-sha256:868ec1b3d74cbf603948d8070015a48988159e3191b2d74580852aef099ebfc2"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/document-search-input-limit.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:151483f39a3ad56f8bcaac3db9cf1e35c42388759a1666250c7f8d5255166f9a",
+        "cross-repository-content-diff",
+        "source-sha256:da50246b8e0ac05b0237dea9992dce0a46e43497994ea7a18d1b09689c58b7f0"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/document-summarizer.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:41f6f82358d2ed9e89468e8ff4830fa4196bd35af9c93dfa47feb484bae24b05"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/embedding-env-fetch.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:b9aa8e6817927b90963bd7a92abd0f32f0f3fc50550fd7ddeb05de7cbd376ec5",
+        "cross-repository-identical-content"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/embedding-model-behavior.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:50239d1d4ea37a06f912c3b9aa8a6598703b9bf60c5ce21cef1900166efd39ee"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/embedding-model-progress.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:be50d91bbfc0f4630f4431dfbd0c62c3cb5ef438d1df247ffa34cb4e0c4bc9f2"
+      ],
+      "testNames": [
+        "Transformers progress is normalized and strips paths, queries, and tokens",
+        "worker progress messages keep the initialize request id and preserve optional modelRevision",
+        "client uses managed spawn settings, ignores late progress, and can retry after cancellation",
+        "worker materialization rejects a worker directory symlink escaping the managed root",
+        "worker materialization rejects target symlinks and immutable target tampering",
+        "concurrent worker materialization converges on one private regular content-addressed file",
+        "worker client runs the managed runtime snapshot guard before probing or spawning",
+        "worker client rejects configured paths that differ from the revalidated runtime snapshot",
+        "worker client revalidates the content-addressed worker after an async spawn guard",
+        "EmbeddingService returns to idle after cancellation and retries with the managed runtime and model revision",
+        "concurrent initialize isolates epoch clients so an old failure cannot dispose the new ready worker"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/embedding-runtime-attestation.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:ad97bdc5314f946603cc52cd36e61424397f53e3888fecbae2eda7f95874936f",
+        "cross-repository-content-diff",
+        "source-sha256:6a49c1a688d9657b521da0e09b163ca8bd2884ccdbe403f7f3e4ae78af43167e"
+      ],
+      "testNames": [
+        "production policy pins the planned Obsidian runtime matrix workflow identity",
+        "real GitHub Sigstore fixture verifies Fulcio chain, DSSE signature, and OIDC certificate claims",
+        "current Cosign bundle verifies when Rekor omits an empty DSSE keyid",
+        "production Sigstore verification rejects missing or substituted Rekor evidence",
+        "trusted Rekor time must fall inside the Fulcio leaf validity interval"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/embedding-runtime-auto-install.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:5de71720180da29a6cc108ba2c95698d1712fec39ed86aeac238add724becf37"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/embedding-runtime-error-message.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:5b2a56ff61fb4c8741dcdc82589958c7d5558e0b2fc1d776359ef90ea476dff5"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/embedding-runtime-lockfile.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:a9b3f30dac9ea882981750e29b745f5afaed9d8f68e14b25256a31fb9fc60915"
+      ],
+      "testNames": [
+        "runtime lock validator accepts the reviewed immutable dependency graph",
+        "runtime lock validator rejects every mutable or non-registry source shape"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/embedding-runtime-manager.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:01ac57b6ca326d2317b083f3ae6761ca4dd891ef7f7b138d0e85c66180d6c3d2"
+      ],
+      "testNames": [
+        "resolve returns only the pinned immutable current embedding install",
+        "resolve migrates an exact legacy pointer only into the requesting Vault",
+        "resolve fails closed when the selected asset omits its internal manifest binding",
+        "resolved runtime revalidation catches node, manifest, module, and native replacement",
+        "manager derives canonical runtime paths from the local root and runtime Vault ID",
+        "resolve fails closed for missing or tampered current pointers",
+        "resolve rejects executable and module-root symlink escapes",
+        "resolve rejects missing files, wrong dependency versions, and modified immutable files",
+        "resolve requires the native ONNX payload for the selected platform only",
+        "resolve maps the Windows runtime to its managed node.exe",
+        "resolve rejects an internally re-signed manifest that omits or adds runtime files",
+        "smokeTest runs the embedded worker on managed Node through initialize, health, embed, and dispose"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/embedding-runtime-manifest-binding.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:e248364ef4409f4746e1f7cb0a3c640307d665ed9c8438f1c1efd9c2bf48726b"
+      ],
+      "testNames": [
+        "generated TypeScript is field-for-field bound to the canonical staging manifest"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/embedding-runtime-package.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:4f133d4af1781f97511639aee7d9fbc354ddfec21c53d156fd427146c041cad1"
+      ],
+      "testNames": [
+        "runtime inputs pin the reviewed Node 22.23.2 assets and every npm tarball integrity",
+        "runtime builder rejects an implicit platform or output",
+        "runtime builder refuses to label native modules as another platform",
+        "darwin-x64 ORT source overlay is pinned, hashed, and architecture checked",
+        "Mach-O validation requires the real x86_64 ALL subtype and parses capability bits",
+        "runtime builder only permits the source overlay for darwin-x64",
+        "runtime builder creates the fixed native platform archive",
+        "runtime builder uses npm bundled with pinned Node instead of ambient npm",
+        "native runtime archive is byte-reproducible with normalized metadata",
+        "native pack is installer-compatible, fully hashed, production-only, and completely noticed",
+        "packaged Node and native modules pass real worker health and tiny vector inference",
+        "embedding worker only forwards a model revision when the optional protocol field is supplied",
+        "runtime manifest generation fails closed until all three native packs exist",
+        "Node runtime archive writer is byte-stable and parser rejects traversal for tar.gz and zip",
+        "runtime manifest generation rejects text files dressed up as a complete native matrix",
+        "native artifact validator rejects an attestation that is not bound to the real pack",
+        "a fully correct but unsigned native smoke JSON can never validate or finalize",
+        "a valid DSSE signature is checked before its signed smoke predicate is trusted",
+        "native artifact validator rejects a sidecar substituted after archive construction",
+        "release-only gate rejects a legacy matrix without native smoke and completion fields",
+        "default release refuses the checked-in development runtime fixture before preparing files"
+      ],
+      "testNamesSource": "task-1-inventory",
+      "testNameRenames": {
+        "runtime manifest generation fails closed until all three native packs exist": "runtime manifest generation fails closed until every supported native pack exists"
+      }
+    },
+    {
+      "path": "test/embedding-runtime-release-chain.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:20147e7e16e30c38cd986b7bd27cb7ec54e62927ae841f1b1eb1f658f4b4c8c2"
+      ],
+      "testNames": [
+        "signed canonical three-platform chain finalizes, generates, and passes runtime-only release verification"
+      ],
+      "testNamesSource": "task-1-inventory",
+      "testNameRenames": {
+        "signed canonical three-platform chain finalizes, generates, and passes runtime-only release verification": "signed canonical supported-platform chain finalizes, generates, and passes runtime-only release verification"
+      }
+    },
+    {
+      "path": "test/embedding-service-safety.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:c60b337b902cd14b3772810c1fc88201534b6aab59b0d43e678f8d943443245d",
+        "cross-repository-content-diff",
+        "source-sha256:d684e293c252f6bfc5dc3943a874d7f7f39756f72e3d2c1cee0b155cedf2cb32"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/embedding-session-lifecycle.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:0c9a2fd516dfd3d2609a77a9b1f568a82c031a5c90454f9e6f9472834a2e3314",
+        "cross-repository-content-diff",
+        "source-sha256:bd4722776d5229b55a0f29e889c38d352a9bf14d3958ad94f82fdf18566c9819"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/embedding-worker-environment.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:f852c66bd051ed03c432edea26876f07a2ec1405dda8a756ca0b6a07a55d5be1"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/embedding-worker-lifecycle.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:b83c6e75f0bd1267e7fba5c72673f1e5767d04fe295b38d15677f911bb8bae9b",
+        "cross-repository-content-diff",
+        "source-sha256:b96014514d0f0a7db612e0c7a4b9b00086058707668ddbbed2139e4664f0418c"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/embedding-worker-materialization.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:5ed494197353d2f970b86080e7b1c31dcea6831bb059c20488c0d143179e1eed"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/embedding-worker-protocol.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:a23c30d1e836c947ee3f81404bec67bbe03b833cd235c5e9fcb1dc1b33bc9b03"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/error-boundary-actions.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:4814387090eb085e9d92b8d666e8ae125f1fd7f2644d6fcdb6b68dbb1ba09a65"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/excluded-paths.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:bf9e8e046b62459028333fb3e727aea1da6cec1386297fa997da5466d1c8bd32",
+        "cross-repository-identical-content"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/fixtures/analogy-embedding-runtime-node22-v1-darwin-arm64.tar.gz.smoke-attestation.json",
+      "kind": "support",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:9c37cd5dd832bfd205c36f448f3b33ce1e4b57c89bcdece966cf0fcc34dd0f0a",
+        "cross-repository-identical-content"
+      ]
+    },
+    {
+      "path": "test/fixtures/chroma-runtime-manifest.fixture.json",
+      "kind": "support",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:df4dd7f3f7ec41dbc17dbe55fde02c516b99d2f55fcbf21ffac02c5be0909eda",
+        "cross-repository-identical-content"
+      ]
+    },
+    {
+      "path": "test/fixtures/embedding-worker-fixture.cjs",
+      "kind": "support",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:4648bad98e9da7376026c0c511f40b484ff7fe06f65959035995008437985276",
+        "cross-repository-identical-content"
+      ]
+    },
+    {
+      "path": "test/fixtures/github-cli-v2.50.0-windows-arm64.sigstore.json",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:ae69bd3f4f16836995f3d02b19ae431fe64a1ab1385e06440a57a10ac30748ef",
+        "cross-repository-identical-content"
+      ]
+    },
+    {
+      "path": "test/fixtures/node-v22.23.2-darwin-x64-mach-o-header.hex",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:9000f6c789b385c42311a60be56c5e56962cb9fa804e675ab9b68042e9919a04"
+      ]
+    },
+    {
+      "path": "test/fixtures/public-boundary/release/main.js",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "repository-boundary-fixture",
+      "conflictAction": "retain-public"
+    },
+    {
+      "path": "test/fixtures/public-boundary/tracked/mcp-server/src/commercial/server.ts",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "repository-boundary-fixture",
+      "conflictAction": "retain-public"
+    },
+    {
+      "path": "test/fixtures/public-boundary/workspace/test/commercial-leak.test.js",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "repository-boundary-fixture",
+      "conflictAction": "retain-public"
+    },
+    {
+      "path": "test/fixtures/runtime-vault-id.json",
+      "kind": "support",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:5d6d1cc764022436bc5477ce76d259cb4e4e8a62d94d0c1f9087e95141126d3c"
+      ]
+    },
+    {
+      "path": "test/helpers/create-semantic-walk-vault.js",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "replace-ignored-generated-vault-with-temp-helper"
+    },
+    {
+      "path": "test/helpers/download-pinned-chroma.js",
+      "kind": "support",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:949e95ffa5e420607ee3722309e5cae173282e4b4c6ff9fcb7c44b3b12184660",
+        "cross-repository-identical-content"
+      ]
+    },
+    {
+      "path": "test/init-clears-runtime-error.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:7e121144537793d673347cc9f3b7d5e29a20ee1d681811a34b662bc1d7c2080b",
+        "cross-repository-identical-content"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/legacy-chroma-real-migration.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:cec46ce69e5ddda77fb1947e8b1a3b0252d69eb2a1cf1cde64bbd8f7f1def729"
+      ],
+      "testNames": [
+        "real Chroma 0.5.23 vectors migrate exactly into pinned Chroma 1.4.4"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/legacy-chroma-runtime-bridge.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:ce3f13ebc05174549c53e7d1abb24b60d7ed4bceac6dc98831546ef930caa1b0"
+      ],
+      "testNames": [
+        "legacy runtime discovery accepts only the contained platform executable and data directory",
+        "legacy runtime discovery rejects a symlinked executable outside chroma-venv",
+        "legacy runtime discovery rejects a legacy data symlink instead of following it",
+        "legacy runtime discovery uses the Windows Scripts executable without shell translation",
+        "legacy snapshot clones files into private staging and preserves the original",
+        "legacy snapshot fails before copying when free space is smaller than source",
+        "legacy snapshot rejects a source mutation during copy and removes partial staging",
+        "legacy source identity rejects nested symbolic links",
+        "legacy bridge starts the trusted binary against only the snapshot and reads bounded v1 records",
+        "legacy bridge rejects a non-0.5 source and stops only its owned child",
+        "legacy bridge aborts before snapshot creation or process start"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/legacy-vector-migration.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:b77108c9d176abdc7d0599051a636fafdb59d7d2983fbe9d71d75d9f56c450fa"
+      ],
+      "testNames": [
+        "v2 raw migration upsert preserves exact legacy record payload",
+        "v2 record identity pages use bounded offset and omit user content",
+        "large migrated collections aggregate document metadata through bounded pages",
+        "v2 raw migration rejects ${name} before sending an upsert",
+        "legacy migration copies 513 exact records in three committed batches and persists no user payload",
+        "legacy migration resumes from the last committed batch without duplicate records",
+        "legacy migration rejects model identity mismatch before destination writes",
+        "legacy migration rejects a checkpoint from another source snapshot",
+        "legacy migration rejects an unexpected Analogy collection before destination writes",
+        "legacy migration cancels between committed batches and can resume",
+        "legacy migration refuses activation evidence when destination identity digest differs",
+        "legacy migration accepts overlapping ANN results when old and new Chroma rank the same vectors differently",
+        "legacy migration still rejects disjoint ANN results after exact count and identity checks",
+        "legacy migration checks current-model vector dimension before destination writes",
+        "legacy migration rejects checkpoint fields that could persist user payload",
+        "legacy migration inspection reports reusable count, bytes, and dimension without writing destination",
+        "migration metadata evidence marks incomplete documents for selective re-embedding"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/license-api.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "license-client",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:c9fdb46480c7345815eebf0b48f4cf83200f48078117dde215ae755b7f643a1e",
+        "cross-repository-identical-content"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/license-limits.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "license-client",
+      "conflictAction": "replace-with-newer",
+      "sourceEvidence": [
+        "source-sha256:9b283316854de453ed34836b23dee979201ea2ce5f9796ca6508bbff32e01da1",
+        "cross-repository-identical-content"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/local-development-plugin-build.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:50f7f419ca45d76673afb216f814fa8c64e0e3c46982fa9d36572f368dcfa0fa",
+        "cross-repository-content-diff",
+        "source-sha256:e7fb36cb46ca8e11f91997e03fff77c2ca3ce440cb44e37691d0568cc7d7e380"
+      ],
+      "testNames": [
+        "prepare creates a local development manifest that reuses the installed runtime",
+        "deploy copies the complete three-file local plugin artifact",
+        "build:local bundles the installed runtime binding and deploys all plugin files"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/local-plugin-artifact-safety.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:27c4200058df066d1ddf3749238b70743a280168e8e283c7778336cf4f84c419"
+      ],
+      "testNames": [
+        "local deployment gate rejects a development runtime fixture bundle",
+        "local deployment gate accepts a published runtime bundle with exactly three files",
+        "local deployment gate rejects an artifact from a stale plugin version",
+        "published runtime renderer keeps the internal manifest binding required at startup"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/mcp-chroma-v2-compatibility.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:e1db2f39c7600c3f57f860f31c6539c40eaa04908806ebf0b331667a893aeb6b"
+      ],
+      "testNames": [
+        "MCP raw HTTP client queries the pinned Chroma v2 collection contract",
+        "LocalVectorStore uses the pinned Chroma v2 document contract",
+        "plugin and MCP clients reject a legacy-only Chroma endpoint",
+        "managed v2 rebuild publishes the exact child-owned Chroma port and collection consumed by MCP"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/node-runtime-resolution.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:0d1e15e60b8cf6f372da16433df0f68c6be5d0b1e918c4710be645a3501d2244"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/obsidian-chunk-newlines.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:f70088ea2476e4ded3d7caa1d07e38859650534f1a29821689e25180275b922a",
+        "cross-repository-content-diff",
+        "source-sha256:9b06abbcfb93d7901450d639a2266609fc97afbbd9b1d8a40223d150255dede4"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/obsidian-recover-index-state.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:f20229cfd0dc15cb7fd38e52761ec88c3fcffab5b42ce4df385bdd7d49db964d",
+        "cross-repository-content-diff",
+        "source-sha256:7ef4bea4cd5931caaf85144de5b0bd974e7330e96f96361afa2f2d78e8437b4f"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/obsidian-short-chunk-merge.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:89e0e60469183049301e9e123563a7908c8d4620e6d4dd164859fbcf68cd898c",
+        "cross-repository-content-diff",
+        "source-sha256:98f5c2cb8cf867bb251783206ba09e8cd68af504cf470954cc10730537925fcf"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/obsidian-style-assignment.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:c5b273fee6df860a4100a3608c7ab976fd9afd6f6c6501ad467e78e3f9370020",
+        "cross-repository-content-diff",
+        "source-sha256:9c7f3db34ecbab92076bb0df09e0f13b2d1d3d6eb8d52fa42a77fa1ccd067792"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/ollama-client.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:41118df7c946e91c4ad83e52fa4238ee99a3fc0eec3df45ee0c58516b2593f05",
+        "cross-repository-content-diff",
+        "source-sha256:eb085f022229661b6e76878599325978b864080aea412c3a33dced95dae98edb"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/ollama-pull-stream.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:120ebc4b21b5a1ecb06498ba4631dd5cdbd1f7b5b0515fe0898cd2d70cc9dbb3"
+      ],
+      "testNames": [
+        "pullModel parses split and coalesced JSONL incrementally before response end",
+        "pullModel aborts an in-flight body stream and does not wait for response completion",
+        "base onboarding has no Ollama detection or download side effect"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/onboarding-coordinator.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:e6088766927c1bd41bcaa27ed63e0ca9eef4eba0fe04b8c4b27bd3677771bda2"
+      ],
+      "testNames": [
+        "happy path commits the exact stage order before each side effect",
+        "legacy index reuse runs explicit migration stages and never invokes quick rebuild",
+        "legacy rebuild is explicit and enters existing scope selection only after the choice",
+        "legacy migration failure stays failed and never silently starts quick indexing",
+        "failed legacy migration can switch explicitly to rebuild without retrying vector copy",
+        "quick index finalization atomically completes data generation before ready is committed",
+        "resume after crash between index save and finalizer replays finalization before ready",
+        "data generation finalization failure commits the rebuild error and never ready",
+        "start, resume, and retry share one in-flight promise",
+        "retryRuntime explicitly reinstalls only the selected runtime asset",
+        "consent and index selection suspend explicitly and reject unsafe scope",
+        "declining consent deterministically settles as cancelled without downloads",
+        "cancel aborts the active download and settles exactly once",
+        "cancelling a late Chroma start stops only a process owned by this generation",
+        "cancel never stops external, pre-existing, or handed-off Chroma",
+        "external",
+        "pre-existing",
+        "handed off",
+        "hash failure retry redownloads only that asset and preserves completed dependencies",
+        "resume trusts fresh evidence, skipping valid runtimes but not a stale ready snapshot",
+        "stale progress, throwing listeners, unsubscribe, and listener reentry cannot corrupt state",
+        "progress arriving during the next stage commit cannot roll the snapshot backward",
+        "technical errors are bounded and redact tokens, URLs, paths, and model input",
+        "a transient store failure becomes a committed sanitized failure",
+        "dispose closes new work synchronously, is single-flight, and cleans active work",
+        "cancellation at each asynchronous dependency boundary blocks every later stage",
+        "cancel while a stage commit is pending cannot publish the stale stage",
+        "ready listener cancellation races after handoff and cannot stop the service",
+        "cleanup failures are contained and cancellation still settles",
+        "persistent store failure publishes only the adopted snapshot before rejecting boundedly",
+        "listeners can synchronously provide consent and scope without losing a continuation",
+        "a second resume revalidates fresh evidence instead of trusting in-memory ready flags",
+        "model failure cleans owned Chroma and retry starts a fresh process",
+        "failed quick index immediately stops setup-owned Chroma before dispose",
+        "known dependency error codes map to the intended recovery boundary",
+        "cancel wins while ready persistence is blocked and prevents ready handoff",
+        "cleanup compares the complete Chroma lease and never stops a replacement PID",
+        "progress persistence rejection is handled immediately and becomes a bounded failure",
+        "the first progress persistence error wins over a later dependency rejection",
+        "retry invalidates old evidence when the fresh detector reports a corrupt runtime",
+        "model download and warm-up are separate persisted side effects",
+        "retry fails closed from the persisted nonrecoverable snapshot before checking",
+        "adopting a persisted nonrecoverable failure publishes it before fail-closed return"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/onboarding-main-registration.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:3863500691e3e614ce34485f58e5dd05db092d3d9d556b680dc4f0e7288357bb"
+      ],
+      "testNames": [
+        "bootstrap starts only exact freshly verified managed runtimes and publishes after health",
+        "bootstrap waits for durable runtime-state publication and rolls back its exact lease on failure",
+        "secondary stopped-publication failure preserves the primary durability cause after exact lease cleanup",
+        "bootstrap rejects a changed Chroma snapshot immediately before spawn",
+        "partial bootstrap failure rolls back embedding, index state, and only its exact Chroma lease",
+        "stop is idempotent and an unload race cannot publish or spawn after verification resolves",
+        "repairAndStart delegates repair, then requires fresh ready evidence before bootstrap",
+        "a failed exact-lease stop keeps ownership evidence and retries on the next stop",
+        "setup release avoids coordinator cancellation and a later stop consumes the retained lease",
+        "retained setup lease survives onboarding EPERM and bootstrap stop retries the exact lease",
+        "retained lease mismatch is settled without stopping a replacement process",
+        "a new bootstrap generation settles a retained lease before spawning again",
+        "stop during a pending spawn awaits the returned lease and never uses an unconditional stop",
+        "partial-start rollback preserves both the primary and cleanup failures",
+        "stop waits for coordinator cancellation during repair and blocks the late detect",
+        "onboarding state is independent from query-service status and errors",
+        "Ollama onboarding navigation opens Analogy settings and focuses the summary section",
+        "onload registers UI before layout detection and missing runtime never starts services",
+        "main settings persistence strips device-local Chroma port and index state from data.json",
+        "port-only legacy settings persist device-local state before sanitizing synchronized data",
+        "production runtime lifecycle constructs and holds a real coordinator without starting setup",
+        "production quick-index finalizer verifies v2 data and switches the runtime pointer before ready",
+        "manual rebuild rolls the pointer back and restores the old service when transition stop fails",
+        "manual rebuild rolls the pointer back and restores the old service when new service start fails",
+        "ready-bootstrap generation switch completes quick finalize without cancelling its coordinator run",
+        "rollback to a previous v2 model rebuilds services with the target model and collection",
+        "rollback to legacy releases the v2 lease and leaves managed services stopped",
+        "failed previous-model startup restores the original pointer settings and service graph",
+        "production model cancel waits for a late runtime resolve and prevents service creation",
+        "production quick-index releases only its own failed bootstrap, goes non-ready, and retries fresh",
+        "production quick-index never stops a pre-existing ready bootstrap on failure",
+        "production coordinator records quick-index failure without recursive cancellation",
+        "production model cancel disposes a service created late and never initializes it",
+        "production model cancel joins one initialize flight shared with concurrent warm-up",
+        "production model AbortSignal blocks a new generation until cancelled initialization is disposed",
+        "production model warm-up always releases its temporary service and retry creates a fresh one",
+        "dismissed onboarding stays quiet and a ready report alone starts bootstrap",
+        "unload aborts pending detection and a late continuation cannot start bootstrap",
+        "unload resets onboarding state, notifies subscribers, and retains failed bootstrap cleanup for retry",
+        "store and detector failures are contained in onboarding state without unhandled rejection"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/onboarding-store.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:41ecc47da6820fd842168d1ddb62bdef6477c2c3cdbcec3fb8c3785db83bfa44"
+      ],
+      "testNames": [
+        "missing and partial legacy state normalize to deterministic recovery actions",
+        "a not-yet-created local data root loads read-only and is created privately only on save",
+        "schema 1 restart states map failed, ready, and cancelled deterministically",
+        "persisted legacy migration failures from older builds are upgraded to retryable",
+        "unknown future schema and corrupt JSON fail closed without deleting source",
+        "save uses a private regular file and never persists secrets or device-specific fields",
+        "load, save, and reset reject symlink or non-regular state targets",
+        "atomic rename failure preserves the previous JSON and removes private temp files",
+        "a failed immediate stage write remains an immediate write when retried",
+        "progress writes are trailing-edge throttled and flush persists the last update",
+        "timer persistence failures remain observable and retryable without losing pending progress",
+        "dispose closes writes synchronously before its first await and cannot publish a late save",
+        "dispose cancels an entered terminal save waiting on pending progress before it can publish",
+        "dispose waits for an entered legacy load and cancels migration before its asynchronous write",
+        "concurrent dispose and disposing flush calls share one atomic publication",
+        "a failed disposal flight is cleared once and concurrent retry callers share one retry",
+        "stage transitions bypass progress throttling and dispose never loses terminal state",
+        "concurrent saves remain complete and reset cannot resurrect queued progress",
+        "disposed stores consistently reject save and reset",
+        "POSIX state and pre-existing directories must be private and owned",
+        "Windows policy rejects symlinks without applying POSIX mode assumptions",
+        "recognized legacy settings migrate once, only after local atomic persistence succeeds",
+        "platform-only legacy fields become a resumable local checking snapshot",
+        "legacy source is not sanitized when the local atomic migration write fails",
+        "credential markers, residual encoded separators, and unsafe basenames are never persisted"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/onboarding-view-browser-runner.tsx",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:be7389b94b9ca73753a6a882392f3648469b4ad2e3b12be95f2090fed2e4298c"
+      ]
+    },
+    {
+      "path": "test/onboarding-view-browser.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:f925911b4228b72814a661c66126db7218a3ef5fac7aac1c7890031f0f54164e"
+      ],
+      "testNames": [
+        "onboarding React UI supports real bilingual accessible setup interactions"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/public-boundary.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "repository-boundary",
+      "conflictAction": "retain-public",
+      "testNames": [
+        "tracked Git files reject commercial service implementation",
+        "ignored workspace residue is rejected independently",
+        "release assets reject an obvious fake live secret",
+        "repository tracked and workspace layers are clean",
+        "latest local release directory is clean when present"
+      ],
+      "testNamesSource": "introduced-after-task-1"
+    },
+    {
+      "path": "test/quick-index-coordinator.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:1ae109e3ae7c7aedf05e99faa80c6b4eead13adc526537e773998135556b0026"
+      ],
+      "testNames": [
+        "recent selection is a deterministic frozen snapshot capped at 30 across 101 Chinese files",
+        "folder selection normalizes separators and NFC while rejecting unsafe paths and prefix siblings",
+        "capacity reuses indexed status: updates remain eligible and blocked new files are exact skips",
+        "partial failures reject the transaction and expose only salted SHA-256 diagnostics",
+        "resume reports every eligible selected file even when an existing v2 state is skipped",
+        "DocumentIndexer cancellation settles one in-flight file, submits no later files, and flushes once",
+        "DocumentIndexer keeps the notice denominator fixed at the selected file count",
+        "DocumentIndexer excludes unavailable files from the frozen notice denominator",
+        "DocumentIndexer drains queued auto-index work before resetting batch progress",
+        "a missing initialized indexer fails boundedly instead of reporting a fake ready result",
+        "invalid and already-cancelled requests never initialize the production indexer",
+        "DocumentIndexer bounds a final flush failure and releases its batch state",
+        "DocumentIndexer rejects the triggering item before reporting maintenance success",
+        "DocumentIndexer rejects both the maintenance trigger and already queued remainder",
+        "NFC-equivalent duplicate paths select deterministically when Vault order reverses",
+        "quick index rejects any partial failure before finalize and settles the bootstrap as failed",
+        "finalize receives frozen selected identity evidence and must succeed before completed settle"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/release-integrity.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:34b168d1ce206692400198625fc52acbc047e6f9dce4f32b8ab553e8b1632e93",
+        "cross-repository-content-diff",
+        "source-sha256:ee027959755422699483b11daffcddea465a8b03d0c8f2ff208c55313858a468"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/release-version.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:7f7b91d01f7103e5930f459572c23ffdc472919d9c0524ff6183283f981228db"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/review-local-runtime.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:f0f663891e28e919210c4e2dd921a9a53f7858c298f1433865c9e635eb63db42",
+        "cross-repository-content-diff",
+        "source-sha256:83bec251d14955291617df71eb0899bebba5b821081beace6840c8188578616f"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/runtime-archive-security.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:ad3e7a96125dcd8b8545eee04167b24b587448b5f07b09a3a885fdd6bbffd637"
+      ],
+      "testNames": [
+        "zip rejects ${label} entries before writing staging content",
+        "zip rejects duplicate normalized filenames",
+        "zip rejects a declared unpacked total above 2 GiB",
+        "zip rejects content whose CRC32 does not match the signed central metadata",
+        "zip rejects a directory entry with a nonzero CRC32",
+        "zip rejects inconsistent local metadata for ${entry.name}",
+        "zip fails closed on data descriptors",
+        "zip fails closed when a ZIP64 EOCD locator is present",
+        "zip fails closed on ZIP64 sentinel fields",
+        "zip fails closed on a ZIP64 extra field",
+        "zip rejects independently encoded NFC canonical duplicates",
+        "zip rejects an entry data range overlapping the next local header",
+        "zip rejects Windows-unsafe component ${JSON.stringify(unsafeName)}",
+        "zip applies Windows case and trailing-dot canonicalization to duplicate detection",
+        "zip bounds a high-compression-ratio entry by its declared output size",
+        "archive extraction fails closed if its staging root is replaced by a symlink",
+        "directory entries fail closed if the staging root changes during mkdir",
+        "staging guard detects a root replaced by a new ordinary directory at the same path",
+        "output open detects a leaf replaced by another ordinary file",
+        "tar.gz rejects device entries",
+        "tar.gz rejects ${label} entries",
+        "tar.gz safely extracts a regular executable under a UTF-8 staging root"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/runtime-atomic-installer.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:1a6da11089a0e1306ca09d72b178b2eeb3d1027252d64556e346dca3b7fd2514"
+      ],
+      "testNames": [
+        "runtime pointers and process leases are isolated per Vault while immutable assets stay shared",
+        "smoke failure preserves current and the old runtime while isolating the candidate",
+        "successful install atomically publishes a JSON pointer from a UTF-8 path",
+        "a second Vault reuses an identical immutable runtime and publishes only its own pointer",
+        "the same runtime ID with different bytes is rejected without changing either Vault pointer",
+        "a matching 1.2.0 global pointer migrates once into only the requesting Vault",
+        "a global pointer for another build is ignored without being marked corrupt",
+        "executableRelativePath cannot leave the candidate runtime root",
+        "rollback switches current back without deleting either installed runtime",
+        "managed runtime ancestors cannot be symlinks",
+        "current pointer installedPath must exactly equal its derived version path",
+        "install never replaces an existing ${collision} at finalPath",
+        "pre-publish validation failure removes the candidate staging directory",
+        "archive extraction failure removes the staging directory it created",
+        "smoke failures retain at most three quarantined candidates",
+        "rollback reads immutable history instead of a mutable previous file",
+        "current publication interruption preserves old current and leaves durable recovery metadata",
+        "invalid old current aborts before smoke or final publication",
+        "old current pointing to a missing runtime aborts before smoke",
+        "readCurrentRuntime rejects a dangling symlink used as the current directory",
+        "readCurrentRuntime rejects a pointer file replaced by a symlink",
+        "same runtimeId installations are serialized by an exclusive lock",
+        "immutable history failure cannot switch current and leaves recovery state",
+        "managed directories remain private after publication",
+        "immutable runtime identity ignores rollback's dynamic previous edge",
+        "concurrent different runtimeIds record the actual predecessor at publication",
+        "install after a concurrent rollback records the rollback target as predecessor",
+        "install captures a finite timestamp exactly once",
+        "install rejects a non-finite timestamp before creating runtime state",
+        "pre-smoke recovery and runtime lock are durable before smoke executes",
+        "retry reclaims a dead runtime lock and removes its pre-smoke orphan staging",
+        "retry removes same-runtime orphan staging even when recovery was never written",
+        "orphan cleanup does not remove a runtimeId that merely shares a prefix",
+        "retry cleans a publishing recovery whose final rename never happened",
+        "untrusted runtime lock content fails closed without deleting the lock",
+        "runtime lock symlinks fail closed without modifying their target",
+        "rollback reclaims a dead kind publication lock",
+        "recovery pruning preserves active pre-smoke state"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/runtime-downloader.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:ad562731280be9a7e4dfe047ad15b491cab374d21d6bef4d7fb4bd2a41f9e746"
+      ],
+      "testNames": [
+        "streams chunked HTTPS responses into a non-executable owner-only part and records atomic metadata",
+        "reports null response-derived totals without content-length and limits non-final progress to once per 100ms",
+        "keeps the trailing completion progress at least 100ms after the previous event",
+        "cancels promptly while a trailing completion progress event is waiting",
+        "destroys the response when invalid or unsafe Content-Length fails setup",
+        "destroys the response when atomic metadata publication fails",
+        "follows at most five HTTPS redirects and rejects protocol downgrade",
+        "resumes only a matching part with Range and If-Range",
+        "uses Last-Modified as If-Range when ETag is unavailable",
+        "safely restarts when a server ignores Range instead of appending duplicate bytes",
+        "isolates a resumed part when a 206 validator changes and retries without Range",
+        "isolates mismatched asset metadata and changed validators before a clean download",
+        "rejects symlink parts without touching their targets",
+        "rejects a metadata file replaced by a symlink after lstat without reading its target",
+        "rejects interrupted responses, leaves only a resumable part, and creates no final executable",
+        "cancellation destroys the response, closes the part, and returns DOWNLOAD_CANCELLED",
+        "rejects a mismatched 206 Content-Range without appending attacker bytes"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/runtime-fault-injection.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:c1c00480155e763ecfcf85c2e91a25124375b12d8b0356c0d5a2b4a6ea84d134"
+      ],
+      "testNames": [
+        "runtime fault matrix maps every injected failure to a bounded onboarding error",
+        "every persisted setup stage resumes explicitly without an automatic retry loop",
+        "release workflow gates publication on all three native runners and public redownload verification"
+      ],
+      "testNamesSource": "task-1-inventory",
+      "testNameRenames": {
+        "release workflow gates publication on all three native runners and public redownload verification": "release workflow gates publication on every supported native runner and public redownload verification"
+      }
+    },
+    {
+      "path": "test/runtime-manifest.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:efc063ae63d182ce98ef4590bc1879c79c8adb0cde1938d58174d33cc20acc05"
+      ],
+      "testNames": [
+        "runtime manifest supplies exactly one verified asset of each kind for every supported platform",
+        "development embedding inputs are explicitly marked and cannot look published",
+        "versioned history registry starts honestly empty and resolver combines active with retained bindings",
+        "runtime paths stay under the user-local root and reject vault ID traversal"
+      ],
+      "testNamesSource": "task-1-inventory",
+      "testNameRenames": {
+        "development embedding inputs are explicitly marked and cannot look published": "checked-in embedding inputs are published and point at the public repository"
+      }
+    },
+    {
+      "path": "test/runtime-platform-detector.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:cea7ad25d2cc057956b079505fdfd005a70f6208d6cd50908ab4f7280e326d59"
+      ],
+      "testNames": [
+        "detectSupportedPlatform maps the managed macOS and Windows targets",
+        "detectSupportedPlatform rejects an unmanaged platform or architecture"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/runtime-recovery.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:35f3e8b5d7504d9a1f5cddbbeb7ccc9ed018b73124487597dc52e5881a0dae04"
+      ],
+      "testNames": [
+        "detector is observational and empty environment requires setup",
+        "detector migrates an exact legacy embedding pointer before reporting readiness",
+        "health probing is loopback-only, abortable, and bounded by a finite timeout",
+        "managed Chroma identity cannot be supplied as a public boolean option",
+        "detector rejects non-loopback endpoint input instead of contacting it",
+        "a same-version loopback service cannot promote a missing or idle managed runtime to running",
+        "managed Chroma promotion verifies every manager field against process, disk, and health",
+        "embedding readiness performs full managed payload verification",
+        "mixed-state action precedence is repair, resume, setup, start-services, then none",
+        "all environment state variants are preserved in the report",
+        "index inspection classifies empty, partial, ready, legacy, and corruption without rebuilding",
+        "default inspection rejects symlinked model cache rather than following it",
+        "default inspection rejects a symlink ancestor above the model cache",
+        "managed embedding verification rejects a symlinked runtime ancestor"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/runtime-settings-and-sidebar-browser-runner.tsx",
+      "kind": "support",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:d9cd979508804c8cf5fe69db49b50ad71acfc3e556c3a83793f6e1d070ccb1a4"
+      ]
+    },
+    {
+      "path": "test/runtime-settings-and-sidebar.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:77715dbe475b35c904f52d284bf2b08005906d9fe6141ef6481b2503b72f9b10"
+      ],
+      "testNames": [
+        "verify, restart and redownload operations are single-flight and preserve exact owned lease",
+        "legacy migration controls expose path-free progress and explicit recovery actions",
+        "restart failure redetects and publishes the true stopped process snapshot",
+        "restart refuses external, missing, or replacement leases without stopping anything",
+        "runtime history cleanup never trashes current, active, symlink, staging, or root-escape targets",
+        "cleanup revalidates immediately, fails closed during setup, and reports partial safe counts",
+        "cleanup fails closed when the current pointer becomes invalid after listing",
+        "cleanup isolates synchronously before async trash and parent swaps cannot touch outside data",
+        "production history registry resolves active plus retained bindings and cleanup rejects unknown assets",
+        "legacy cleanup requires typed confirmation and remains unavailable until Task 14",
+        "legacy cleanup recovery inventory, retry, and restore are path-free production control actions",
+        "real bilingual React panels expose setup, progress, repair and ready actions without legacy UI"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/runtime-vault-identity.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:ecb9225bf595ef7fd29ed6e237d592ac09000db6c228711baafb00be71b15d42"
+      ],
+      "testNames": [
+        "deriveRuntimeVaultId normalizes resolved macOS vault paths including Chinese names",
+        "deriveRuntimeVaultId normalizes composed and decomposed Unicode Vault names",
+        "deriveRuntimeVaultId normalizes Windows separators, drive casing, and trailing separators"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/runtime-verifier.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:e55839bda10e2560914e99d8c7d7b5fc1f04cce4b72ebf80690cf0664f9d3ee1"
+      ],
+      "testNames": [
+        "streams SHA-256 and size verification for a valid UTF-8 path",
+        "returns DOWNLOAD_SIZE_MISMATCH before considering a hash mismatch",
+        "returns DOWNLOAD_HASH_MISMATCH for equal-sized tampering and creates no executable",
+        "rejects a symlink verification path"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/runtime-version-display.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:d0a4cb5a99b05c17ec425da7e29cec95bb4c88ee21f0796f666b2725d291de0e"
+      ],
+      "testNames": [
+        "settings diagnostics report pinned managed versions without a plugin-local package.json",
+        "sidebar displays the version loaded from the installed plugin manifest"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/safe-mode-recovery-actions.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:d1de306fc3060dd0bc43476d6bfb087916d24b177d8722f87cc9cd32c9fd7996"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/search-document-summary.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:6a4c5836eb30e0b2e74a464589fdc13e8e07a508517eeabe07f09b2dee3d53c8",
+        "cross-repository-content-diff",
+        "source-sha256:a87a51ff7ce3d24776b86261433b62201344e24198424d6441707a8086963386"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/search-exclude-paths.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:f5386dba68efe9de9208a624f5b0aa30cb765642c5542d754629a7fe59baa346",
+        "cross-repository-content-diff",
+        "source-sha256:c0e1bf5732fe5be150bbbb0c0a50736473f595239b3e3edc807d5044501bc942"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/search-result-cache.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:8d901fcad90199850483e724dbf89700fda427702a5d5f52262ca1c2341cddb3",
+        "cross-repository-content-diff",
+        "source-sha256:4d4dcdcf1fbeb3587ed31b3e418a5aa3b5705757af9ec9d743b9999999f89bc8"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/search-tabs.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:737e119132540cd531bf1da3f6958c71af07dc4a4502e424146250e9bebf363e"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-acceptance.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:1de91a6885db00f5e153a666daa39a322fa2e611c3facb37b1a054a92ca4a0bf"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-canvas-browser-runner.tsx",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:d15b520a872c818b8f934f63910c982f2d5c132948131a821e5ea76afc93a3b5"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-canvas-browser.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:855519d6f37be6ab47323804faa3777e1fcd3081ff90d0f2001494e672095e24"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-canvas-harness.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:7e91f691c02e081e8ca2d4f7e4ba0a2e61f1347e4085925496578c111cafd902"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-canvas-harness.tsx",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "move-private-only"
+    },
+    {
+      "path": "test/semantic-walk-card-styles.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:23d87dfdccb53f768f53582b36875229318a49ac46e1c997c1d58c47ad031ccf",
+        "cross-repository-content-diff",
+        "source-sha256:7fbb37afb5cf381bdec47f8a600cadaa8bd09445bb544a7e002be72a93be3899"
+      ],
+      "testNames": [
+        "选中语义漫游卡片只保留四周边框",
+        "语义漫游卡片标题与圆点在标题栏内垂直居中",
+        "语义漫游入口卡片文本在卡片宽度内换行",
+        "语义搜索弹窗在宽屏扩展且在窄屏不溢出",
+        "语义搜索说明文案左对齐",
+        "语义搜索输入框沿用侧边栏的边框、圆角和聚焦样式"
+      ],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-chunk-picker.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:fc7bd4c77a0f3499a4e5c1bc821b8f2e443f7f2daff460fc5bb68b756d212856"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-chunk-repository.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:20eb2bfc93b554419321ea4fe25159db4393ba4e3ea189983b60d4fd8a374401"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-file-bridge.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:03912d104c39233d6f7474ccc3beb93a0522c5cc4bb097a75b158d135f8c1b43"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-file-state-ui.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:7abc4ae56bfa54b41894fbea07e93e877245debd4c404a060147032846ffa40c"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-graph-interactions.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:d8c450af4597fda6bba49f7d359de9500e7bb90e464233133d4f56ffa863afc4"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-graph-reducer.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:d1de0584dc2da065d646117758553e258b40e354b8421ba151da127c95a95ebb"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-layout.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:c7c64e34af9ca5be2aed37bd2b33e09ca44c738992fca19dd6052d8a9b1734b9"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-mode-cache-relation.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:5fabb763e469e79cfb77437c02b8f87b689ee869dc874dcf6cdf5ed1d3462d13"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-picker-browser-runner.tsx",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:f8746bceee085389d7b3630a05eeceed8d4ac1ba4ba629198330811ec75a17bd"
+      ]
+    },
+    {
+      "path": "test/semantic-walk-picker-browser.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:0fd2536250c0662c5b893387d0c52713d48922af9e681127d54a3a2149d7f1bb"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-relation-service.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:ae9114e255553204b1a138676e901224bf9a857fc0fa8a374405587b40c62044"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-search-result.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:fec667dc10d424fd1f678c9068933f64d51218a4afdb25049e03069992102339"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-sidebar-entry.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:82f7153b951e04424038b9ec14ea5e0fbe5be549f923cb7d7cde0eacd183f72a"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-similarity.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:60a2b8c04396d68eb702877f3955016d48e701c11c42a6f29e9a571562806540"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-toolbar-mode.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:8cf42f73405feb15fb005db74da4da08c3bc9482787b764a7111cd9fb7bffb71"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/semantic-walk-view-registration.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "semantic-walk",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:fd6888b0d39f2d7335f8222ead20d6273f3b60e957e763ce00dda163499ddfa5"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/settings-chroma-start-button.test.js",
+      "kind": "test",
+      "runner": "runtime",
+      "ciJob": "runtime-matrix",
+      "domain": "runtime",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:369955b7d52cbe17af20e521ea87b39fc0952f66f345d5d2cd8f10059659fc3b",
+        "cross-repository-content-diff",
+        "source-sha256:41186f211e92571ff2ce56772bdf9b023ff0c59f90b940c21130f4bd43b34126"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/sidebar-search-i18n.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:76cbc57b7cef56feed9c964281d97145fb1965cac1992ed69bbd6a38317de17d",
+        "cross-repository-content-diff",
+        "source-sha256:5161d9c57cd9b96c923008fd440df6cd64a81b5c141c343e0e4bbd397219a9de"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/sidebar-search-tabs.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:4cee5b6c39d9a567602e146d953835369804ef15572f52fe166d35edf456a1db",
+        "cross-repository-content-diff",
+        "source-sha256:b63303762b2d245ef5d4048d51394a5a3b7b6ad8b9332ce7808ab51314e264ef"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/summary-models.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "merge",
+      "sourceEvidence": [
+        "source-sha256:6720baa0dd359cf1b363ed4c64daa0a35d5026659a721fdb5ddf94b562f7506e",
+        "cross-repository-content-diff",
+        "source-sha256:75f0ababe504b5b40a1901292430e0c2f672ce441c583a0c71688123adefcac4"
+      ],
+      "testNames": [],
+      "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/test-ci-manifest.json",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "test-execution",
+      "conflictAction": "task-5a-new"
+    },
+    {
+      "path": "test/test-execution-set.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "repository-boundary",
+      "conflictAction": "task-5a-new",
+      "testNames": [
+        "an ignored new test on disk fails the inventory gate",
+        "a tracked test omitted by every runner fails",
+        "a runner test omitted by CI fails",
+        "a platform skip with complete ownership metadata is valid",
+        "a test cannot disguise itself as support",
+        "inventory runner and CI ownership must agree with both manifests",
+        "duplicate inventory and runner paths are rejected",
+        "modern test module extensions are treated as executable tests",
+        "a Task 1 test name cannot disappear silently from a retained file",
+        "an explicit Task 1 test-name rename preserves the semantic inventory",
+        "every test records its Task 1 conflict decision and test-name baseline",
+        "a hung test process is terminated by the per-test timeout"
+      ],
+      "testNamesSource": "introduced-after-task-1"
+    },
+    {
+      "path": "test/test-runner-manifest.json",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "test-execution",
+      "conflictAction": "task-5a-new"
+    },
+    {
+      "path": "test/vault-folder-selection.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "plugin",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [
+        "source-sha256:c2bc1f0c8d90d675887ba35fbb1366e079f8f070b6340f57fe23adfaff4d5c67"
+      ],
+      "testNames": [
+        "macOS vault 子文件夹会转换为 vault 相对路径",
+        "Windows 本地及网络 vault 路径会转换为正斜杠相对路径",
+        "vault 外部、Windows 跨盘符及跨网络共享文件夹会被拒绝",
+        "vault 根目录会被拒绝以避免排除整个 vault",
+        "原生选择器不绑定 Obsidian 主窗口并返回 vault 相对路径",
+        "取消原生文件夹选择时不改变输入"
+      ],
+      "testNamesSource": "task-1-inventory"
+    }
+  ],
+  "platformSkips": [
+    {
+      "path": "test/chroma-standalone-integration.test.js",
+      "when": {
+        "envMissing": "ANALOGY_CHROMA_BIN"
+      },
+      "reason": "Pinned Chroma CLI is provisioned by the native runtime workflow; local runs without it skip this native contract.",
+      "platform": "local-without-pinned-chroma",
+      "workflowJob": "runtime-matrix/native-runtime"
+    },
+    {
+      "path": "test/legacy-chroma-real-migration.test.js",
+      "when": {
+        "envMissing": "ANALOGY_LEGACY_CHROMA_BIN"
+      },
+      "reason": "The cross-version migration contract requires an explicitly provisioned Chroma 0.5.23 binary.",
+      "platform": "environment-without-legacy-chroma",
+      "workflowJob": "runtime-matrix/native-runtime"
+    },
+    {
+      "path": "test/mcp-chroma-v2-compatibility.test.js",
+      "when": {
+        "envMissing": "ANALOGY_CHROMA_BIN"
+      },
+      "reason": "The real MCP-to-Chroma v2 compatibility contract requires the pinned Chroma CLI provisioned by the native runtime workflow.",
+      "platform": "local-without-pinned-chroma",
+      "workflowJob": "runtime-matrix/native-runtime"
+    }
+  ]
+}

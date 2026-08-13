@@ -23,13 +23,10 @@ export function verifyCommunityPluginDirectory(pluginDirectory) {
 function parseRuntimeOptions(argv) {
 	let runtimeOnly = false;
 	let runtimeStaging = "";
-	let allowDevelopmentRuntimeFixture = false;
 	for (let index = 0; index < argv.length; index += 1) {
 		const argument = argv[index];
 		if (argument === "--runtime-only") {
 			runtimeOnly = true;
-		} else if (argument === "--allow-development-runtime-fixture") {
-			allowDevelopmentRuntimeFixture = true;
 		} else if (argument === "--runtime-staging") {
 			runtimeStaging = argv[index + 1] || "";
 			index += 1;
@@ -40,13 +37,10 @@ function parseRuntimeOptions(argv) {
 	if (runtimeOnly && !runtimeStaging) {
 		throw new Error("--runtime-only requires --runtime-staging <directory>");
 	}
-	if (runtimeOnly && allowDevelopmentRuntimeFixture) {
-		throw new Error("--allow-development-runtime-fixture cannot be combined with --runtime-only");
-	}
-	return { runtimeOnly, runtimeStaging, allowDevelopmentRuntimeFixture };
+	return { runtimeOnly, runtimeStaging };
 }
 
-function requirePublishedGeneratedRuntimeManifest(projectRoot) {
+export function requirePublishedGeneratedRuntimeManifest(projectRoot) {
 	const generatedManifestPath = path.join(projectRoot, "src", "runtime", "generated-embedding-runtime-manifest.ts");
 	const source = fs.existsSync(generatedManifestPath)
 		? fs.readFileSync(generatedManifestPath, "utf8")
@@ -54,7 +48,7 @@ function requirePublishedGeneratedRuntimeManifest(projectRoot) {
 	if (!source.includes('EMBEDDING_RUNTIME_MANIFEST_SOURCE = "published"')
 		|| source.includes("development-fixture")
 		|| source.includes("example.invalid")) {
-		throw new Error("Default release requires a published embedding runtime manifest; development fixture is forbidden");
+		throw new Error("RELEASE_RUNTIME_FIXTURE_FORBIDDEN: generate and verify the published runtime manifest before npm run release:prepare");
 	}
 }
 
@@ -243,9 +237,7 @@ if (runtimeOptions.runtimeOnly) {
 	verifyRuntimeRelease(runtimeOptions.runtimeStaging, { generatedManifestPath: generatedRuntimeManifestPath });
 	console.log(`[prepare-release] Verified embedding runtime staging: ${path.resolve(runtimeOptions.runtimeStaging)}`);
 } else {
-if (!runtimeOptions.allowDevelopmentRuntimeFixture) {
-	requirePublishedGeneratedRuntimeManifest(root);
-}
+requirePublishedGeneratedRuntimeManifest(root);
 const manifest = JSON.parse(fs.readFileSync(path.join(root, "manifest.json"), "utf8"));
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 const versions = JSON.parse(fs.readFileSync(path.join(root, "versions.json"), "utf8"));
@@ -286,7 +278,7 @@ const artifactsDir = resolvedBuildId ? path.join(artifactsRoot, resolvedBuildId)
 const buildInfoPath = artifactsDir ? path.join(artifactsDir, "build-info.json") : "";
 if (resolvedBuildId) {
 	if (!fs.existsSync(buildInfoPath)) {
-		throw new Error(`Missing build-info artifact for ${resolvedBuildId}. Run npm run build first.`);
+		throw new Error(`Missing build-info artifact for ${resolvedBuildId}. Run npm run build:release first.`);
 	}
 	if (!fs.existsSync(path.join(artifactsDir, "main.js.map"))) {
 		throw new Error(`Missing source map artifact for ${resolvedBuildId}.`);

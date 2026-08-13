@@ -35,7 +35,7 @@ Enable the plugin in Obsidian Settings -> Community plugins.
 
 Obsidian only installs the three plugin assets above. Open Analogy settings and use the Local RAG runtime installer to install the embedding runtime in the plugin folder. Analogy also creates a small runtime `package.json`, installs the embedding runtime, and starts ChromaDB automatically when possible.
 
-On first launch, the guided onboarding flow detects the local environment, downloads the pinned ChromaDB and embedding runtimes, verifies their checksums and signed release metadata, installs them atomically, and builds a small first index. Managed runtime downloads currently support macOS on Apple Silicon or Intel, and Windows on x64. The Ollama summary model is optional and can be skipped without blocking local semantic search.
+On first launch, the guided onboarding flow detects the local environment, downloads the pinned ChromaDB and embedding runtimes, verifies their checksums and signed release metadata, installs them atomically, and builds a small first index. Managed runtime downloads currently support macOS on Apple Silicon and Windows on x64. Intel Mac runtime publication is temporarily deferred until its pinned ONNX Runtime native payload can be built and verified outside the pull-request critical path. The Ollama summary model is optional and can be skipped without blocking local semantic search.
 
 Existing compatible Chroma indexes are migrated into the managed runtime without re-embedding. If migration or setup is interrupted, onboarding resumes from its saved recovery state; setup, repair, diagnostics, and rebuild controls remain available in Analogy settings.
 
@@ -72,7 +72,9 @@ Indexes created by older Analogy versions may lack stable chunk identity, headin
 - ChromaDB listens on `127.0.0.1` by default.
 - Markdown content is read from the current vault for indexing.
 - Embedding model files may be downloaded from the configured model host, which defaults to `https://hf-mirror.com/`.
-- Optional license validation may connect to your configured license server. License validation sends the license key, plugin version, a local device identifier, and a vault identifier. The plugin caches the license key locally so it can silently refresh the license about every 7 days. It does not upload note contents for license validation.
+- License validation uses `https://analogy.zexing.club/api/v1/obsidian/license/validate`; deactivation uses `/api/v1/obsidian/license/deactivate`. These requests send the license key, plugin version, a local device identifier, and a vault identifier, but never note contents, paths, queries, or embeddings.
+- Purchase and account-management actions open `https://analogy.zexing.club/analogy` and `https://analogy.zexing.club/analogy/account` in the browser. The plugin does not receive Stripe credentials or payment-card data.
+- The plugin caches license state locally and normally refreshes it about every 7 days. If the service is temporarily unavailable, the last active state remains usable only through the server-provided `grace_until`; after that, the plugin falls back to the free limits without blocking local note access.
 - MCP clients can access search snippets only when you explicitly configure and run the MCP server.
 - Use `ANALOGY_ALLOWED_PATHS` to restrict which vault paths the MCP server can return.
 - Semantic Walk diagnostics contain only a hashed chunk identifier and allowlisted runtime metadata; they exclude chunk text, paths, queries, embeddings, and license keys.
@@ -84,10 +86,16 @@ npm install
 npm run dev
 ```
 
-Build production assets:
+Build for CI without deploying to Obsidian or creating release assets:
 
 ```bash
-npm run build
+npm run build:ci
+```
+
+Build and atomically deploy the three-file plugin to the configured local Obsidian vault:
+
+```bash
+npm run build:local
 ```
 
 Prepare release assets:

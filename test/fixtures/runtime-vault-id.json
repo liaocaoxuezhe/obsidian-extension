@@ -1,0 +1,12 @@
+[
+  {
+    "platform": "darwin-arm64",
+    "vaultPath": "/Users/analogy/测试 Vault/",
+    "runtimeVaultId": "vault-v2-694fca5f36d4b6a5"
+  },
+  {
+    "platform": "win32-x64",
+    "vaultPath": "C:\\Users\\analogy\\测试 Vault\\",
+    "runtimeVaultId": "vault-v2-059d8db4089804ea"
+  }
+]

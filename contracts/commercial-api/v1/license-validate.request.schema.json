@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://analogypkm.com/contracts/commercial-api/v1/license-validate.request.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["license_key", "device_id", "vault_id", "plugin_version"],
+  "properties": {
+    "license_key": {"type": "string", "minLength": 1},
+    "device_id": {"type": "string", "minLength": 1},
+    "vault_id": {"type": "string", "minLength": 1},
+    "plugin_version": {"type": "string", "minLength": 1}
+  }
+}

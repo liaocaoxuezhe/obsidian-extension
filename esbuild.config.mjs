@@ -3,9 +3,15 @@ import process from "process";
 import builtins from "builtin-modules";
 import fs from "fs";
 import path from "path";
+import os from "os";
 import { execSync } from "child_process";
 import crypto from "crypto";
 import { extractGeneratedRuntimeManifestSha256 } from "./scripts/runtime-manifest-binding.mjs";
+import { assertBuildMode } from "./scripts/build-mode-guard.mjs";
+import {
+	createLocalDevelopmentRuntimeManifest,
+	deployLocalPluginFiles,
+} from "./scripts/local-development-build.mjs";
 
 const banner =
 `/*
@@ -14,7 +20,15 @@ if you want to view the source, please visit the github repository of this plugi
 */
 `;
 
-const prod = (process.argv[2] === "production");
+const buildMode = process.argv[2] || "watch";
+if (!["watch", "local", "ci", "release"].includes(buildMode)) {
+	throw new Error(`BUILD_MODE_REQUIRED: unknown esbuild mode ${buildMode}; use local, ci, or release`);
+}
+const prod = buildMode === "ci" || buildMode === "release";
+const localDevelopment = buildMode === "local";
+const releaseBuild = buildMode === "release";
+const oneShot = prod || localDevelopment;
+if (oneShot) assertBuildMode(buildMode);
 const externalModules = [
 	"obsidian",
 	"electron",
@@ -68,11 +82,41 @@ function computeBuildId() {
   return `${version}+${sha}.${runId}`;
 }
 
+function localRuntimePlatform() {
+	const requested = (process.env.ANALOGY_LOCAL_RUNTIME_PLATFORM || "").trim();
+	if (requested) return requested;
+	if (process.platform === "darwin" && process.arch === "arm64") return "darwin-arm64";
+	if (process.platform === "darwin" && process.arch === "x64") return "darwin-x64";
+	if (process.platform === "win32" && process.arch === "x64") return "win32-x64";
+	throw new Error(`Unsupported local runtime platform: ${process.platform}-${process.arch}`);
+}
+
+function localDataRoot() {
+	const requested = (process.env.ANALOGY_LOCAL_DATA_ROOT || "").trim();
+	if (requested) return path.resolve(requested);
+	if (process.platform === "darwin") return path.join(os.homedir(), "Library", "Application Support", "Analogy");
+	if (process.platform === "win32") {
+		return path.join(process.env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local"), "Analogy");
+	}
+	throw new Error(`Unsupported local runtime platform: ${process.platform}-${process.arch}`);
+}
+
 const buildId = computeBuildId();
-const generatedRuntimeManifestSource = fs.readFileSync("src/runtime/generated-embedding-runtime-manifest.ts", "utf8");
-const embeddingRuntimePublicManifestSha256 = extractGeneratedRuntimeManifestSha256(generatedRuntimeManifestSource, {
-	allowExactDevelopmentFixture: true,
-});
+let localRuntimeManifest = null;
+if (localDevelopment) {
+	try {
+		localRuntimeManifest = createLocalDevelopmentRuntimeManifest({
+			localDataRoot: localDataRoot(),
+			platform: localRuntimePlatform(),
+		});
+	} catch (error) {
+		const code = error instanceof Error ? error.message : String(error);
+		throw new Error(`${code}: run npm run setup:local, then retry npm run build:local`);
+	}
+}
+const generatedRuntimeManifestSource = localRuntimeManifest?.source
+	?? fs.readFileSync("src/runtime/generated-embedding-runtime-manifest.ts", "utf8");
+const embeddingRuntimePublicManifestSha256 = extractGeneratedRuntimeManifestSha256(generatedRuntimeManifestSource);
 const embeddingRuntimeBuildBinding = `ANALOGY_EMBEDDING_RUNTIME_MANIFEST_SHA256:${embeddingRuntimePublicManifestSha256}`;
 const workerBuild = await esbuild.build({
 	entryPoints: ["src/local-vector/embedding-worker.ts"],
@@ -116,9 +160,23 @@ const context = await esbuild.context({
 	outdir: ".",
 	entryNames: "[name]",
 	minify: false,
+	plugins: localRuntimeManifest ? [{
+		name: "analogy-local-development-runtime-manifest",
+		setup(build) {
+			build.onResolve({ filter: /^\.\/generated-embedding-runtime-manifest$/ }, (args) => {
+				if (!args.importer.endsWith(`${path.sep}runtime-manifest.ts`)) return null;
+				return { path: "generated-embedding-runtime-manifest.ts", namespace: "analogy-local-runtime" };
+			});
+			build.onLoad({ filter: /.*/, namespace: "analogy-local-runtime" }, () => ({
+				contents: localRuntimeManifest.source,
+				loader: "ts",
+				resolveDir: path.resolve("src/runtime"),
+			}));
+		},
+	}] : [],
 });
 
-if (prod) {
+if (oneShot) {
 	await context.rebuild();
 
 	function sha256File(filePath) {
@@ -133,36 +191,39 @@ if (prod) {
 		return hash.digest("hex");
 	}
 
-	const artifactsDir = path.join("artifacts", buildId);
-	fs.mkdirSync(artifactsDir, { recursive: true });
-	const buildInfo = {
-		pluginVersion: JSON.parse(fs.readFileSync("package.json", "utf-8")).version,
-		buildId,
-		gitSha: buildId.includes("+") ? buildId.split("+")[1].split(".")[0] : "",
-		nodeVersion: process.version,
-		npmVersion: execSync("npm --version", { encoding: "utf-8" }).trim(),
-		esbuildVersion: esbuild.version,
-		buildTime: new Date().toISOString(),
-		mainJsSha256: sha256File("main.js"),
-		mainJsMapSha256: fs.existsSync("main.js.map") ? sha256File("main.js.map") : null,
-		embeddedWorkerSha256: sha256Value(workerSource),
-		embeddingRuntimePublicManifestSha256,
-	};
-	fs.writeFileSync(path.join(artifactsDir, "build-info.json"), JSON.stringify(buildInfo, null, 2));
-	fs.copyFileSync("main.js", path.join(artifactsDir, "main.js"));
-	if (fs.existsSync("main.js.map")) {
-		fs.copyFileSync("main.js.map", path.join(artifactsDir, "main.js.map"));
-	}
-	fs.copyFileSync("manifest.json", path.join(artifactsDir, "manifest.json"));
-	fs.copyFileSync("package-lock.json", path.join(artifactsDir, "package-lock.json"));
-	console.log(`[esbuild] archived build artifacts to ${artifactsDir}`);
-
-	const installedPluginDir = path.join(".obsidian", "plugins", "obsidian-extension");
-	if (fs.existsSync(installedPluginDir)) {
-		fs.copyFileSync("main.js", path.join(installedPluginDir, "main.js"));
+	if (releaseBuild) {
+		const artifactsDir = path.join("artifacts", buildId);
+		fs.mkdirSync(artifactsDir, { recursive: true });
+		const buildInfo = {
+			pluginVersion: JSON.parse(fs.readFileSync("package.json", "utf-8")).version,
+			buildId,
+			gitSha: buildId.includes("+") ? buildId.split("+")[1].split(".")[0] : "",
+			nodeVersion: process.version,
+			npmVersion: execSync("npm --version", { encoding: "utf-8" }).trim(),
+			esbuildVersion: esbuild.version,
+			buildTime: new Date().toISOString(),
+			mainJsSha256: sha256File("main.js"),
+			mainJsMapSha256: fs.existsSync("main.js.map") ? sha256File("main.js.map") : null,
+			embeddedWorkerSha256: sha256Value(workerSource),
+			embeddingRuntimePublicManifestSha256,
+		};
+		fs.writeFileSync(path.join(artifactsDir, "build-info.json"), JSON.stringify(buildInfo, null, 2));
+		fs.copyFileSync("main.js", path.join(artifactsDir, "main.js"));
 		if (fs.existsSync("main.js.map")) {
-			fs.copyFileSync("main.js.map", path.join(installedPluginDir, "main.js.map"));
+			fs.copyFileSync("main.js.map", path.join(artifactsDir, "main.js.map"));
 		}
+		fs.copyFileSync("manifest.json", path.join(artifactsDir, "manifest.json"));
+		fs.copyFileSync("package-lock.json", path.join(artifactsDir, "package-lock.json"));
+		console.log(`[esbuild] archived build artifacts to ${artifactsDir}`);
+
+	}
+	if (localDevelopment) {
+		const installedPluginDir = path.resolve(
+			(process.env.ANALOGY_LOCAL_PLUGIN_DIR || "").trim()
+				|| path.join(".obsidian", "plugins", "obsidian-extension"),
+		);
+		deployLocalPluginFiles(process.cwd(), installedPluginDir);
+		console.log(`[esbuild] deployed local plugin to ${installedPluginDir}`);
 	}
 	process.exit(0);
 } else {

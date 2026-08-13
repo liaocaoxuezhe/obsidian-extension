@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://analogypkm.com/contracts/commercial-api/v1/diagnostic-report.request.schema.json",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "report_id", "reporter_id", "created_at", "plugin", "host", "runtime", "session", "events", "user_note"],
+  "properties": {
+    "schema_version": {"type": "integer", "minimum": 1},
+    "report_id": {"type": "string", "minLength": 1},
+    "reporter_id": {"type": "string", "minLength": 1},
+    "created_at": {"type": "string", "minLength": 1},
+    "plugin": {"$ref": "#/$defs/plugin"},
+    "host": {"$ref": "#/$defs/host"},
+    "runtime": {"$ref": "#/$defs/runtime"},
+    "session": {"$ref": "#/$defs/session"},
+    "events": {"type": "array", "items": {"$ref": "#/$defs/event"}},
+    "user_note": {"type": "string"}
+  },
+  "$defs": {
+    "plugin": {"type": "object", "additionalProperties": false, "required": ["version", "build_id"], "properties": {"version": {"type": "string"}, "build_id": {"type": "string"}}},
+    "host": {"type": "object", "additionalProperties": false, "required": ["obsidian_version", "platform", "arch", "locale"], "properties": {"obsidian_version": {"type": "string"}, "platform": {"type": "string"}, "arch": {"type": "string"}, "locale": {"type": "string"}}},
+    "runtime": {"type": "object", "additionalProperties": false, "required": ["model", "transformers_version", "onnxruntime_version", "chroma_version"], "properties": {"model": {"type": "string"}, "transformers_version": {"type": "string"}, "onnxruntime_version": {"type": "string"}, "chroma_version": {"type": "string"}}},
+    "session": {"type": "object", "additionalProperties": false, "required": ["suspected_unclean_exit", "last_stage", "safe_mode"], "properties": {"suspected_unclean_exit": {"type": "boolean"}, "last_stage": {"type": "string"}, "safe_mode": {"type": "boolean"}}},
+    "event": {"type": "object", "required": ["id", "timestamp", "level", "stage", "code", "message"], "properties": {"id": {"type": "string"}, "timestamp": {"type": "string"}, "level": {"enum": ["debug", "info", "warn", "error"]}, "stage": {"type": "string"}, "code": {"type": "string"}, "message": {"type": "string"}, "context": {"type": "object"}, "error": {"type": "object"}}}
+  }
+}
