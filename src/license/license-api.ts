@@ -1,4 +1,5 @@
 import {appVersion} from "../model/Consts";
+import {requestUrl} from "obsidian";
 import type {
 	LicenseState,
 	LicenseValidationRequest,
@@ -78,7 +79,8 @@ export async function validateLicense(
 	if (!baseUrl) {
 		throw new Error("License server URL is not configured.");
 	}
-	const response = await fetch(`${baseUrl}/api/v1/obsidian/license/validate`, {
+	const response = await requestUrl({
+		url: `${baseUrl}/api/v1/obsidian/license/validate`,
 		method: "POST",
 		headers: {"Content-Type": "application/json"},
 		body: JSON.stringify({
@@ -88,10 +90,10 @@ export async function validateLicense(
 			plugin_version: request.pluginVersion || appVersion,
 		}),
 	});
-	if (!response.ok) {
+	if (response.status < 200 || response.status >= 300) {
 		throw new Error(`License validation failed: HTTP ${response.status}`);
 	}
-	const data = await response.json() as LicenseValidationResponse;
+	const data = response.json as LicenseValidationResponse;
 	return mapValidationResponseToLicenseState(data, request.licenseKey);
 }
 
@@ -103,7 +105,8 @@ export async function deactivateLicense(
 	if (!baseUrl) {
 		throw new Error("License server URL is not configured.");
 	}
-	const response = await fetch(`${baseUrl}/api/v1/obsidian/license/deactivate`, {
+	const response = await requestUrl({
+		url: `${baseUrl}/api/v1/obsidian/license/deactivate`,
 		method: "POST",
 		headers: {"Content-Type": "application/json"},
 		body: JSON.stringify({
@@ -112,10 +115,10 @@ export async function deactivateLicense(
 			vault_id: request.vaultId,
 		}),
 	});
-	if (!response.ok) {
+	if (response.status < 200 || response.status >= 300) {
 		throw new Error(`License deactivation failed: HTTP ${response.status}`);
 	}
-	const data = await response.json() as {code?: number; data?: {deactivated?: boolean}};
+	const data = response.json as {code?: number; data?: {deactivated?: boolean}};
 	if (data.code !== 0) {
 		return false;
 	}

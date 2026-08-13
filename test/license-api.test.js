@@ -2,29 +2,51 @@ const assert = require("assert");
 const path = require("path");
 const esbuild = require("esbuild");
 
-async function loadModule() {
+async function loadModule(requestUrl) {
   const source = path.join(__dirname, "..", "src", "license", "license-api.ts");
   const result = await esbuild.build({
     entryPoints: [source],
     bundle: true,
     platform: "node",
     format: "cjs",
+    external: ["obsidian"],
     write: false,
   });
   const module = { exports: {} };
   const fn = new Function("module", "exports", "require", result.outputFiles[0].text);
-  fn(module, module.exports, require);
+  fn(module, module.exports, (specifier) => specifier === "obsidian" ? {requestUrl} : require(specifier));
   return module.exports;
 }
 
 (async () => {
+  const calls = [];
+  const requestUrl = async (options) => {
+    calls.push(options);
+    if (options.url.endsWith("/validate")) {
+      return {
+        status: 200,
+        json: {
+          code: 0,
+          data: {
+            status: "active",
+            plan: "personal_lifetime",
+            max_pages: 60000,
+            expires_at: null,
+            validated_at: "2026-06-08T00:00:00.000Z",
+            grace_days: 14,
+          },
+        },
+      };
+    }
+    return {status: 200, json: {code: 0, data: {status: "deactivated", deactivated: true}}};
+  };
   const {
     LICENSE_REFRESH_INTERVAL_DAYS,
     deactivateLicense,
     mapValidationResponseToLicenseState,
     refreshCachedLicense,
     shouldRefreshLicense,
-  } = await loadModule();
+  } = await loadModule(requestUrl);
   const now = new Date("2026-06-01T00:00:00.000Z");
   const state = mapValidationResponseToLicenseState({
     code: 0,
@@ -73,24 +95,7 @@ async function loadModule() {
   }, new Date("2026-06-08T00:00:00.000Z")), false);
 
   const originalFetch = global.fetch;
-  const calls = [];
-  global.fetch = async (url, options) => {
-    calls.push({ url, body: JSON.parse(options.body) });
-    return {
-      ok: true,
-      json: async () => ({
-        code: 0,
-        data: {
-          status: "active",
-          plan: "personal_lifetime",
-          max_pages: 60000,
-          expires_at: null,
-          validated_at: "2026-06-08T00:00:00.000Z",
-          grace_days: 14,
-        },
-      }),
-    };
-  };
+  global.fetch = async () => { throw new Error("global fetch must not be used for License API requests"); };
   const refreshed = await refreshCachedLicense("https://license.example.com/", {
     ...state,
     validatedAt: "2026-06-01T00:00:00.000Z",
@@ -101,14 +106,14 @@ async function loadModule() {
   }, new Date("2026-06-08T00:00:00.000Z"));
   assert.strictEqual(calls.length, 1);
   assert.strictEqual(calls[0].url, "https://license.example.com/api/v1/obsidian/license/validate");
-  assert.strictEqual(calls[0].body.license_key, "ANALOGY-1234-5678-9K2Q");
+  assert.strictEqual(calls[0].method, "POST");
+  assert.strictEqual(calls[0].headers["Content-Type"], "application/json");
+  assert.strictEqual(JSON.parse(calls[0].body).license_key, "ANALOGY-1234-5678-9K2Q");
   assert.strictEqual(refreshed.maxPages, 60000);
   assert.strictEqual(refreshed.licenseKey, "ANALOGY-1234-5678-9K2Q");
 
-  global.fetch = async () => {
-    throw new Error("offline");
-  };
-  const preserved = await refreshCachedLicense("https://license.example.com", {
+  const offlineModule = await loadModule(async () => { throw new Error("offline"); });
+  const preserved = await offlineModule.refreshCachedLicense("https://license.example.com", {
     ...state,
     validatedAt: "2026-06-01T00:00:00.000Z",
   }, {
@@ -121,19 +126,6 @@ async function loadModule() {
     validatedAt: "2026-06-01T00:00:00.000Z",
   });
 
-  global.fetch = async (url, options) => {
-    calls.push({ url, body: JSON.parse(options.body) });
-    return {
-      ok: true,
-      json: async () => ({
-        code: 0,
-        data: {
-          status: "deactivated",
-          deactivated: true,
-        },
-      }),
-    };
-  };
   const deactivated = await deactivateLicense("https://license.example.com/", {
     licenseKey: "ANALOGY-1234-5678-9K2Q",
     deviceId: "device-1",
@@ -141,7 +133,7 @@ async function loadModule() {
   });
   assert.strictEqual(deactivated, true);
   assert.strictEqual(calls[calls.length - 1].url, "https://license.example.com/api/v1/obsidian/license/deactivate");
-  assert.deepStrictEqual(calls[calls.length - 1].body, {
+  assert.deepStrictEqual(JSON.parse(calls[calls.length - 1].body), {
     license_key: "ANALOGY-1234-5678-9K2Q",
     device_id: "device-1",
     vault_id: "vault-1",
