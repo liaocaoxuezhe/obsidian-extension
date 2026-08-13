@@ -82,9 +82,11 @@ Indexes created by older Analogy versions may lack stable chunk identity, headin
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run dev
 ```
+
+`npm run dev` 只用于源码开发，不能把其 Development Bundle 当作真实 Vault 验收产物。真实 Obsidian 测试必须按照 [local-build-testing.md](docs/local-build-testing.md) 执行 `npm run build:local`；根命令 `npm run build` 会被门禁拒绝。
 
 Build for CI without deploying to Obsidian or creating release assets:
 
