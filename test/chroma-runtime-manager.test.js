@@ -274,6 +274,160 @@ test("identity mismatch isolates a stale lease without terminating that PID", as
   assert.equal(spawns, 1);
 });
 
+test("unhealthy verified lease exits before a replacement opens the same Vault database", async (t) => {
+  const { ChromaRuntimeManager } = runtimeModule();
+  const dataPath = await temporaryDataPath(t);
+  let now = 0;
+  let oldProcessExists = true;
+  let terminationRequested = false;
+  let probes = 0;
+  const leaseStore = {
+    runtimeVaultId: "vault-v2-0123456789abcdef",
+    value: {
+      schemaVersion: 1,
+      runtimeVaultId: "vault-v2-0123456789abcdef",
+      pid: 7777,
+      port: 8000,
+      executablePath: "/runtime/chroma",
+      dataPath,
+      runtimeVersion: "cli-1.4.4",
+      startedAt: 1,
+      token: "d".repeat(32),
+    },
+    async read() { return this.value; },
+    async publish(value) { this.value = value; },
+    async clearIfTokenMatches(token) {
+      if (this.value?.token !== token) return false;
+      this.value = null;
+      return true;
+    },
+    async isolate() { this.value = null; },
+  };
+  const manager = new ChromaRuntimeManager({
+    now: () => now,
+    stopTimeoutMs: 500,
+    leaseStore,
+    processExists: (pid) => pid === 7777 ? oldProcessExists : true,
+    inspectProcessIdentity: async () => true,
+    terminateProcess: async (pid) => {
+      assert.equal(pid, 7777);
+      terminationRequested = true;
+    },
+    waitMs: async (ms) => {
+      now += ms;
+      if (terminationRequested && now >= 200) oldProcessExists = false;
+    },
+    probeHealth: async () => (++probes === 1
+      ? { healthy: false, compatible: false, version: null }
+      : { healthy: true, compatible: true, version: "1.0.0" }),
+    isPortAvailable: async () => true,
+    spawn: () => {
+      assert.equal(oldProcessExists, false, "replacement must wait until the old process releases the database");
+      return new FakeChild();
+    },
+  });
+
+  const state = await manager.start({
+    executablePath: "/runtime/chroma",
+    dataPath,
+    runtimeVersion: "cli-1.4.4",
+  });
+
+  assert.equal(state.ownership, "analogy");
+  assert.equal(terminationRequested, true);
+  await manager.stopOwnedProcess();
+});
+
+test("unhealthy verified lease times out with a frozen clock instead of spinning forever", async (t) => {
+  const { ChromaRuntimeManager } = runtimeModule();
+  const dataPath = await temporaryDataPath(t);
+  let waits = 0;
+  let spawns = 0;
+  const leaseStore = {
+    runtimeVaultId: "vault-v2-0123456789abcdef",
+    value: {
+      schemaVersion: 1,
+      runtimeVaultId: "vault-v2-0123456789abcdef",
+      pid: 7777,
+      port: 8000,
+      executablePath: "/runtime/chroma",
+      dataPath,
+      runtimeVersion: "cli-1.4.4",
+      startedAt: 1,
+      token: "e".repeat(32),
+    },
+    async read() { return this.value; },
+    async publish(value) { this.value = value; },
+    async clearIfTokenMatches() { return false; },
+    async isolate() { this.value = null; },
+  };
+  const manager = new ChromaRuntimeManager({
+    now: () => 0,
+    stopTimeoutMs: 500,
+    leaseStore,
+    processExists: () => true,
+    inspectProcessIdentity: async () => true,
+    terminateProcess: async () => {},
+    waitMs: async () => { waits += 1; },
+    probeHealth: async () => ({ healthy: false, compatible: false, version: null }),
+    isPortAvailable: async () => true,
+    spawn: () => { spawns += 1; return new FakeChild(); },
+  });
+
+  await assert.rejects(
+    manager.start({ executablePath: "/runtime/chroma", dataPath, runtimeVersion: "cli-1.4.4" }),
+    (error) => error.code === "CHROMA_STOP_FAILED",
+  );
+  assert.equal(waits, 5);
+  assert.equal(spawns, 0);
+});
+
+test("unhealthy lease is reverified before termination to avoid killing a reused PID", async (t) => {
+  const { ChromaRuntimeManager } = runtimeModule();
+  const dataPath = await temporaryDataPath(t);
+  let identityChecks = 0;
+  let isolated = 0;
+  let terminated = 0;
+  let spawns = 0;
+  let probes = 0;
+  const leaseStore = {
+    runtimeVaultId: "vault-v2-0123456789abcdef",
+    value: {
+      schemaVersion: 1,
+      runtimeVaultId: "vault-v2-0123456789abcdef",
+      pid: 7777,
+      port: 8000,
+      executablePath: "/runtime/chroma",
+      dataPath,
+      runtimeVersion: "cli-1.4.4",
+      startedAt: 1,
+      token: "f".repeat(32),
+    },
+    async read() { return this.value; },
+    async publish(value) { this.value = value; },
+    async clearIfTokenMatches() { return false; },
+    async isolate() { isolated += 1; this.value = null; },
+  };
+  const manager = new ChromaRuntimeManager({
+    leaseStore,
+    processExists: () => true,
+    inspectProcessIdentity: async () => ++identityChecks === 1,
+    terminateProcess: async () => { terminated += 1; },
+    probeHealth: async () => (++probes === 1
+      ? { healthy: false, compatible: false, version: null }
+      : { healthy: true, compatible: true, version: "1.0.0" }),
+    isPortAvailable: async () => true,
+    spawn: () => { spawns += 1; return new FakeChild(); },
+  });
+
+  await manager.start({ executablePath: "/runtime/chroma", dataPath, runtimeVersion: "cli-1.4.4" });
+  assert.equal(identityChecks, 2);
+  assert.equal(isolated, 1);
+  assert.equal(terminated, 0);
+  assert.equal(spawns, 1);
+  await manager.stopOwnedProcess();
+});
+
 test("managed start spawns the installed executable directly with literal arguments", async (t) => {
   const { ChromaRuntimeManager } = runtimeModule();
   const dataPath = await temporaryDataPath(t);

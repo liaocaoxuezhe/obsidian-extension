@@ -836,7 +836,18 @@ export class ChromaRuntimeManager {
       };
       return this.getState();
     }
+    if (!this.processExists(lease.pid)) {
+      await store.clearIfTokenMatches(lease.token);
+      return null;
+    }
+    if (!await this.inspectLease(lease)) {
+      await store.isolate(lease);
+      return null;
+    }
     await this.terminateLeaseProcess(lease);
+    if (!await this.waitForProcessExit(lease.pid, this.stopTimeoutMs)) {
+      throw errorWithCode("CHROMA_STOP_FAILED", `PID ${lease.pid} is still running`);
+    }
     await store.clearIfTokenMatches(lease.token);
     return null;
   }
@@ -852,6 +863,17 @@ export class ChromaRuntimeManager {
   private async terminateLeaseProcess(lease: PersistedChromaProcessLease): Promise<void> {
     if (this.hooks.terminateProcess) await this.hooks.terminateProcess(lease.pid);
     else process.kill(lease.pid, this.platform === "win32" ? undefined : "SIGTERM");
+  }
+
+  private async waitForProcessExit(pid: number, timeoutMs: number): Promise<boolean> {
+    let remainingMs = Math.max(0, timeoutMs);
+    while (this.processExists(pid) && remainingMs > 0) {
+      const delayMs = Math.min(100, remainingMs);
+      await (this.hooks.waitMs?.(delayMs)
+        ?? new Promise((resolve) => setTimeout(resolve, delayMs)));
+      remainingMs -= delayMs;
+    }
+    return !this.processExists(pid);
   }
 
   private async terminateAdoptedLease(lease: PersistedChromaProcessLease): Promise<void> {
