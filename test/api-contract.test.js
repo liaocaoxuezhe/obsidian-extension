@@ -28,7 +28,11 @@ async function loadLicenseApi() {
     external: ["obsidian"],
   });
   const module = {exports: {}};
-  new Function("module", "exports", "require", result.outputFiles[0].text)(module, module.exports, require);
+  new Function("module", "exports", "require", result.outputFiles[0].text)(
+    module,
+    module.exports,
+    (specifier) => specifier === "obsidian" ? {requestUrl: async () => { throw new Error("unused"); }} : require(specifier)
+  );
   return module.exports;
 }
 
