@@ -82,6 +82,7 @@ export async function validateLicense(
 	const response = await requestUrl({
 		url: `${baseUrl}/api/v1/obsidian/license/validate`,
 		method: "POST",
+		throw: false,
 		headers: {"Content-Type": "application/json"},
 		body: JSON.stringify({
 			license_key: request.licenseKey,
@@ -108,6 +109,7 @@ export async function deactivateLicense(
 	const response = await requestUrl({
 		url: `${baseUrl}/api/v1/obsidian/license/deactivate`,
 		method: "POST",
+		throw: false,
 		headers: {"Content-Type": "application/json"},
 		body: JSON.stringify({
 			license_key: request.licenseKey,

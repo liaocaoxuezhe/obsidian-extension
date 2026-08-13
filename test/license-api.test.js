@@ -107,6 +107,7 @@ async function loadModule(requestUrl) {
   assert.strictEqual(calls.length, 1);
   assert.strictEqual(calls[0].url, "https://license.example.com/api/v1/obsidian/license/validate");
   assert.strictEqual(calls[0].method, "POST");
+  assert.strictEqual(calls[0].throw, false);
   assert.strictEqual(calls[0].headers["Content-Type"], "application/json");
   assert.strictEqual(JSON.parse(calls[0].body).license_key, "ANALOGY-1234-5678-9K2Q");
   assert.strictEqual(refreshed.maxPages, 60000);
@@ -133,11 +134,30 @@ async function loadModule(requestUrl) {
   });
   assert.strictEqual(deactivated, true);
   assert.strictEqual(calls[calls.length - 1].url, "https://license.example.com/api/v1/obsidian/license/deactivate");
+  assert.strictEqual(calls[calls.length - 1].throw, false);
   assert.deepStrictEqual(JSON.parse(calls[calls.length - 1].body), {
     license_key: "ANALOGY-1234-5678-9K2Q",
     device_id: "device-1",
     vault_id: "vault-1",
   });
+
+  const httpErrorCalls = [];
+  const httpErrorModule = await loadModule(async (options) => {
+    httpErrorCalls.push(options);
+    return {status: options.url.endsWith("/validate") ? 503 : 429, json: {code: 5000}};
+  });
+  await assert.rejects(() => httpErrorModule.validateLicense("https://license.example.com", {
+    licenseKey: "ANALOGY-1234-5678-9K2Q",
+    deviceId: "device-1",
+    vaultId: "vault-1",
+    pluginVersion: "1.2.6",
+  }), /License validation failed: HTTP 503/);
+  await assert.rejects(() => httpErrorModule.deactivateLicense("https://license.example.com", {
+    licenseKey: "ANALOGY-1234-5678-9K2Q",
+    deviceId: "device-1",
+    vaultId: "vault-1",
+  }), /License deactivation failed: HTTP 429/);
+  assert.deepStrictEqual(httpErrorCalls.map((call) => call.throw), [false, false]);
 
   global.fetch = originalFetch;
 
