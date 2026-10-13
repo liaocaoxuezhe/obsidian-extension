@@ -94,6 +94,17 @@ jobs:
           if-no-files-found: error
       - name: Build native embedding runtime
         run: node scripts/build-embedding-runtime.mjs --platform ${{ matrix.platform }} --arch ${{ matrix.arch }} --node-version 22.23.2 --output dist/runtime
+      # Hosted Windows runners already have the VC++ runtime, so they cannot prove a clean
+      # machine works; at least prove the app-local copies are inside the shipped archive.
+      - name: Verify the app-local Visual C++ runtime is packed
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          archive=$(ls dist/runtime/analogy-embedding-runtime-*-win32-x64.zip | head -n 1)
+          entries=$(tar -tf "$archive")
+          for dll in msvcp140.dll vcruntime140.dll vcruntime140_1.dll; do
+            echo "$entries" | grep -q "onnxruntime-node/bin/napi-v6/win32/x64/$dll" || { echo "::error::$dll missing from $archive"; exit 1; }
+          done
       - name: Run fresh-cache native inference smoke
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: node scripts/run-native-runtime-smoke.mjs --platform ${{ matrix.key }} --input dist/runtime --output dist/runtime/native-smoke-statement.json

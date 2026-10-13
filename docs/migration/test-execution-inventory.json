@@ -2196,6 +2196,20 @@
         "model files import offline from a folder only when every file verifies"
       ],
       "testNamesSource": "install-reliability-p0-p1"
+    },
+    {
+      "path": "test/vc-runtime-bundle.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [],
+      "testNames": [
+        "the Visual C++ runtime is found in the Visual Studio redistributable folder only",
+        "the runtime DLLs are copied next to onnxruntime_binding.node"
+      ],
+      "testNamesSource": "install-reliability-p0-p1"
     }
   ],
   "platformSkips": [

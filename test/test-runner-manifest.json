@@ -82,7 +82,8 @@
         "test/chroma-sqlite-import.test.js",
         "test/sqlite-backend-lifecycle.test.js",
         "test/embedding-failure-classification.test.js",
-        "test/download-resilience.test.js"
+        "test/download-resilience.test.js",
+        "test/vc-runtime-bundle.test.js"
       ]
     },
     "runtime": {

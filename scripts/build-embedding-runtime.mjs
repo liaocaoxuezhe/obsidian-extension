@@ -13,10 +13,11 @@ import { installOrtNativeOverlay, verifyOrtNativeOverlay } from "./runtime-nativ
 import { compareUtf8Bytes as compareUtf8ByteOrder } from "./runtime-archive.mjs";
 import { validateRuntimeLockfile } from "./runtime-lockfile-validator.mjs";
 import { LICENSE_CATALOG_SHA256 } from "./runtime-package-validator.mjs";
+import { VC_RUNTIME_NOTICE, bundleVisualCppRuntime, resolveVisualCppRuntimeDirectory } from "./vc-runtime-bundle.mjs";
 
 const execFileAsync = promisify(execFile);
 const REQUIRED_OPTIONS = ["platform", "arch", "node-version", "output"];
-const OPTIONAL_OPTIONS = ["ort-native-overlay"];
+const OPTIONAL_OPTIONS = ["ort-native-overlay", "vc-redist-dir"];
 const RUNTIME_VERSION = "node22-v1";
 const PACK_ROOT_NAME = `analogy-embedding-runtime-${RUNTIME_VERSION}`;
 const NORMALIZED_MTIME = new Date("2000-01-01T00:00:00.000Z");
@@ -641,6 +642,16 @@ async function main() {
       );
     }
     await pruneRuntimeTree(installedNodeModules, options.platform, options.arch);
+    let bundledVcRuntime = false;
+    if (options.platform === "win32") {
+      // Clean Windows machines often lack the VC++ runtime; ship it next to the binding.
+      const vcRuntimeDirectory = resolveVisualCppRuntimeDirectory({ explicit: options["vc-redist-dir"] ?? null });
+      await bundleVisualCppRuntime(
+        vcRuntimeDirectory,
+        path.join(installedNodeModules, "onnxruntime-node", "bin", "napi-v6", "win32", options.arch),
+      );
+      bundledVcRuntime = true;
+    }
     const transformersPackage = readJson(path.join(installedNodeModules, "@huggingface", "transformers", "package.json"));
     const onnxRuntimePackage = readJson(path.join(installedNodeModules, "onnxruntime-node", "package.json"));
     if (transformersPackage.version !== "4.2.0" || onnxRuntimePackage.version !== "1.26.0") {
@@ -655,7 +666,11 @@ async function main() {
       packages: installedPackages,
       licenseCatalog,
     });
-    await fs.promises.writeFile(path.join(packRoot, "THIRD_PARTY_NOTICES.txt"), notices, "utf8");
+    await fs.promises.writeFile(
+      path.join(packRoot, "THIRD_PARTY_NOTICES.txt"),
+      bundledVcRuntime ? `${notices}\n${VC_RUNTIME_NOTICE}\n` : notices,
+      "utf8",
+    );
     await fs.promises.rename(installedNodeModules, path.join(packRoot, "node_modules"));
 
     const files = await collectFileHashes(packRoot);

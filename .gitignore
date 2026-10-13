@@ -84,6 +84,7 @@ test/*
 !test/sqlite-backend-lifecycle.test.js
 !test/embedding-failure-classification.test.js
 !test/download-resilience.test.js
+!test/vc-runtime-bundle.test.js
 !test/embedding-runtime-release-chain.test.js
 !test/embedding-service-safety.test.js
 !test/embedding-worker-environment.test.js
