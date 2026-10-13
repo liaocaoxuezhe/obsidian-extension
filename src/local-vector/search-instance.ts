@@ -1,5 +1,5 @@
 import { EmbeddingService } from "./embedding-service";
-import { LocalVectorStore } from "./vector-store";
+import type { VectorStore } from "./vector-store";
 import { LocalSemanticSearch } from "./search";
 import { DocumentIndexer } from "./document-indexer";
 import type { ChromaProcessManager } from "./chroma-process";
@@ -42,7 +42,7 @@ export type ChromaProcessController = Pick<
 
 export const searchInstance = {
   embeddingService: null as EmbeddingService | null,
-  vectorStore: null as LocalVectorStore | null,
+  vectorStore: null as VectorStore | null,
   localSearch: null as LocalSemanticSearch | null,
   documentIndexer: null as DocumentIndexer | null,
   chromaManager: null as ChromaProcessController | null,
@@ -104,7 +104,7 @@ export function updateOnboardingState(updates: Partial<OnboardingState>): void {
 
 export function initLocalVectorServices(
   embedding: EmbeddingService | null,
-  store: LocalVectorStore | null,
+  store: VectorStore | null,
   indexer: DocumentIndexer | null,
   chromaManager: ChromaProcessController | null,
   state: Partial<ServiceState>,

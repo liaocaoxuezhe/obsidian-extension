@@ -13,6 +13,9 @@ import { normalizeEmbeddingInitializationProgress } from "./embedding";
 import type { EmbeddingPooling } from "./embedding";
 import { createRequire } from "module";
 import * as path from "path";
+import { runVectorStoreWorker } from "./vector-store-worker";
+import { classifyEmbeddingFailure, type EmbeddingFailureStage } from "./embedding-failure";
+import { VECTOR_STORE_WORKER_ROLE } from "./vector-store-protocol";
 
 interface ExtractorLike {
   (
@@ -31,6 +34,8 @@ function logError(message: string, err?: unknown): void {
 }
 
 async function handleInitialize(req: WorkerInitializeRequest): Promise<WorkerResponse> {
+  // Track the step in flight so a failure reports where it really happened.
+  let stage: EmbeddingFailureStage = "native-load";
   try {
     const moduleRoot = process.env.ANALOGY_RUNTIME_MODULE_ROOT;
     if (!moduleRoot || !path.isAbsolute(moduleRoot)) {
@@ -39,7 +44,13 @@ async function handleInitialize(req: WorkerInitializeRequest): Promise<WorkerRes
     const runtimeRequire = createRequire(path.join(moduleRoot, "package.json"));
     runtimeRequire(path.join(moduleRoot, "onnxruntime-node"));
     const transformers = runtimeRequire(path.join(moduleRoot, "@huggingface", "transformers"));
-    if (req.modelHost) {
+    stage = req.localFilesOnly ? "session-build" : "model-download";
+    if (req.localFilesOnly) {
+      transformers.env.allowRemoteModels = false;
+      transformers.env.allowLocalModels = true;
+      transformers.env.localModelPath = req.cacheDir;
+      transformers.env.useFSCache = false;
+    } else if (req.modelHost) {
       transformers.env.remoteHost = req.modelHost;
       transformers.env.remotePathTemplate = "{model}/resolve/{revision}/";
     }
@@ -47,7 +58,8 @@ async function handleInitialize(req: WorkerInitializeRequest): Promise<WorkerRes
     extractor = await transformers.pipeline("feature-extraction", req.modelId, {
       dtype: req.dtype || "q8",
       cache_dir: req.cacheDir,
-      ...(req.modelRevision ? { revision: req.modelRevision } : {}),
+      ...(req.localFilesOnly ? { local_files_only: true } : {}),
+      ...(req.modelRevision && !req.localFilesOnly ? { revision: req.modelRevision } : {}),
       progress_callback: (progressInfo: unknown) => {
         const progress = normalizeEmbeddingInitializationProgress(progressInfo);
         if (!progress) return;
@@ -71,10 +83,12 @@ async function handleInitialize(req: WorkerInitializeRequest): Promise<WorkerRes
     return { id: req.id, ok: true };
   } catch (err) {
     logError("initialize failed", err);
+    const message = (err as Error)?.message ?? String(err);
+    const failure = classifyEmbeddingFailure(message, stage, [(err as { code?: string })?.code]);
     return {
       id: req.id,
       ok: false,
-      error: { code: "WORKER_INIT_FAILED", message: (err as Error).message },
+      error: { code: failure.code, message, subStage: failure.subStage, evidence: failure.evidence },
     };
   }
 }
@@ -102,10 +116,17 @@ async function handleEmbed(req: WorkerEmbedRequest): Promise<WorkerResponse> {
     return { id: req.id, ok: true, embeddings, memoryUsage: getMemoryUsage() };
   } catch (err) {
     logError("embed failed", err);
+    const message = (err as Error)?.message ?? String(err);
+    const failure = classifyEmbeddingFailure(message, "inference", [(err as { code?: string })?.code]);
     return {
       id: req.id,
       ok: false,
-      error: { code: "WORKER_EMBED_FAILED", message: (err as Error).message },
+      error: {
+        code: failure.code === "EMBEDDING_MODEL_OOM" ? failure.code : "WORKER_EMBED_FAILED",
+        message,
+        subStage: failure.subStage,
+        evidence: failure.evidence,
+      },
     };
   }
 }
@@ -156,35 +177,44 @@ async function handleRequest(req: WorkerRequest): Promise<WorkerResponse> {
   }
 }
 
-let buffer = "";
-process.stdin.setEncoding("utf-8");
-process.stdin.on("data", async (chunk: string) => {
-  buffer += chunk;
-  let lines = buffer.split("\n");
-  buffer = lines.pop() || "";
-  for (const line of lines) {
-    const req = decodeMessage(line);
-    if (!req) continue;
-    const response = await handleRequest(req as WorkerRequest);
-    process.stdout.write(encodeMessage(response));
-  }
-});
-
-process.stdin.on("end", () => {
-  if (buffer.trim()) {
-    const req = decodeMessage(buffer);
-    if (req) {
-      handleRequest(req as WorkerRequest).then((response) => {
-        process.stdout.write(encodeMessage(response));
-        process.exit(0);
-      });
-      return;
+function runEmbeddingWorker(): void {
+  let buffer = "";
+  process.stdin.setEncoding("utf-8");
+  process.stdin.on("data", async (chunk: string) => {
+    buffer += chunk;
+    let lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+    for (const line of lines) {
+      const req = decodeMessage(line);
+      if (!req) continue;
+      const response = await handleRequest(req as WorkerRequest);
+      process.stdout.write(encodeMessage(response));
     }
-  }
-  process.exit(0);
-});
+  });
 
-process.on("uncaughtException", (err) => {
-  logError("uncaughtException", err);
-  process.exit(1);
-});
+  process.stdin.on("end", () => {
+    if (buffer.trim()) {
+      const req = decodeMessage(buffer);
+      if (req) {
+        handleRequest(req as WorkerRequest).then((response) => {
+          process.stdout.write(encodeMessage(response));
+          process.exit(0);
+        });
+        return;
+      }
+    }
+    process.exit(0);
+  });
+
+  process.on("uncaughtException", (err) => {
+    logError("uncaughtException", err);
+    process.exit(1);
+  });
+}
+
+// One immutable worker bundle serves both child processes; the role decides which loop runs.
+if (process.env.ANALOGY_WORKER_ROLE === VECTOR_STORE_WORKER_ROLE) {
+  runVectorStoreWorker();
+} else {
+  runEmbeddingWorker();
+}

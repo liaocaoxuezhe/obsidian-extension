@@ -7,6 +7,12 @@ import { RuntimeAsset } from "./runtime-types";
 
 const MAX_REDIRECTS = 5;
 const PROGRESS_INTERVAL_MS = 100;
+/** A download that receives no bytes for this long is treated as stalled. */
+export const DEFAULT_STALL_TIMEOUT_MS = 60_000;
+const CONNECT_TIMEOUT_MS = 30_000;
+
+/** The subset of an asset the downloader needs; model files reuse it too. */
+export type DownloadableAsset = Pick<RuntimeAsset, "id" | "url" | "size" | "sha256">;
 
 export interface DownloadProgress {
   receivedBytes: number;
@@ -40,11 +46,19 @@ export type RuntimeRequest = (
 ) => Promise<RuntimeDownloadResponse>;
 
 export interface DownloadRuntimeAssetInput {
-  asset: RuntimeAsset;
+  asset: DownloadableAsset;
   partPath: string;
   signal: AbortSignal;
   onProgress?: (progress: DownloadProgress) => void;
   request?: RuntimeRequest;
+  /**
+   * Transports tried in order. When one fails with a network error or stalls, the
+   * download resumes from the partial file with the next transport.
+   */
+  requests?: RuntimeRequest[];
+  /** Mirrors serving byte-identical content; verified by size and SHA-256. */
+  alternateUrls?: string[];
+  stallTimeoutMs?: number;
   now?: () => number;
 }
 
@@ -94,7 +108,7 @@ function isRedirect(statusCode: number): boolean {
     || statusCode === 307 || statusCode === 308;
 }
 
-async function defaultRequest(url: URL, options: RuntimeRequestOptions): Promise<RuntimeDownloadResponse> {
+export async function defaultRequest(url: URL, options: RuntimeRequestOptions): Promise<RuntimeDownloadResponse> {
   return new Promise((resolve, reject) => {
     const request = https.request(url, { method: "GET", headers: options.headers }, (response: IncomingMessage) => {
       cleanup();
@@ -102,6 +116,8 @@ async function defaultRequest(url: URL, options: RuntimeRequestOptions): Promise
     });
     const onAbort = () => request.destroy(downloadError("DOWNLOAD_CANCELLED"));
     const cleanup = () => options.signal.removeEventListener("abort", onAbort);
+    // Fail fast when no response headers arrive (unreachable host, silent firewall).
+    request.setTimeout(CONNECT_TIMEOUT_MS, () => request.destroy(downloadError("DOWNLOAD_STALLED")));
     options.signal.addEventListener("abort", onAbort, { once: true });
     request.once("error", (error) => {
       cleanup();
@@ -157,7 +173,7 @@ function assertRegular(stat: fs.Stats, errorCode: string): void {
   if (stat.isSymbolicLink() || !stat.isFile()) throw downloadError(errorCode);
 }
 
-function metadataMatchesAsset(metadata: DownloadMetadata, asset: RuntimeAsset): boolean {
+function metadataMatchesAsset(metadata: DownloadMetadata, asset: DownloadableAsset): boolean {
   return metadata.schemaVersion === 1
     && metadata.assetId === asset.id
     && metadata.sha256 === asset.sha256
@@ -213,7 +229,7 @@ async function readMetadataSafely(metaPath: string, expectedStat: fs.Stats): Pro
   }
 }
 
-async function prepareResumeState(asset: RuntimeAsset, partPath: string): Promise<ResumeState> {
+async function prepareResumeState(asset: DownloadableAsset, partPath: string): Promise<ResumeState> {
   const metaPath = `${partPath}.meta.json`;
   const [partStat, metaStat] = await Promise.all([optionalLstat(partPath), optionalLstat(metaPath)]);
   if (partStat) assertRegular(partStat, "DOWNLOAD_UNSAFE_PART");
@@ -292,8 +308,19 @@ async function streamToPart(
   signal: AbortSignal,
   onProgress: ((progress: DownloadProgress) => void) | undefined,
   now: () => number,
+  stallTimeoutMs: number = DEFAULT_STALL_TIMEOUT_MS,
 ): Promise<number> {
   let output: fs.WriteStream | null = null;
+  let stalled = false;
+  let stallTimer: ReturnType<typeof setTimeout> | null = null;
+  const armStallTimer = () => {
+    if (stallTimer) clearTimeout(stallTimer);
+    stallTimer = setTimeout(() => {
+      stalled = true;
+      response.destroy();
+      output?.destroy();
+    }, stallTimeoutMs);
+  };
   const startedAt = now();
   let lastPublishedAt = Number.NEGATIVE_INFINITY;
   let lastPublishedBytes = -1;
@@ -364,13 +391,17 @@ async function streamToPart(
     const openStat = await new Promise<fs.Stats>((resolve, reject) => fs.fstat(fd!, (error, stat) => error ? reject(error) : resolve(stat)));
     if (!openStat.isFile() || openStat.size !== startSize) throw downloadError("DOWNLOAD_PART_CHANGED");
     if (signal.aborted) throw downloadError("DOWNLOAD_CANCELLED");
+    armStallTimer();
     for await (const chunk of response) {
       if (signal.aborted) throw downloadError("DOWNLOAD_CANCELLED");
+      armStallTimer();
       const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as Uint8Array);
       receivedBytes += bytes.length;
       if (!output.write(bytes)) await once(output, "drain");
       publish();
     }
+    if (stalled) throw downloadError("DOWNLOAD_STALLED");
+    if (stallTimer) clearTimeout(stallTimer);
     const finished = once(output, "finish");
     output.end();
     await finished;
@@ -380,8 +411,17 @@ async function streamToPart(
     await publishFinal();
     return receivedBytes;
   } catch (error) {
+    if (stallTimer) clearTimeout(stallTimer);
     response.destroy();
     output?.destroy();
+    if (stalled && !signal.aborted) {
+      if (fd !== null) {
+        const fdToClose = fd;
+        await new Promise<void>((resolve) => fs.close(fdToClose, () => resolve()));
+        fd = null;
+      }
+      throw downloadError("DOWNLOAD_STALLED", error);
+    }
     if (fd !== null) {
       const fdToClose = fd;
       await new Promise<void>((resolve) => fs.close(fdToClose, () => resolve()));
@@ -410,10 +450,35 @@ async function acquireLock(lockPath: string): Promise<fs.promises.FileHandle> {
   }
 }
 
+/** Errors after which another transport or mirror may succeed. */
+function isRetryableTransportError(error: unknown): boolean {
+  const code = (error as { code?: unknown })?.code;
+  return code === "DOWNLOAD_NETWORK_ERROR" || code === "DOWNLOAD_STALLED"
+    || code === "DOWNLOAD_UNEXPECTED_STATUS" || code === "DOWNLOAD_TOO_MANY_REDIRECTS"
+    || code === "DOWNLOAD_INVALID_REDIRECT";
+}
+
 export async function downloadRuntimeAsset(input: DownloadRuntimeAssetInput): Promise<DownloadedAsset> {
+  if (input.signal.aborted) throw downloadError("DOWNLOAD_CANCELLED");
+  const transports = input.requests?.length ? input.requests : [input.request ?? defaultRequest];
+  const urls = [input.asset.url, ...(input.alternateUrls ?? []).filter((url) => url && url !== input.asset.url)];
+  let lastError: unknown = null;
+  for (const url of urls) {
+    for (const request of transports) {
+      try {
+        return await downloadOnce({ ...input, asset: { ...input.asset, url } }, request);
+      } catch (error) {
+        if (input.signal.aborted || !isRetryableTransportError(error)) throw error;
+        lastError = error;
+      }
+    }
+  }
+  throw lastError ?? downloadError("DOWNLOAD_NETWORK_ERROR");
+}
+
+async function downloadOnce(input: DownloadRuntimeAssetInput, request: RuntimeRequest): Promise<DownloadedAsset> {
   const { asset, partPath, signal, onProgress } = input;
   if (signal.aborted) throw downloadError("DOWNLOAD_CANCELLED");
-  const request = input.request ?? defaultRequest;
   const now = input.now ?? Date.now;
   const metaPath = `${partPath}.meta.json`;
   const lockPath = `${partPath}.lock`;
@@ -476,6 +541,7 @@ export async function downloadRuntimeAsset(input: DownloadRuntimeAssetInput): Pr
         const totalBytes = responseLength === null ? null : state.size + responseLength;
         const receivedBytes = await streamToPart(
           response, partPath, state.size, totalBytes, signal, onProgress, now,
+          input.stallTimeoutMs ?? DEFAULT_STALL_TIMEOUT_MS,
         );
         if (receivedBytes !== asset.size) throw downloadError("DOWNLOAD_SIZE_MISMATCH");
         return { path: partPath, metaPath, receivedBytes, etag, lastModified, resumed };

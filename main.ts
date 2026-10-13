@@ -1,11 +1,25 @@
-import {WorkspaceLeaf, Plugin, addIcon, TFile, Notice} from 'obsidian';
+import {WorkspaceLeaf, Plugin, addIcon, TFile, Notice, requestUrl} from 'obsidian';
+import {defaultRequest, type RuntimeRequest} from "./src/runtime/runtime-downloader";
+import {createChunkedTransport, type ProxyAwareFetch} from "./src/runtime/download-transport";
+import {importModelFiles, modelHosts} from "./src/local-vector/model-files";
 import { IndexView, VIEW_TYPE_INDEX } from './src/IndexView';
 import {AnalogySettings, DEFAULT_SETTINGS, AnalogySettingTab} from "./src/SettingView";
 import {icon} from "./src/model/Consts";
 import {EMBEDDING_MODELS, DEFAULT_MODEL_KEY} from "./src/local-vector/embedding";
 import {EmbeddingService} from "./src/local-vector/embedding-service";
 import {SafeModeManager, type SafeModeState} from "./src/local-vector/safe-mode";
-import {LocalVectorStore} from "./src/local-vector/vector-store";
+import {LocalVectorStore, type VectorStore} from "./src/local-vector/vector-store";
+import {SqliteVectorStore} from "./src/local-vector/sqlite-vector-store";
+import {collectEnvironmentFacts} from "./src/diagnostics/environment-facts";
+import {VectorStoreHost} from "./src/local-vector/vector-store-host";
+import type {VectorStoreOperation, VectorStoreOperations} from "./src/local-vector/vector-store-protocol";
+import {
+	isChromaImportSettled,
+	planChromaImport,
+	readChromaImportMarker,
+	runChromaImportIfNeeded,
+	type ChromaImportMarker,
+} from "./src/runtime/chroma-sqlite-import";
 import {DocumentIndexer, type RebuildProgress} from "./src/local-vector/document-indexer";
 import {DEFAULT_SUMMARY_PROMPT, DocumentSummarizer} from "./src/local-vector/document-summarizer";
 import {OllamaClient} from "./src/local-vector/ollama-client";
@@ -100,7 +114,7 @@ interface RuntimeLifecycle {
 }
 
 function environmentCanStartServices(report: EnvironmentReport): boolean {
-	return (report.chroma === "installed" || report.chroma === "running")
+	return (report.chroma === "installed" || report.chroma === "running" || report.chroma === "not-required")
 		&& report.embeddingRuntime === "ready"
 		&& report.embeddingModel === "ready"
 		&& report.index === "ready"
@@ -131,7 +145,7 @@ export default class Analogy extends Plugin {
 	settings: AnalogySettings;
 	chromaManager: LocalChromaServiceController | null = null;
 	embeddingService: EmbeddingService | null = null;
-	vectorStore: LocalVectorStore | null = null;
+	vectorStore: VectorStore | null = null;
 	documentIndexer: DocumentIndexer | null = null;
 	private initLocalServicesPromise: Promise<void> | null = null;
 	private localServiceBootstrap: LocalServiceBootstrap | null = null;
@@ -151,6 +165,16 @@ export default class Analogy extends Plugin {
 	private safeModeManager: SafeModeManager | null = null;
 	private semanticWalkActivationQueue: Promise<void> = Promise.resolve();
 	private mcpServerManager: McpServerManager | null = null;
+	private vectorStoreHost: VectorStoreHost | null = null;
+	private vectorStoreHostPromise: Promise<VectorStoreHost> | null = null;
+	private vectorStoreHostContext: {
+		embeddingRuntimeManager: EmbeddingRuntimeManager;
+		paths: RuntimePaths;
+		buildId: string;
+		workerBundleSource: string;
+	} | null = null;
+	private vectorStoreImportPromise: Promise<ChromaImportMarker> | null = null;
+	private managedNodePath: string | null = null;
 
 	getSafeModeState(): SafeModeState {
 		return this.safeModeManager?.getState() ?? {
@@ -447,7 +471,11 @@ export default class Analogy extends Plugin {
 		const paths = createRuntimePaths(resolveAnalogyLocalDataRoot(), runtimeVaultId);
 		this.runtimeVaultId = runtimeVaultId;
 		this.runtimePaths = paths;
-		const chromaDataMigration = new ChromaDataMigration({runtimeStatePath: paths.runtimeState});
+		const storePaths = this.getVectorStorePaths(paths);
+		const chromaDataMigration = new ChromaDataMigration({
+			runtimeStatePath: storePaths.runtimeState,
+			runtimeVaultId,
+		});
 		this.chromaDataMigration = chromaDataMigration;
 		const chromaRuntimeManager = new ChromaRuntimeManager({
 			leaseStore: new ChromaProcessLeaseStore({
@@ -468,6 +496,7 @@ export default class Analogy extends Plugin {
 			buildId,
 			workerBundleSource,
 		});
+		this.vectorStoreHostContext = {embeddingRuntimeManager, paths, buildId, workerBundleSource};
 		const onboardingStore = new OnboardingStore({ paths });
 		const modelKey = this.settings.embeddingModel || DEFAULT_MODEL_KEY;
 		const modelConfig = EMBEDDING_MODELS[modelKey] || EMBEDDING_MODELS[DEFAULT_MODEL_KEY];
@@ -479,7 +508,7 @@ export default class Analogy extends Plugin {
 				?? (state?.activeGeneration === "v2" && state.modelShortName === modelConfig.shortName
 					? state.scopeCompletion?.evidenceId : undefined);
 			const scopedStore = createDeviceLocalIndexStateStore(
-				paths.vaultRoot,
+				storePaths.root,
 				"v2",
 				modelConfig.shortName,
 				evidenceId,
@@ -487,7 +516,7 @@ export default class Analogy extends Plugin {
 			let indexState = await scopedStore.load();
 			const baseCollection = `analogy_${runtimeVaultId}_${modelConfig.shortName}`;
 			if (indexState === undefined && evidenceId && pending?.collectionName === baseCollection) {
-				const previousStore = createDeviceLocalIndexStateStore(paths.vaultRoot, "v2", modelConfig.shortName);
+				const previousStore = createDeviceLocalIndexStateStore(storePaths.root, "v2", modelConfig.shortName);
 				const previousState = await previousStore.load();
 				if (previousState) {
 					await scopedStore.save(previousState);
@@ -497,9 +526,10 @@ export default class Analogy extends Plugin {
 			return {state, pending, evidenceId, store: scopedStore, indexState: indexState ?? {}};
 		};
 		const detectFreshEnvironment = async (signal: AbortSignal) => {
+			// The SQLite store must own its state before anything reads index readiness.
+			await this.ensureVectorStoreImported({paths, platform, chromaRuntimeManager, signal});
 			const target = await loadTargetIndexState();
-			const processState = chromaRuntimeManager.getState();
-			const actualPort = processState.ownership === "analogy" ? processState.port : null;
+			const actualPort: number | null = null;
 			const completed = await chromaDataMigration.isCompletedFor({
 				modelShortName: modelConfig.shortName,
 				indexState: target.indexState,
@@ -508,7 +538,7 @@ export default class Analogy extends Plugin {
 			const report = await detectEnvironment({
 				platform,
 				paths,
-				chromaPort: actualPort ?? this.runtimePort,
+				vectorBackend: "sqlite",
 				modelCacheKey: modelConfig.shortName,
 				indexState: {
 					entries: completed ? 1 : Object.keys(target.indexState).length,
@@ -521,7 +551,7 @@ export default class Analogy extends Plugin {
 			if (report.index !== "legacy") return report;
 			const legacyDataPath = path.join(this.getPluginDir(), "chroma_data", this.getVaultId());
 			const legacyState = await createDeviceLocalIndexStateStore(
-				paths.vaultRoot, "legacy", modelConfig.shortName,
+				storePaths.root, "legacy", modelConfig.shortName,
 			).load().catch(() => undefined);
 			const estimatedRecords = legacyState
 				? Object.values(legacyState).reduce((sum, entry) => sum
@@ -560,6 +590,7 @@ export default class Analogy extends Plugin {
 				workerBundleSource,
 				managedRuntime,
 				allowInProcessFallback: false,
+				...this.modelFileOptions(),
 				recorder: this.diagnosticRecorder,
 				safeModeManager: this.safeModeManager,
 				onSafeModeEntered: () => this.handleSafeModeEntered(),
@@ -577,8 +608,8 @@ export default class Analogy extends Plugin {
 		let legacyCopyEvidence: LegacyVectorMigrationEvidence | null = null;
 		let legacyReconciliationEvidence: Awaited<ReturnType<DocumentIndexer["reconcileMigratedIndex"]>> | null = null;
 		let legacyEmbeddingService: EmbeddingService | null = null;
-		let legacyStagingStore: LocalVectorStore | null = null;
-		let legacySearchStore: LocalVectorStore | null = null;
+		let legacyStagingStore: VectorStore | null = null;
+		let legacySearchStore: VectorStore | null = null;
 		let legacyStagingIndexer: DocumentIndexer | null = null;
 		let legacyPendingIndexCount = 0;
 		let legacyCurrentIndexCount = 0;
@@ -610,9 +641,7 @@ export default class Analogy extends Plugin {
 		const quickIndex = new QuickIndexCoordinator({
 			vault: this.app.vault,
 			getDocumentIndexer: async () => {
-				const currentProcess = chromaRuntimeManager.getState();
-				const actualPort = this.chromaManager?.getPort()
-					?? (currentProcess.ownership === "analogy" ? currentProcess.port : this.runtimePort);
+				const actualPort = this.runtimePort;
 				const existingPending = await chromaDataMigration.resumePendingGeneration(
 					paths.root,
 					path.join(this.getPluginDir(), "chroma_data", this.getVaultId()),
@@ -621,7 +650,7 @@ export default class Analogy extends Plugin {
 					? await chromaDataMigration.publishActiveLease({...existingPending, port: actualPort})
 					: await chromaDataMigration.begin(
 						this.createActiveChromaGeneration(actualPort, modelConfig.shortName),
-						(collectionName) => new LocalVectorStore()
+						(collectionName) => this.createVectorStore()
 							.deleteCollectionByName(actualPort, collectionName),
 					);
 				const bootstrap = getOrCreateBootstrap();
@@ -635,7 +664,7 @@ export default class Analogy extends Plugin {
 							code: "QUICK_INDEX_EXISTING_SERVICE_UNAVAILABLE",
 						});
 					}
-					const stagingStore = new LocalVectorStore();
+					const stagingStore = this.createVectorStore();
 					await stagingStore.initialize(
 						actualPort,
 						this.runtimeVaultId,
@@ -647,7 +676,7 @@ export default class Analogy extends Plugin {
 						stagingStore,
 						this.app.vault,
 						createDeviceLocalIndexStateStore(
-							paths.vaultRoot,
+							storePaths.root,
 							"v2",
 							modelConfig.shortName,
 							transition.transitionToken,
@@ -697,20 +726,16 @@ export default class Analogy extends Plugin {
 				const candidate = await discoverLegacyRuntime({
 					pluginDir: this.getPluginDir(), legacyDataPath, platform,
 				});
-				const processState = chromaRuntimeManager.getState();
-				if (processState.ownership !== "analogy") {
-					throw Object.assign(new Error("LEGACY_MIGRATION_V2_RUNTIME_UNAVAILABLE"), {
-						code: "LEGACY_MIGRATION_V2_RUNTIME_UNAVAILABLE",
-					});
-				}
+				// Legacy data is copied into the SQLite store; no Chroma v2 process is involved.
+				const processState = {port: this.runtimePort};
 				const pending = await chromaDataMigration.resumePendingGeneration(paths.root, legacyDataPath);
 				legacyTransition = pending?.modelShortName === modelConfig.shortName
 					? await chromaDataMigration.publishActiveLease({...pending, port: processState.port})
 					: await chromaDataMigration.begin(
 						this.createActiveChromaGeneration(processState.port, modelConfig.shortName),
-						(name) => new LocalVectorStore().deleteCollectionByName(processState.port, name),
+						(name) => this.createVectorStore().deleteCollectionByName(processState.port, name),
 					);
-				legacyStagingStore = new LocalVectorStore();
+				legacyStagingStore = this.createVectorStore();
 				await legacyStagingStore.initialize(
 					processState.port, runtimeVaultId, modelConfig.shortName, legacyTransition.collectionName,
 				);
@@ -725,6 +750,7 @@ export default class Analogy extends Plugin {
 					workerBundleSource,
 					managedRuntime,
 					allowInProcessFallback: false,
+					...this.modelFileOptions(),
 					recorder: this.diagnosticRecorder,
 					safeModeManager: this.safeModeManager,
 					onSafeModeEntered: () => this.handleSafeModeEntered(),
@@ -735,7 +761,7 @@ export default class Analogy extends Plugin {
 				else signal.addEventListener("abort", () => legacyBridgeController?.abort(), {once: true});
 				const bridge = new LegacyChromaRuntimeBridge({
 					candidate,
-					stagingRoot: path.join(paths.vaultRoot, "legacy-migration"),
+					stagingRoot: path.join(storePaths.root, "legacy-migration"),
 					migrationId: crypto.createHash("sha256")
 						.update(`${runtimeVaultId}:${modelConfig.shortName}`, "utf8").digest("hex").slice(0, 32),
 					collectionName,
@@ -743,7 +769,7 @@ export default class Analogy extends Plugin {
 				});
 				legacySource = await bridge.prepare(legacyBridgeController.signal);
 				legacyVectorMigration = new LegacyVectorMigration({
-					checkpointPath: path.join(paths.vaultRoot, "legacy-vector-migration.json"),
+					checkpointPath: path.join(storePaths.root, "legacy-vector-migration.json"),
 					source: legacySource,
 					destination: {
 						upsertRecords: (records) => legacyStagingStore!.upsertRecords(records),
@@ -776,7 +802,7 @@ export default class Analogy extends Plugin {
 						}));
 					},
 					count: () => legacySource!.count(),
-				} as unknown as LocalVectorStore;
+				} as unknown as VectorStore;
 				initLocalVectorServices(legacyEmbeddingService, legacySearchStore, null, null, {
 					status: "ready", chromaManager: null, dbPath: "", port: legacySource.port,
 					embeddingStatus: "ready", vectorStoreStatus: "ready", modelDownloadProgress: 100,
@@ -795,7 +821,7 @@ export default class Analogy extends Plugin {
 					sourceBytes: legacySourceBytes,
 				}));
 				try {
-					const checkpoint = path.join(paths.vaultRoot, "legacy-vector-migration.json");
+					const checkpoint = path.join(storePaths.root, "legacy-vector-migration.json");
 					legacyCopyEvidence = fs.existsSync(checkpoint)
 						? await legacyVectorMigration.resume(signal)
 						: await legacyVectorMigration.start(signal);
@@ -814,7 +840,7 @@ export default class Analogy extends Plugin {
 					legacyStagingStore,
 					this.app.vault,
 					createDeviceLocalIndexStateStore(
-						paths.vaultRoot, "v2", modelConfig.shortName, legacyTransition.transitionToken,
+						storePaths.root, "v2", modelConfig.shortName, legacyTransition.transitionToken,
 					),
 					this.settings.excludedIndexPaths,
 				);
@@ -847,7 +873,7 @@ export default class Analogy extends Plugin {
 						collectionDocuments: legacyReconciliationEvidence.collectionDocuments,
 						chunkCount: legacyReconciliationEvidence.chunkCount,
 						smokeQuery: (query) => legacyStagingIndexer!.runSmokeQuery(query),
-						cleanupCollection: (name) => new LocalVectorStore()
+						cleanupCollection: (name) => this.createVectorStore()
 							.deleteCollectionByName(legacyTransition!.port, name),
 					},
 				);
@@ -907,8 +933,8 @@ export default class Analogy extends Plugin {
 			detectEnvironment: detectFreshEnvironment,
 			store: onboardingStore,
 			runtimes: {
-				chroma: createProductionRuntimePipeline({ asset: chromaAsset, paths }),
-				embedding: createProductionRuntimePipeline({ asset: embeddingAsset, paths }),
+				chroma: createProductionRuntimePipeline({ asset: chromaAsset, paths, requests: this.downloadTransports() }),
+				embedding: createProductionRuntimePipeline({ asset: embeddingAsset, paths, requests: this.downloadTransports() }),
 			},
 			chromaManager: chromaRuntimeManager,
 			chromaStartOptions: (installed) => ({
@@ -929,8 +955,7 @@ export default class Analogy extends Plugin {
 					}
 					const indexer = quickStagingIndexer ?? this.documentIndexer;
 					if (!indexer) throw new Error("INDEXER_UNAVAILABLE");
-					const migration = this.chromaDataMigration
-						?? new ChromaDataMigration({runtimeStatePath: paths.runtimeState});
+					const migration = this.chromaDataMigration ?? chromaDataMigration;
 					this.chromaDataMigration = migration;
 					const generation = await migration.resumePendingGeneration(
 						paths.root,
@@ -948,7 +973,7 @@ export default class Analogy extends Plugin {
 						collectionDocuments: evidence.collectionDocuments,
 						chunkCount: evidence.chunkCount,
 						smokeQuery: (query) => indexer.runSmokeQuery(query),
-						cleanupCollection: (collectionName) => new LocalVectorStore()
+						cleanupCollection: (collectionName) => this.createVectorStore()
 							.deleteCollectionByName(generation.port, collectionName),
 					});
 					if (quickTransitionBootstrap) {
@@ -1052,6 +1077,30 @@ export default class Analogy extends Plugin {
 			listLegacyRecoveries: () => legacyCleanup.listRecoveries(),
 			retryLegacyRecovery: (id) => legacyCleanup.retryRecovery(id),
 			restoreLegacyRecovery: (id) => legacyCleanup.restoreRecovery(id),
+			importRuntimeArchive: async (filePath: string) => {
+				// Work on a private copy so installer cleanup never touches the user's file.
+				await fs.promises.mkdir(paths.downloads, {recursive: true, mode: 0o700});
+				const copy = path.join(paths.downloads, `${embeddingAsset.id}.offline-import`);
+				await fs.promises.copyFile(filePath, copy);
+				try {
+					const pipeline = createProductionRuntimePipeline({asset: embeddingAsset, paths});
+					const downloaded = {path: copy, metaPath: `${copy}.meta.json`, receivedBytes: 0, etag: null, lastModified: null, resumed: false};
+					const verification = await pipeline.verify(downloaded);
+					if (verification && !verification.ok) {
+						throw Object.assign(new Error(verification.errorCode ?? "DOWNLOAD_HASH_MISMATCH"), {
+							code: verification.errorCode ?? "DOWNLOAD_HASH_MISMATCH",
+						});
+					}
+					await pipeline.install(downloaded);
+				} finally {
+					await fs.promises.rm(copy, {force: true}).catch(() => undefined);
+				}
+			},
+			importModelFolder: (directory: string) => importModelFiles(
+				modelConfig.shortName,
+				directory,
+				path.join(paths.modelCache, modelConfig.shortName),
+			),
 			discardLegacyMigration: async () => {
 				await legacyMigration.cancel();
 				const transition = legacyTransition ?? await chromaDataMigration.resumePendingGeneration(
@@ -1060,7 +1109,7 @@ export default class Analogy extends Plugin {
 				if (transition) {
 					await chromaDataMigration.discardPendingGeneration(
 						transition.transitionToken,
-						(name) => new LocalVectorStore().deleteCollectionByName(transition.port, name),
+						(name) => this.createVectorStore().deleteCollectionByName(transition.port, name),
 					);
 				}
 				await legacyVectorMigration?.discard();
@@ -1112,20 +1161,12 @@ export default class Analogy extends Plugin {
 		const modelConfig = EMBEDDING_MODELS[modelKey] || EMBEDDING_MODELS[DEFAULT_MODEL_KEY];
 		let serviceCollectionName: string | undefined;
 		let serviceEvidenceId: string | undefined;
+		const storeRoot = this.getVectorStorePaths(input.paths).root;
 		return new LocalServiceBootstrap({
 			resolveVerifiedRuntimes: async (signal) => {
-				const [chroma, embedding] = await Promise.all([
-					resolveVerifiedChromaRuntime({
-						paths: input.paths,
-						platform: input.platform,
-						signal,
-					}),
-					input.embeddingRuntimeManager.resolve(),
-				]);
+				const embedding = await input.embeddingRuntimeManager.resolve();
 				if (signal.aborted) throw new Error("LOCAL_SERVICE_BOOTSTRAP_CANCELLED");
-				const migration = this.chromaDataMigration
-					?? new ChromaDataMigration({runtimeStatePath: input.paths.runtimeState});
-				this.chromaDataMigration = migration;
+				const migration = this.getStoreMigration(input.paths);
 				const state = await migration.readOptional();
 				const pending = state?.pendingGeneration?.modelShortName === modelConfig.shortName
 					? state.pendingGeneration : null;
@@ -1142,32 +1183,26 @@ export default class Analogy extends Plugin {
 				if (serviceEvidenceId && pending?.collectionName
 					=== `analogy_${input.runtimeVaultId}_${modelConfig.shortName}`) {
 					const scopedStore = createDeviceLocalIndexStateStore(
-						input.paths.vaultRoot, "v2", modelConfig.shortName, serviceEvidenceId,
+						storeRoot, "v2", modelConfig.shortName, serviceEvidenceId,
 					);
 					if (await scopedStore.load() === undefined) {
 						const oldStore = createDeviceLocalIndexStateStore(
-							input.paths.vaultRoot, "v2", modelConfig.shortName,
+							storeRoot, "v2", modelConfig.shortName,
 						);
 						const oldState = await oldStore.load();
 						if (oldState) await scopedStore.save(oldState);
 					}
 				}
 				if (signal.aborted) throw new Error("LOCAL_SERVICE_BOOTSTRAP_CANCELLED");
-				return {
-					chroma: {
-						...chroma,
-						dataPath: input.paths.chromaDataV2,
-						preferredPort: this.runtimePort,
-					},
-					embedding,
-				};
+				return {chroma: null, embedding};
 			},
 			chromaManager: input.chromaRuntimeManager,
+			sqliteBackend: this.createSqliteBackend(input.paths),
 			vaultId: input.runtimeVaultId,
 			modelShortName: modelConfig.shortName,
 			maxInputChars: modelConfig.maxInputChars,
 			resolveCollectionName: async () => serviceCollectionName,
-			createVectorStore: () => new LocalVectorStore(),
+			createVectorStore: () => this.createVectorStore(),
 			createEmbeddingService: (managedRuntime) => new EmbeddingService({
 				cacheDir: path.join(input.paths.modelCache, modelConfig.shortName),
 				pluginDir: this.getPluginDir(),
@@ -1178,6 +1213,7 @@ export default class Analogy extends Plugin {
 				workerBundleSource: input.workerBundleSource,
 				managedRuntime,
 				allowInProcessFallback: false,
+				...this.modelFileOptions(),
 				recorder: this.diagnosticRecorder,
 				safeModeManager: this.safeModeManager,
 				onSafeModeEntered: () => this.handleSafeModeEntered(),
@@ -1199,10 +1235,10 @@ export default class Analogy extends Plugin {
 			},
 			createDocumentIndexer: (embedding, vectorStore) => new DocumentIndexer(
 				embedding as EmbeddingService,
-				vectorStore as LocalVectorStore,
+				vectorStore as VectorStore,
 				this.app.vault,
 				createDeviceLocalIndexStateStore(
-					input.paths.vaultRoot,
+					storeRoot,
 					"v2",
 					modelConfig.shortName,
 					serviceEvidenceId,
@@ -1236,6 +1272,223 @@ export default class Analogy extends Plugin {
 		});
 	}
 
+	/**
+	 * Direct Node HTTPS first; Obsidian's requestUrl second. The latter runs in
+	 * Electron's network stack and therefore follows the system proxy / PAC.
+	 */
+	private downloadTransports(): RuntimeRequest[] {
+		return [defaultRequest, createChunkedTransport(requestUrl as unknown as ProxyAwareFetch)];
+	}
+
+	private modelFileOptions() {
+		return {
+			manageModelFiles: true,
+			modelHosts: modelHosts(this.settings.embeddingModelHost),
+			downloadTransports: this.downloadTransports(),
+		};
+	}
+
+	/** Everything the SQLite store writes lives here; Chroma-era files stay untouched for rollback. */
+	private getVectorStorePaths(paths: RuntimePaths): {root: string; runtimeState: string; database: string} {
+		const root = path.join(paths.vaultRoot, "vector-store");
+		return {
+			root,
+			runtimeState: path.join(root, "runtime-state.json"),
+			database: path.join(root, "vectors.sqlite"),
+		};
+	}
+
+	private getStoreMigration(paths: RuntimePaths): ChromaDataMigration {
+		if (!this.chromaDataMigration) {
+			this.chromaDataMigration = new ChromaDataMigration({
+				runtimeStatePath: this.getVectorStorePaths(paths).runtimeState,
+				runtimeVaultId: paths.runtimeVaultId,
+			});
+		}
+		return this.chromaDataMigration;
+	}
+
+	private createVectorStore(): SqliteVectorStore {
+		return new SqliteVectorStore({
+			request: async <K extends VectorStoreOperation>(op: K, params: VectorStoreOperations[K]["params"]) =>
+				(await this.getVectorStoreHost()).request(op, params),
+		});
+	}
+
+	private getVectorStoreHost(): Promise<VectorStoreHost> {
+		if (this.vectorStoreHost) return Promise.resolve(this.vectorStoreHost);
+		if (this.vectorStoreHostPromise) return this.vectorStoreHostPromise;
+		const context = this.vectorStoreHostContext;
+		if (!context || this.unloading) return Promise.reject(new Error("VECTOR_STORE_UNAVAILABLE"));
+		const operation = (async () => {
+			const runtime = await context.embeddingRuntimeManager.resolve();
+			const host = new VectorStoreHost({
+				databasePath: this.getVectorStorePaths(context.paths).database,
+				execPath: runtime.nodeExecutable,
+				moduleRoot: runtime.moduleRoot,
+				pluginDir: runtime.root,
+				workerRoot: path.dirname(context.paths.workerVersions),
+				workerDir: context.paths.workerVersions,
+				buildId: context.buildId,
+				workerBundleSource: context.workerBundleSource,
+				spawnGuard: runtime.revalidate,
+				recorder: this.diagnosticRecorder,
+			});
+			if (this.unloading) {
+				await host.dispose();
+				throw new Error("VECTOR_STORE_UNAVAILABLE");
+			}
+			this.vectorStoreHost = host;
+			this.managedNodePath = runtime.nodeExecutable;
+			return host;
+		})();
+		this.vectorStoreHostPromise = operation;
+		void operation.then(
+			() => { if (this.vectorStoreHostPromise === operation) this.vectorStoreHostPromise = null; },
+			() => { if (this.vectorStoreHostPromise === operation) this.vectorStoreHostPromise = null; },
+		);
+		return operation;
+	}
+
+	private createSqliteBackend(paths: RuntimePaths) {
+		const databasePath = this.getVectorStorePaths(paths).database;
+		const describe = () => ({
+			ownership: "analogy" as const,
+			pid: this.vectorStoreHost?.getPid() ?? null,
+			executablePath: this.managedNodePath,
+			port: this.runtimePort,
+			runtimeVersion: "sqlite-v1",
+			startedAt: null,
+		});
+		return {
+			healthy: async () => (await this.getVectorStoreHost()).healthy(),
+			describe,
+			controller: () => ({
+				isHealthy: async () => this.vectorStoreHost?.healthy() ?? false,
+				// The store process lives for the plugin session and is closed on unload.
+				stop: async () => undefined,
+				getLastError: () => this.vectorStoreHost?.getLastError() ?? "",
+				getPort: () => this.runtimePort,
+				getDbPath: () => databasePath,
+				getProcessState: describe,
+			}),
+		};
+	}
+
+	/**
+	 * Copies an existing Chroma index into SQLite once. Chroma is started only for
+	 * this read and stopped afterwards; its data directory is never modified by us.
+	 */
+	private ensureVectorStoreImported(input: {
+		paths: RuntimePaths;
+		platform: ReturnType<typeof detectSupportedPlatform>;
+		chromaRuntimeManager: ChromaRuntimeManager;
+		signal: AbortSignal;
+	}): Promise<ChromaImportMarker> {
+		if (this.vectorStoreImportPromise) return this.vectorStoreImportPromise;
+		const storePaths = this.getVectorStorePaths(input.paths);
+		const progress: {notice: Notice | null} = {notice: null};
+		const operation = (async () => {
+			const settled = await readChromaImportMarker(storePaths.root);
+			if (isChromaImportSettled(settled)) return settled!;
+			const plan = await planChromaImport(input.paths.vaultRoot);
+			if (plan.required.length + plan.optional.length > 0) {
+				try {
+					await this.getVectorStoreHost();
+				} catch (error) {
+					// No usable embedding runtime yet: onboarding repairs it first. The import
+					// stays pending and runs on a later detection.
+					this.diagnosticRecorder?.captureException("vector-store.initialize", "vector-store.import.deferred", error);
+					return {
+						schemaVersion: 1 as const,
+						status: "failed" as const,
+						attempts: settled?.attempts ?? 0,
+						collections: [],
+						errorCode: "CHROMA_IMPORT_DEFERRED",
+						updatedAt: Date.now(),
+					};
+				}
+			}
+			const marker = await runChromaImportIfNeeded({
+				legacyRoot: input.paths.vaultRoot,
+				storeRoot: storePaths.root,
+				// Resolved lazily: vaults without Chroma data never start the store process here.
+				destination: {
+					request: async <K extends VectorStoreOperation>(op: K, params: VectorStoreOperations[K]["params"]) =>
+						(await this.getVectorStoreHost()).request(op, params),
+				},
+				signal: input.signal,
+				withChromaSource: async (run) => {
+					let runtime: Awaited<ReturnType<typeof resolveVerifiedChromaRuntime>>;
+					try {
+						runtime = await resolveVerifiedChromaRuntime({
+							paths: input.paths,
+							platform: input.platform,
+							signal: input.signal,
+						});
+					} catch (cause) {
+						throw Object.assign(new Error("CHROMA_IMPORT_RUNTIME_UNAVAILABLE"), {
+							code: "CHROMA_IMPORT_RUNTIME_UNAVAILABLE",
+							cause,
+						});
+					}
+					progress.notice = new Notice(t("vectorStore.import.running"), 0);
+					this.diagnosticRecorder?.info("vector-store.initialize", "vector-store.import.start", "Copying Chroma index into SQLite");
+					const lease = await input.chromaRuntimeManager.start({
+						executablePath: runtime.executablePath,
+						dataPath: input.paths.chromaDataV2,
+						preferredPort: this.runtimePort,
+						runtimeVersion: runtime.runtimeVersion,
+					});
+					try {
+						return await run(() => {
+							const chroma = new LocalVectorStore();
+							return {
+								openCollection: (name) => chroma.openExistingCollection(lease.port, name),
+								count: () => chroma.count(),
+								readPage: (offset, limit) => chroma.getRecordPage(offset, limit),
+							};
+						});
+					} finally {
+						await input.chromaRuntimeManager.stopOwnedProcess(lease).catch((error) => {
+							this.diagnosticRecorder?.captureException("vector-store.initialize", "vector-store.import.chroma-stop.failed", error);
+						});
+					}
+				},
+				onProgress: ({copied, total}) => {
+					progress.notice?.setMessage(t("vectorStore.import.progress", {copied, total}));
+				},
+			});
+			progress.notice?.hide();
+			if (marker.status === "completed" && marker.collections.length > 0) {
+				const records = marker.collections.reduce((sum, item) => sum + item.records, 0);
+				new Notice(t("vectorStore.import.done", {records}), 8_000);
+				this.diagnosticRecorder?.info("vector-store.initialize", "vector-store.import.completed", "Chroma index copied into SQLite", {records});
+			} else if (marker.status === "rebuild-required") {
+				new Notice(t("vectorStore.import.rebuildRequired", {code: marker.errorCode ?? ""}), 15_000);
+				this.diagnosticRecorder?.warn("vector-store.initialize", "vector-store.import.rebuild-required", "Chroma import gave up; the vault will be re-indexed", {errorCode: marker.errorCode ?? ""});
+			}
+			return marker;
+		})();
+		this.vectorStoreImportPromise = operation;
+		void operation.then((marker) => {
+			if (marker.errorCode === "CHROMA_IMPORT_DEFERRED" && this.vectorStoreImportPromise === operation) {
+				this.vectorStoreImportPromise = null;
+			}
+		}, () => undefined);
+		void operation.catch((error) => {
+			progress.notice?.hide();
+			if (this.vectorStoreImportPromise === operation) this.vectorStoreImportPromise = null;
+			const code = (error as {code?: string})?.code ?? (error as Error)?.message ?? "CHROMA_IMPORT_FAILED";
+			if (code !== "CHROMA_IMPORT_CANCELLED") {
+				new Notice(t("vectorStore.import.failed", {code}), 15_000);
+				updateServiceState({status: "error", lastError: code});
+			}
+			this.diagnosticRecorder?.captureException("vector-store.initialize", "vector-store.import.failed", error);
+		});
+		return operation;
+	}
+
 	private createActiveChromaGeneration(port: number, modelShortName: string): ChromaDataGeneration {
 		const platform = detectSupportedPlatform();
 		const basePath = (this.app.vault.adapter as any).basePath as string;
@@ -1254,9 +1507,7 @@ export default class Analogy extends Plugin {
 		this.runtimePort = port;
 		const paths = this.runtimePaths;
 		if (!paths) return;
-		const migration = this.chromaDataMigration
-			?? new ChromaDataMigration({runtimeStatePath: paths.runtimeState});
-		this.chromaDataMigration = migration;
+		const migration = this.getStoreMigration(paths);
 		await migration.publishActiveLease(this.createActiveChromaGeneration(port, modelShortName));
 	}
 
@@ -1270,9 +1521,7 @@ export default class Analogy extends Plugin {
 		const modelKey = this.settings.embeddingModel || DEFAULT_MODEL_KEY;
 		const modelConfig = EMBEDDING_MODELS[modelKey] || EMBEDDING_MODELS[DEFAULT_MODEL_KEY];
 		const port = this.chromaManager?.getPort() || this.runtimePort;
-		const migration = this.chromaDataMigration
-			?? new ChromaDataMigration({runtimeStatePath: this.runtimePaths.runtimeState});
-		this.chromaDataMigration = migration;
+		const migration = this.getStoreMigration(this.runtimePaths);
 		const pending = await migration.resumePendingGeneration(
 			this.runtimePaths.root,
 			path.join(this.getPluginDir(), "chroma_data", this.getVaultId()),
@@ -1281,9 +1530,9 @@ export default class Analogy extends Plugin {
 			? await migration.publishActiveLease({...pending, port})
 			: await migration.begin(
 				this.createActiveChromaGeneration(port, modelConfig.shortName),
-				(collectionName) => new LocalVectorStore().deleteCollectionByName(port, collectionName),
+				(collectionName) => this.createVectorStore().deleteCollectionByName(port, collectionName),
 			);
-		const stagingStore = new LocalVectorStore();
+		const stagingStore = this.createVectorStore();
 		await stagingStore.initialize(
 			port,
 			this.runtimeVaultId,
@@ -1295,7 +1544,7 @@ export default class Analogy extends Plugin {
 			stagingStore,
 			this.app.vault,
 			createDeviceLocalIndexStateStore(
-				this.runtimePaths.vaultRoot,
+				this.getVectorStorePaths(this.runtimePaths).root,
 				"v2",
 				modelConfig.shortName,
 				transition.transitionToken,
@@ -1315,7 +1564,7 @@ export default class Analogy extends Plugin {
 			collectionDocuments: evidence.collectionDocuments,
 			chunkCount: evidence.chunkCount,
 			smokeQuery: (query) => stagingIndexer.runSmokeQuery(query),
-			cleanupCollection: (collectionName) => new LocalVectorStore()
+			cleanupCollection: (collectionName) => this.createVectorStore()
 				.deleteCollectionByName(port, collectionName),
 		});
 		const bootstrap = this.localServiceBootstrap;
@@ -1382,9 +1631,7 @@ export default class Analogy extends Plugin {
 		if (!this.runtimePaths || !this.localServiceBootstrap || !this.runtimeLifecycle) {
 			throw new Error("CHROMA_ROLLBACK_UNAVAILABLE");
 		}
-		const migration = this.chromaDataMigration
-			?? new ChromaDataMigration({runtimeStatePath: this.runtimePaths.runtimeState});
-		this.chromaDataMigration = migration;
+		const migration = this.getStoreMigration(this.runtimePaths);
 		const state = await migration.read();
 		const target = state.previousGeneration;
 		if (!target) throw new Error("CHROMA_ROLLBACK_UNAVAILABLE");
@@ -1481,7 +1728,7 @@ export default class Analogy extends Plugin {
 	): void {
 		this.activeEmbeddingRuntimeId = ready?.runtimes.embedding.runtimeId ?? null;
 		this.embeddingService = (ready?.embeddingService as EmbeddingService | undefined) ?? null;
-		this.vectorStore = (ready?.vectorStore as LocalVectorStore | undefined) ?? null;
+		this.vectorStore = (ready?.vectorStore as VectorStore | undefined) ?? null;
 		this.documentIndexer = (ready?.documentIndexer as DocumentIndexer | undefined) ?? null;
 		this.chromaManager = ready?.chromaManager ?? null;
 		initLocalVectorServices(
@@ -1492,7 +1739,7 @@ export default class Analogy extends Plugin {
 			ready ? {
 				status: "ready",
 				chromaManager: this.chromaManager,
-				dbPath: ready.runtimes.chroma.dataPath,
+				dbPath: ready.chromaManager.getDbPath(),
 				port: ready.lease.port,
 				embeddingStatus: "ready",
 				vectorStoreStatus: "ready",
@@ -1531,6 +1778,7 @@ export default class Analogy extends Plugin {
 			coordinator,
 			mode,
 			pluginBuildId: buildId,
+			environmentFacts: collectEnvironmentFacts(),
 			onStartSearching: () => { void this.activateView(); },
 			onOpenOllama: () => this.openAnalogySettings("analogy-settings-summary"),
 			onOpenHelp: () => (this.app as any).setting?.openTabById?.("analogy-rag-in-your-vault"),
@@ -1585,7 +1833,8 @@ export default class Analogy extends Plugin {
 		const config = {
 			mcpServers: {
 				"analogy-vault": {
-					command: "node",
+					// The MCP server reads SQLite through node:sqlite, which needs Node >= 22.13.
+					command: this.managedNodePath ?? "node",
 					args: [serverPath],
 					env: {
 						ANALOGY_VAULT_PATH: vaultPath,
@@ -1628,6 +1877,7 @@ export default class Analogy extends Plugin {
 					ANALOGY_VAULT_PATH: vaultPath,
 					ANALOGY_PLUGIN_DIR: pluginDir,
 					ANALOGY_MODEL: this.settings.embeddingModel || DEFAULT_MODEL_KEY,
+					...(this.managedNodePath ? {ANALOGY_NODE_PATH: this.managedNodePath} : {}),
 				},
 			});
 		}
@@ -1668,6 +1918,16 @@ export default class Analogy extends Plugin {
 				this.diagnosticRecorder?.captureException("plugin.unload", "onboarding.store.dispose.failed", err);
 			}
 			if (lifecycleDisposed && this.runtimeLifecycle === lifecycle) this.runtimeLifecycle = null;
+		}
+		const vectorStoreHost = this.vectorStoreHost;
+		this.vectorStoreHost = null;
+		this.vectorStoreImportPromise = null;
+		if (vectorStoreHost) {
+			try {
+				await vectorStoreHost.dispose();
+			} catch (err) {
+				this.diagnosticRecorder?.captureException("plugin.unload", "vector-store.stop.failed", err);
+			}
 		}
 		this.initLocalServicesPromise = null;
 		updateOnboardingState({ visible: false, environment: null, snapshot: null });
@@ -1714,10 +1974,11 @@ export default class Analogy extends Plugin {
 		const basePath = (this.app.vault.adapter as any).basePath as string;
 		const runtimeVaultId = deriveRuntimeVaultId(basePath, platform);
 		const paths = createRuntimePaths(resolveAnalogyLocalDataRoot(), runtimeVaultId);
+		// Chroma-era state is read here only to seed the one-time SQLite import.
 		const migration = new ChromaDataMigration({runtimeStatePath: paths.runtimeState});
 		this.runtimeVaultId = runtimeVaultId;
 		this.runtimePaths = paths;
-		this.chromaDataMigration = migration;
+		this.chromaDataMigration = null;
 		const runtimeState = await migration.readOptional();
 		this.runtimePort = runtimeState?.port ?? migrated.legacyPort ?? 8000;
 

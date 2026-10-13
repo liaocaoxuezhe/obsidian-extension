@@ -47,7 +47,13 @@ test("runtime fault matrix maps every injected failure to a bounded onboarding e
     ["staging rename failure", "EXDEV", "installing-embedding-runtime", "RUNTIME_EXTRACT_FAILED", "retry"],
     ["Chroma exits immediately", "CHROMA_EXITED", "starting-chroma", "CHROMA_EXITED", "retry"],
     ["port occupied", "CHROMA_PORT_CONFLICT", "starting-chroma", "CHROMA_PORT_CONFLICT", "change-port"],
-    ["worker native load failure", "ERR_DLOPEN_FAILED", "warming-up-model", "EMBEDDING_MODEL_WARMUP_FAILED", "retry"],
+    ["worker native load failure", "ERR_DLOPEN_FAILED", "warming-up-model", "EMBEDDING_NATIVE_LOAD_FAILED", "retry"],
+    ["native probe failure", "EMBEDDING_NATIVE_LOAD_FAILED", "verifying-embedding-native", "EMBEDDING_NATIVE_LOAD_FAILED", "retry"],
+    ["model download network failure", "EMBEDDING_MODEL_NETWORK_FAILED", "downloading-embedding-model", "EMBEDDING_MODEL_NETWORK_FAILED", "retry"],
+    ["model out of memory", "EMBEDDING_MODEL_OOM", "warming-up-model", "EMBEDDING_MODEL_OOM", "retry"],
+    ["worker crash", "EMBEDDING_WORKER_CRASHED", "warming-up-model", "EMBEDDING_WORKER_CRASHED", "retry"],
+    ["corrupt model files", "EMBEDDING_MODEL_CACHE_CORRUPT", "warming-up-model", "EMBEDDING_MODEL_CACHE_CORRUPT", "redownload"],
+    ["vector store failure", "VECTOR_STORE_PROCESS_CRASHED", "building-quick-index", "VECTOR_STORE_FAILED", "retry"],
   ];
   for (const [label, injected, stage, expected, action] of cases) {
     const result = classifyOnboardingError(coded(injected), stage);

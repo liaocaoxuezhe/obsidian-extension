@@ -1,3 +1,4 @@
+import type { EnvironmentFacts } from "../diagnostics/environment-facts";
 import React from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Modal, type App } from "obsidian";
@@ -10,6 +11,7 @@ export interface OnboardingModalOptions {
   mode: OnboardingMode;
   pluginBuildId: string;
   diagnosticEvents?: readonly OnboardingDiagnosticEvent[];
+  environmentFacts?: EnvironmentFacts | null;
   onStartSearching(): void;
   onOpenOllama(): void;
   onOpenHelp(): void;
@@ -49,6 +51,7 @@ export class OnboardingModal extends Modal {
       onChangePort={this.options.onChangePort}
       pluginBuildId={this.options.pluginBuildId}
       diagnosticEvents={this.options.diagnosticEvents}
+      environmentFacts={this.options.environmentFacts ?? null}
     />);
   }
 

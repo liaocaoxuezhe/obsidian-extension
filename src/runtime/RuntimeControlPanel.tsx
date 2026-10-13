@@ -16,10 +16,48 @@ import type {
 } from "./runtime-control-surface";
 import { onLocaleChange, t } from "../util/i18n";
 
+/** Resolves a picked file to its absolute path (Electron's webUtils, with the legacy File.path fallback). */
+function absolutePathForFile(file: File): string {
+  try {
+    const electron = (window as unknown as { require?: (name: string) => unknown }).require?.("electron") as
+      { webUtils?: { getPathForFile(file: File): string } } | undefined;
+    const resolved = electron?.webUtils?.getPathForFile(file);
+    if (resolved) return resolved;
+  } catch {
+    // Fall back to the pre-Electron-32 property below.
+  }
+  return (file as File & { path?: string }).path ?? "";
+}
+
+function pickLocalPath(kind: "file" | "directory", onPicked: (absolutePath: string) => void): void {
+  const input = document.createElement("input");
+  input.type = "file";
+  if (kind === "directory") input.setAttribute("webkitdirectory", "");
+  input.addEventListener("change", () => {
+    const file = input.files?.[0];
+    if (!file) return;
+    const absolute = absolutePathForFile(file);
+    if (!absolute) return;
+    if (kind === "file") {
+      onPicked(absolute);
+      return;
+    }
+    // webkitRelativePath is "<picked folder>/<inside>"; strip the inside part.
+    const relative = (file as File & { webkitRelativePath?: string }).webkitRelativePath ?? "";
+    const inside = relative.split("/").slice(1).join("/");
+    const separator = absolute.includes("\\") ? "\\" : "/";
+    const insideNative = inside.split("/").join(separator);
+    onPicked(insideNative && absolute.endsWith(insideNative)
+      ? absolute.slice(0, absolute.length - insideNative.length - 1)
+      : absolute.slice(0, Math.max(absolute.lastIndexOf(separator), 0)));
+  }, { once: true });
+  input.click();
+}
+
 const ACTIVE_STAGES = new Set([
   "checking", "downloading-chroma", "verifying-chroma", "installing-chroma",
   "downloading-embedding-runtime", "verifying-embedding-runtime", "installing-embedding-runtime",
-  "starting-chroma", "downloading-embedding-model", "warming-up-model",
+  "verifying-embedding-native", "starting-chroma", "downloading-embedding-model", "warming-up-model",
   "selecting-legacy-index-action", "preparing-legacy-snapshot", "migrating-legacy-index",
   "reconciling-legacy-index", "verifying-legacy-index", "selecting-index-scope", "building-quick-index",
 ]);
@@ -222,6 +260,19 @@ export function RuntimeSettingsPanel({ control }: { control: RuntimeControlSurfa
         <button type="button" className="analogy-runtime-action" disabled={busy || !redownloadAvailable("embedding-runtime")} onClick={() => run(() => control!.redownloadRuntime("embedding-runtime"))}>{t("runtimeControl.redownload.embedding")}</button>
       </div>
       {message && <p className="analogy-runtime-panel__message" role="status">{message}</p>}
+
+      <details className="analogy-runtime-panel__details">
+        <summary>{t("runtimeControl.offline.title")}</summary>
+        <p>{t("runtimeControl.offline.description")}</p>
+        <div className="analogy-runtime-panel__actions">
+          <button type="button" className="analogy-runtime-action" disabled={busy || !control} onClick={() => pickLocalPath("file", (selected) => run(
+            () => control!.importRuntimeArchive(selected), t("runtimeControl.offline.runtimeDone"),
+          ))}>{t("runtimeControl.offline.runtime")}</button>
+          <button type="button" className="analogy-runtime-action" disabled={busy || !control} onClick={() => pickLocalPath("directory", (selected) => run(
+            () => control!.importModelFolder(selected), t("runtimeControl.offline.modelDone"),
+          ))}>{t("runtimeControl.offline.model")}</button>
+        </div>
+      </details>
 
       {migration && migration.status !== "none" ? <section className="analogy-runtime-panel__migration" aria-labelledby="analogy-runtime-migration-title">
         <h4 id="analogy-runtime-migration-title">{t("runtimeControl.migration.title")}</h4>

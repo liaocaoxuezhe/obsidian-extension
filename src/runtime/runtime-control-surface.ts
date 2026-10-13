@@ -14,7 +14,7 @@ import type { EnvironmentReport } from "../onboarding/onboarding-types";
 import type { OnboardingMode } from "../onboarding/OnboardingView";
 import type { RuntimeAssetKind, RuntimePaths, SupportedPlatformKey } from "./runtime-types";
 
-export type RuntimeControlAction = "verify" | "restart" | "redownload" | "cleanup" | "reveal"
+export type RuntimeControlAction = "verify" | "restart" | "redownload" | "cleanup" | "reveal" | "import"
   | "migration-resume" | "migration-cancel" | "migration-discard" | "migration-rebuild";
 export type RuntimeHealth = "healthy" | "stopped" | "unhealthy" | "unknown";
 
@@ -86,6 +86,10 @@ export interface RuntimeControlSurfaceCapability {
   cancelLegacyMigration(): Promise<void>;
   discardLegacyMigration(): Promise<void>;
   fallbackLegacyMigrationToRebuild(): Promise<void>;
+  /** Offline install: verifies a downloaded runtime archive against the pinned manifest and installs it. */
+  importRuntimeArchive(filePath: string): Promise<void>;
+  /** Offline install: copies the current model's pinned files from a local folder after verifying them. */
+  importModelFolder(directory: string): Promise<{ imported: number }>;
 }
 
 interface CoordinatorControl {
@@ -123,12 +127,14 @@ export interface RuntimeControlSurfaceOptions {
   retryLegacyRecovery?(id: string): Promise<{removed: number; failed: number}>;
   restoreLegacyRecovery?(id: string): Promise<{restored: number; failed: number}>;
   discardLegacyMigration?(): Promise<void>;
+  importRuntimeArchive?(filePath: string): Promise<void>;
+  importModelFolder?(directory: string): Promise<{ imported: number }>;
 }
 
 const ACTIVE_SETUP_STAGES = new Set([
   "checking", "downloading-chroma", "verifying-chroma", "installing-chroma",
   "downloading-embedding-runtime", "verifying-embedding-runtime", "installing-embedding-runtime",
-  "starting-chroma", "downloading-embedding-model", "warming-up-model",
+  "verifying-embedding-native", "starting-chroma", "downloading-embedding-model", "warming-up-model",
   "selecting-legacy-index-action", "preparing-legacy-snapshot", "migrating-legacy-index",
   "reconciling-legacy-index", "verifying-legacy-index", "selecting-index-scope", "building-quick-index",
 ]);
@@ -285,8 +291,9 @@ export class RuntimeControlSurface implements RuntimeControlSurfaceCapability {
         this.scanHistory(),
       ]);
       const processState = this.options.chromaManager.getState();
+      // With the SQLite store there is no Chroma process to probe.
       const healthy = processState.ownership === "none"
-        ? environment.chroma === "running"
+        ? environment.chroma === "running" || environment.chroma === "not-required"
         : await this.options.chromaManager.health(processState.port).catch(() => false);
       this.snapshot = {
         ...this.snapshot,
@@ -537,6 +544,27 @@ export class RuntimeControlSurface implements RuntimeControlSurfaceCapability {
     return this.runMigrationAction("migration-rebuild", async () => {
       this.openOnboarding("repair");
       await this.options.coordinator.fallbackToLegacyRebuild();
+    });
+  }
+
+  importRuntimeArchive(filePath: string): Promise<void> {
+    return this.withBusy("import", async () => {
+      this.assertSetupIdle();
+      if (!this.options.importRuntimeArchive) throw controlError("RUNTIME_IMPORT_UNAVAILABLE");
+      await this.options.importRuntimeArchive(filePath);
+      this.snapshot = { ...this.snapshot, lastAction: "import" };
+      this.notify();
+    });
+  }
+
+  importModelFolder(directory: string): Promise<{ imported: number }> {
+    return this.withBusy("import", async () => {
+      this.assertSetupIdle();
+      if (!this.options.importModelFolder) throw controlError("RUNTIME_IMPORT_UNAVAILABLE");
+      const result = await this.options.importModelFolder(directory);
+      this.snapshot = { ...this.snapshot, lastAction: "import" };
+      this.notify();
+      return result;
     });
   }
 

@@ -705,7 +705,7 @@ export const SmartConnection = ({ activeFile, main }) => {
 				error: (err as Error).message || String(err),
 			});
 			updateTab(tabId, (tab) => ({ ...tab, isLoading: false }));
-			new Notice("Local search failed. Ensure ChromaDB is running.")
+			new Notice("Local search failed. Ensure the Analogy local services are running.")
 		}
 	}
 

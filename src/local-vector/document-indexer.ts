@@ -1,6 +1,6 @@
 import { TFile, Vault, EventRef, Notice, Workspace } from "obsidian";
 import { EmbeddingService } from "./embedding-service";
-import { LocalVectorStore } from "./vector-store";
+import type { VectorStore } from "./vector-store";
 import { isPathExcludedFromIndex, normalizeExcludedIndexPaths } from "./excluded-paths";
 import { cleanMarkdown, splitByHeaders } from "./strip-markdown";
 
@@ -129,7 +129,7 @@ function boundedIndexerError(code: "INDEXER_MAINTENANCE_FAILED", cause: unknown)
 
 export class DocumentIndexer {
   private embedding: EmbeddingService;
-  private vectorStore: LocalVectorStore;
+  private vectorStore: VectorStore;
   private vault: Vault;
   private workspace: Workspace | null;
   private stateStore: IndexStateStore;
@@ -158,7 +158,7 @@ export class DocumentIndexer {
 
   constructor(
     embedding: EmbeddingService,
-    vectorStore: LocalVectorStore,
+    vectorStore: VectorStore,
     vault: Vault,
     stateStore: IndexStateStore,
     excludedIndexPaths: string[] = [],

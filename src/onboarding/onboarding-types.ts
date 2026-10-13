@@ -1,3 +1,4 @@
+import type { EmbeddingFailureStage } from "../local-vector/embedding-failure";
 import type { SupportedPlatformKey } from "../runtime/runtime-types";
 
 export type OnboardingStage =
@@ -10,6 +11,7 @@ export type OnboardingStage =
   | "downloading-embedding-runtime"
   | "verifying-embedding-runtime"
   | "installing-embedding-runtime"
+  | "verifying-embedding-native"
   | "starting-chroma"
   | "downloading-embedding-model"
   | "warming-up-model"
@@ -44,6 +46,11 @@ export type OnboardingErrorCode =
   | "EMBEDDING_MODEL_DOWNLOAD_FAILED"
   | "EMBEDDING_MODEL_CACHE_CORRUPT"
   | "EMBEDDING_MODEL_WARMUP_FAILED"
+  | "EMBEDDING_NATIVE_LOAD_FAILED"
+  | "EMBEDDING_MODEL_NETWORK_FAILED"
+  | "EMBEDDING_MODEL_OOM"
+  | "EMBEDDING_WORKER_CRASHED"
+  | "VECTOR_STORE_FAILED"
   | "CHROMA_DATA_REBUILD_FAILED"
   | "LEGACY_INDEX_MIGRATION_FAILED"
   | "LEGACY_MIGRATION_UNAVAILABLE"
@@ -59,7 +66,10 @@ export type OnboardingErrorAction =
 export interface OnboardingError {
   code: OnboardingErrorCode;
   stage: OnboardingStage;
+  /** Step where the failure really happened, when the stage alone is misleading. */
+  subStage?: EmbeddingFailureStage | null;
   userMessageKey: string;
+  /** Error code plus allowlisted evidence tokens; never raw messages, paths or URLs. */
   technicalMessage: string;
   recoverable: boolean;
   action: OnboardingErrorAction;
@@ -98,7 +108,7 @@ export type RecommendedAction = "setup" | "repair" | "resume" | "start-services"
 
 export interface EnvironmentReport {
   platform: SupportedPlatformKey;
-  chroma: "missing" | "installed" | "running" | "incompatible" | "corrupt";
+  chroma: "missing" | "installed" | "running" | "incompatible" | "corrupt" | "not-required";
   embeddingRuntime: "missing" | "installed" | "ready" | "corrupt";
   embeddingModel: "missing" | "cached" | "ready" | "corrupt";
   index: "empty" | "partial" | "ready" | "legacy";
@@ -118,6 +128,7 @@ const RESUMABLE_STAGES = new Set<OnboardingStage>([
   "downloading-embedding-runtime",
   "verifying-embedding-runtime",
   "installing-embedding-runtime",
+  "verifying-embedding-native",
   "starting-chroma",
   "downloading-embedding-model",
   "warming-up-model",

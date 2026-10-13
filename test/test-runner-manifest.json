@@ -76,7 +76,14 @@
         "test/test-ci-manifest.json",
         "test/test-execution-set.test.js",
         "test/test-runner-manifest.json",
-        "test/vault-folder-selection.test.js"
+        "test/vault-folder-selection.test.js",
+        "test/vector-store-engine.test.js",
+        "test/vector-store-process.test.js",
+        "test/chroma-sqlite-import.test.js",
+        "test/sqlite-backend-lifecycle.test.js",
+        "test/embedding-failure-classification.test.js",
+        "test/download-resilience.test.js",
+        "test/vc-runtime-bundle.test.js"
       ]
     },
     "runtime": {

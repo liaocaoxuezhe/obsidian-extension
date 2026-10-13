@@ -1,3 +1,4 @@
+import { isEmbeddingFailureStage } from "../local-vector/embedding-failure";
 import * as fs from "fs";
 import * as path from "path";
 import { randomUUID } from "crypto";
@@ -22,7 +23,7 @@ const SAFE_RUNTIME_ID = /^[A-Za-z0-9._-]{1,160}$/;
 const STAGES = new Set<OnboardingStage>([
   "not-started", "checking", "awaiting-consent", "downloading-chroma", "verifying-chroma",
   "installing-chroma", "downloading-embedding-runtime", "verifying-embedding-runtime",
-  "installing-embedding-runtime", "starting-chroma", "downloading-embedding-model",
+  "installing-embedding-runtime", "verifying-embedding-native", "starting-chroma", "downloading-embedding-model",
   "warming-up-model", "selecting-legacy-index-action", "preparing-legacy-snapshot",
   "migrating-legacy-index", "reconciling-legacy-index", "verifying-legacy-index",
   "selecting-index-scope", "building-quick-index", "ready", "failed", "cancelled",
@@ -35,7 +36,9 @@ const ERROR_CODES = new Set<OnboardingErrorCode>([
   "RUNTIME_EXECUTION_BLOCKED", "RUNTIME_SMOKE_TEST_FAILED", "CHROMA_PORT_CONFLICT",
   "CHROMA_START_TIMEOUT", "CHROMA_VERSION_MISMATCH", "CHROMA_EXITED",
   "EMBEDDING_RUNTIME_INVALID", "EMBEDDING_MODEL_DOWNLOAD_FAILED", "EMBEDDING_MODEL_CACHE_CORRUPT",
-  "EMBEDDING_MODEL_WARMUP_FAILED", "CHROMA_DATA_REBUILD_FAILED", "QUICK_INDEX_FAILED",
+  "EMBEDDING_MODEL_WARMUP_FAILED", "EMBEDDING_NATIVE_LOAD_FAILED", "EMBEDDING_MODEL_NETWORK_FAILED",
+  "EMBEDDING_MODEL_OOM", "EMBEDDING_WORKER_CRASHED", "VECTOR_STORE_FAILED",
+  "CHROMA_DATA_REBUILD_FAILED", "QUICK_INDEX_FAILED",
   "LEGACY_INDEX_MIGRATION_FAILED", "LEGACY_MIGRATION_UNAVAILABLE",
 ]);
 
@@ -149,6 +152,13 @@ function normalizeLegacyChoice(value: unknown): LegacyIndexChoice | null {
   return value === "reuse" || value === "rebuild" || value === "later" ? value : null;
 }
 
+function safeTechnicalMessage(value: unknown, code: OnboardingErrorCode): string {
+  if (typeof value !== "string" || value.length > 160 || !value.startsWith(code)) return code;
+  return /^[A-Z][A-Z0-9_]{2,80}(?: [A-Za-z0-9._:-]{1,60}){0,8}$/.test(value) && !/\d{4,}/.test(value.replace(/exit:\d+/g, ""))
+    ? value
+    : code;
+}
+
 function normalizeError(value: unknown): OnboardingError | null {
   if (!value || typeof value !== "object") return null;
   const error = value as Record<string, unknown>;
@@ -169,7 +179,9 @@ function normalizeError(value: unknown): OnboardingError | null {
       ? error.userMessageKey
       : `onboarding.error.${code.toLowerCase()}`,
     // Raw errors can contain URLs, tokens, absolute paths, ports, PIDs, or model input.
-    technicalMessage: code,
+    // Only "CODE token token" lines built from allowlisted tokens survive persistence.
+    technicalMessage: safeTechnicalMessage(error.technicalMessage, code),
+    ...(isEmbeddingFailureStage(error.subStage) ? { subStage: error.subStage } : {}),
     recoverable: legacyMigrationRetry ? true : error.recoverable,
     action: legacyMigrationRetry ? "retry" : error.action as OnboardingErrorAction,
   };

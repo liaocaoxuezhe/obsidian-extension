@@ -4,13 +4,13 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { buildSafeVaultDescription, loadConfig, McpConfig } from "./config";
-import { ChromaClient, CollectionInfo } from "./chroma-client";
+import { SqliteVectorReader } from "./sqlite-vector-reader";
 import { EmbeddingService } from "./embedding";
 
 let config: McpConfig;
-let chromaClient: ChromaClient;
+let vectorReader: SqliteVectorReader;
 let embeddingService: EmbeddingService;
-let collectionInfo: CollectionInfo | null = null;
+let collectionReady = false;
 let initialized = false;
 let initInProgress = false;
 
@@ -27,28 +27,20 @@ async function ensureInitialized(): Promise<void> {
   initInProgress = true;
   try {
     config = loadConfig();
-    chromaClient = new ChromaClient(config.chromaPort);
+    // Read-only access to the plugin's SQLite store; Obsidian does not need to be running.
+    vectorReader = new SqliteVectorReader(config.databasePath);
 
-    const healthy = await chromaClient.healthCheck();
-    if (!healthy) {
+    collectionReady = vectorReader.hasCollection(config.collectionName);
+    if (!collectionReady) {
       throw new Error(
-        `ChromaDB is not reachable at 127.0.0.1:${config.chromaPort}. ` +
-          "Please ensure the Analogy Obsidian plugin is running and has started ChromaDB. " +
-          "You can check this in Obsidian > Analogy plugin settings."
-      );
-    }
-
-    collectionInfo = await chromaClient.getCollectionByName(config.collectionName);
-    if (!collectionInfo) {
-      throw new Error(
-        `Vector collection "${config.collectionName}" not found in ChromaDB. ` +
+        `Vector collection "${config.collectionName}" not found in the local vector database. ` +
           "This means either: (1) this Obsidian vault has not been indexed yet — " +
           "open Obsidian and wait for the Analogy plugin to finish indexing, or " +
           `(2) the embedding model "${config.modelKey}" does not match what the plugin is using.`
       );
     }
 
-    log(`ChromaDB connected. Collection: ${config.collectionName}`);
+    log(`Vector database opened. Collection: ${config.collectionName}`);
 
     embeddingService = new EmbeddingService({
       pluginDir: config.pluginDir,
@@ -131,7 +123,7 @@ server.tool(
       };
     }
 
-    if (!collectionInfo) {
+    if (!collectionReady) {
       return {
         content: [
           {
@@ -149,11 +141,7 @@ server.tool(
 
     try {
       const queryEmbedding = await embeddingService.embedQuery(query);
-      const results = await chromaClient.searchCollection(
-        collectionInfo.id,
-        queryEmbedding,
-        top_k + 10
-      );
+      const results = vectorReader.search(config.collectionName, queryEmbedding, top_k + 10);
 
       const filtered = config.allowedPaths.length > 0
         ? results.filter((r) => {
@@ -180,12 +168,13 @@ server.tool(
         };
       }
 
+      // Vectors are unit-normalized, so squared L2 distance = 2 * cosine distance.
       const formatted = topResults.map((r, i) => ({
         rank: i + 1,
         title: r.metadata?.title || "Untitled",
         path: r.metadata?.path || null,
-        cosine_distance: r.score,
-        similarity: +(1 - r.score).toFixed(4),
+        cosine_distance: +(r.distance / 2).toFixed(6),
+        similarity: +(1 - r.distance / 2).toFixed(4),
         content: r.content,
       }));
 
@@ -214,8 +203,8 @@ server.tool(
             text: JSON.stringify({
               error: "SEARCH_FAILED",
               message: `Search operation failed: ${(err as Error).message}`,
-              detail: "This could be due to: (1) ChromaDB being temporarily unavailable, (2) the embedding model failing to process the query, or (3) a network/timeout issue with the local ChromaDB server.",
-              suggestion: "Check that Obsidian is running and the Analogy plugin status shows 'ready'.",
+              detail: "This could be due to: (1) the local vector database being unreadable, or (2) the embedding model failing to process the query.",
+              suggestion: "Open Obsidian once and check that the Analogy plugin status shows 'ready'.",
             }),
           },
         ],
@@ -236,12 +225,7 @@ server.tool(
     await ensureInitialized();
 
     try {
-      const collections = await chromaClient.listCollections();
-      const targetCollection = collections.find(
-        (c) => c.name === config.collectionName
-      );
-
-      if (!targetCollection) {
+      if (!vectorReader.hasCollection(config.collectionName)) {
         return {
           content: [
             {
@@ -249,7 +233,6 @@ server.tool(
               text: JSON.stringify({
                 status: "not_indexed",
                 runtime_generation: config.runtimeGeneration,
-                chroma_port: config.chromaPort,
                 collection_name: config.collectionName,
                 message: "The vault has not been indexed yet. Open Obsidian and let the Analogy plugin complete indexing.",
               }, null, 2),
@@ -258,7 +241,7 @@ server.tool(
         };
       }
 
-      const count = await chromaClient.countCollection(targetCollection.id);
+      const count = vectorReader.count(config.collectionName);
 
       return {
         content: [
@@ -272,7 +255,7 @@ server.tool(
                 runtime_generation: config.runtimeGeneration,
                 total_chunks: count,
                 embedding_model: config.modelConfig.shortName,
-                chroma_port: config.chromaPort,
+                vector_database: "sqlite",
                 access_control:
                   config.allowedPaths.length > 0
                     ? {
@@ -295,7 +278,7 @@ server.tool(
             text: JSON.stringify({
               error: "STATUS_CHECK_FAILED",
               message: `Failed to check index status: ${(err as Error).message}`,
-              suggestion: "Ensure Obsidian is running and ChromaDB is started by the Analogy plugin.",
+              suggestion: "Open Obsidian once so the Analogy plugin can create or migrate the local vector database.",
             }),
           },
         ],

@@ -424,11 +424,17 @@ function validateCollectionDocument(value: unknown): value is CollectionDocument
 export class ChromaDataMigration {
   private static readonly stateLocks = new Map<string, Promise<void>>();
   private readonly runtimeStatePath: string;
+  private readonly runtimeVaultId: string;
   private readonly now: () => number;
 
-  constructor(options: { runtimeStatePath: string; now?: () => number }) {
+  /**
+   * `runtimeVaultId` defaults to the state file's directory name. Pass it
+   * explicitly when the state lives in a store-specific subdirectory.
+   */
+  constructor(options: { runtimeStatePath: string; runtimeVaultId?: string; now?: () => number }) {
     if (!path.isAbsolute(options.runtimeStatePath)) throw migrationError("INVALID_RUNTIME_STATE_PATH");
     this.runtimeStatePath = path.resolve(options.runtimeStatePath);
+    this.runtimeVaultId = options.runtimeVaultId ?? path.basename(path.dirname(this.runtimeStatePath));
     this.now = options.now ?? Date.now;
   }
 
@@ -493,7 +499,7 @@ export class ChromaDataMigration {
       "rebuildCompletedAt",
     ] as const;
     if (!exactKeys(old, oldKeys)) return null;
-    const expectedVaultId = path.basename(path.dirname(this.runtimeStatePath));
+    const expectedVaultId = this.runtimeVaultId;
     try {
       validateRuntimeVaultId(old.runtimeVaultId as string);
       validatePort(old.port as number);
@@ -591,7 +597,7 @@ export class ChromaDataMigration {
       validateRevision(state.revision as number);
       validatePort(state.port as number);
       validateModelShortName(state.modelShortName as string);
-      const expectedVaultId = path.basename(path.dirname(this.runtimeStatePath));
+      const expectedVaultId = this.runtimeVaultId;
       if (state.schemaVersion !== 1 || state.runtimeVaultId !== expectedVaultId
         || (state.activeGeneration !== null && state.activeGeneration !== "legacy" && state.activeGeneration !== "v2")
         || !validRuntimeId(state.runtimeId) || !validCollectionName(state.collectionName)
@@ -756,7 +762,7 @@ export class ChromaDataMigration {
     port: number,
     collectionName: string,
     modelShortName: string,
-    runtimeVaultId = path.basename(path.dirname(this.runtimeStatePath)),
+    runtimeVaultId = this.runtimeVaultId,
   ): Promise<void> {
     return this.withStateLock(async () => {
       validateRuntimeVaultId(runtimeVaultId);

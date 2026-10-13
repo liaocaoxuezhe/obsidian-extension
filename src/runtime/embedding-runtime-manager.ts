@@ -5,6 +5,7 @@ import { readCurrentRuntimeForAsset } from "./atomic-runtime-installer";
 import { getRuntimeAsset } from "./runtime-manifest";
 import { createRuntimePaths } from "./runtime-paths";
 import { EmbeddingWorkerClient } from "../local-vector/embedding-worker-client";
+import { runNativeProbe } from "./native-probe";
 import {
   EmbeddingRuntimeAsset,
   EmbeddingRuntimeVersions,
@@ -321,6 +322,12 @@ export class EmbeddingRuntimeManager {
         };
       },
     };
+  }
+
+  /** Proves the installed runtime can load ONNX Runtime and run one inference. */
+  async verifyNative(): Promise<void> {
+    const runtime = await this.resolve();
+    await runNativeProbe({ nodeExecutable: runtime.nodeExecutable, moduleRoot: runtime.moduleRoot });
   }
 
   async smokeTest(): Promise<EmbeddingRuntimeSmokeResult> {

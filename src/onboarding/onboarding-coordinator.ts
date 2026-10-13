@@ -3,6 +3,7 @@ import type { ChromaStartOptions, ManagedProcessState } from "../runtime/chroma-
 import type { DownloadProgress, DownloadedAsset } from "../runtime/runtime-downloader";
 import type { RuntimeAsset, RuntimeAssetKind } from "../runtime/runtime-types";
 import type { VerificationResult } from "../runtime/runtime-verifier";
+import { findEmbeddingFailureDetails, type EmbeddingFailureStage } from "../local-vector/embedding-failure";
 import type {
   EnvironmentReport,
   OnboardingError,
@@ -14,7 +15,7 @@ import type {
   LegacyIndexChoice,
 } from "./onboarding-types";
 
-const MAX_TECHNICAL_MESSAGE = 240;
+const MAX_TECHNICAL_MESSAGE = 160;
 
 type SnapshotListener = (snapshot: Readonly<OnboardingSnapshot>) => void;
 type OperationMode = "start" | "resume" | "retry" | "retry-runtime";
@@ -102,7 +103,11 @@ export interface OnboardingCoordinatorOptions {
     stopOwnedProcess(expectedLease: ManagedProcessState): Promise<unknown>;
   };
   chromaStartOptions(installed: InstalledRuntime | null): ChromaStartOptions;
-  embeddingRuntimeManager: { resolve(): Promise<unknown> };
+  embeddingRuntimeManager: {
+    resolve(): Promise<unknown>;
+    /** Loads the native inference engine and runs one tiny inference; throws a classified error. */
+    verifyNative?(signal: AbortSignal): Promise<void>;
+  };
   embeddingModel: {
     download(
       signal: AbortSignal,
@@ -267,6 +272,22 @@ function knownErrorRule(code: string, stage: OnboardingStage): ErrorRule | null 
   if (code.startsWith("EMBEDDING_RUNTIME_")) {
     return { code: "EMBEDDING_RUNTIME_INVALID", action: "redownload", recoverable: true };
   }
+  if (code === "EMBEDDING_NATIVE_LOAD_FAILED" || code === "ERR_DLOPEN_FAILED" || code === "MODULE_NOT_FOUND") {
+    return { code: "EMBEDDING_NATIVE_LOAD_FAILED", action: "retry", recoverable: true };
+  }
+  if (code === "EMBEDDING_MODEL_NETWORK_FAILED") {
+    return { code: "EMBEDDING_MODEL_NETWORK_FAILED", action: "retry", recoverable: true };
+  }
+  if (code === "EMBEDDING_MODEL_OOM") {
+    return { code: "EMBEDDING_MODEL_OOM", action: "retry", recoverable: true };
+  }
+  if (code === "EMBEDDING_WORKER_CRASHED") {
+    return { code: "EMBEDDING_WORKER_CRASHED", action: "retry", recoverable: true };
+  }
+  if (code.startsWith("VECTOR_STORE_") || code.startsWith("CHROMA_IMPORT_")
+    || code === "LOCAL_SERVICE_VECTOR_STORE_NOT_READY") {
+    return { code: "VECTOR_STORE_FAILED", action: "retry", recoverable: true };
+  }
   if (code === "EMBEDDING_MODEL_DOWNLOAD_FAILED") {
     return { code: "EMBEDDING_MODEL_DOWNLOAD_FAILED", action: "retry", recoverable: true };
   }
@@ -274,9 +295,6 @@ function knownErrorRule(code: string, stage: OnboardingStage): ErrorRule | null 
     return { code: "EMBEDDING_MODEL_CACHE_CORRUPT", action: "redownload", recoverable: true };
   }
   if (code === "EMBEDDING_MODEL_WARMUP_FAILED" || code.startsWith("EMBEDDING_WORKER_")) {
-    return { code: "EMBEDDING_MODEL_WARMUP_FAILED", action: "retry", recoverable: true };
-  }
-  if (code === "ERR_DLOPEN_FAILED" || code === "MODULE_NOT_FOUND") {
     return { code: "EMBEDDING_MODEL_WARMUP_FAILED", action: "retry", recoverable: true };
   }
   if (code === "CHROMA_DATA_REBUILD_FAILED") {
@@ -298,6 +316,8 @@ function knownErrorRule(code: string, stage: OnboardingStage): ErrorRule | null 
       ? "LEGACY_INDEX_MIGRATION_FAILED"
     : stage === "starting-chroma"
       ? "CHROMA_START_TIMEOUT"
+      : stage === "verifying-embedding-native"
+        ? "EMBEDDING_NATIVE_LOAD_FAILED"
       : stage === "downloading-embedding-model"
         ? "EMBEDDING_MODEL_DOWNLOAD_FAILED"
         : stage === "warming-up-model"
@@ -308,14 +328,41 @@ function knownErrorRule(code: string, stage: OnboardingStage): ErrorRule | null 
   return { code: fallback, action: "none", recoverable: false };
 }
 
+/**
+ * Builds the technical line from the classified code plus allowlisted tokens only
+ * (sub-stage, original error code, evidence). Raw messages never reach it.
+ */
+function technicalLine(rule: ErrorRule, originalCode: string, error: unknown): {
+  technicalMessage: string;
+  subStage: EmbeddingFailureStage | null;
+} {
+  const details = findEmbeddingFailureDetails(error);
+  const tokens: string[] = [rule.code];
+  if (details.subStage) tokens.push(details.subStage);
+  if (originalCode && originalCode !== rule.code && /^[A-Z][A-Z0-9_]{2,60}$/.test(originalCode)) tokens.push(originalCode);
+  for (const token of details.evidence) {
+    if (!tokens.includes(token)) tokens.push(token);
+  }
+  const safe = tokens.filter((token) => /^[A-Za-z0-9._:-]{1,60}$/.test(token));
+  let technicalMessage = "";
+  for (const token of safe) {
+    const next = technicalMessage ? `${technicalMessage} ${token}` : token;
+    if (next.length > MAX_TECHNICAL_MESSAGE) break;
+    technicalMessage = next;
+  }
+  return { technicalMessage, subStage: details.subStage };
+}
+
 export function classifyOnboardingError(error: unknown, stage: OnboardingStage): OnboardingError {
-  const rule = knownErrorRule(errorCode(error), stage) as ErrorRule;
+  const originalCode = errorCode(error);
+  const rule = knownErrorRule(originalCode, stage) as ErrorRule;
   const cancelled = isCancellation(error);
   const classifiedStage = cancelled ? "cancelled" : stage;
-  const technicalMessage = rule.code.slice(0, MAX_TECHNICAL_MESSAGE);
+  const { technicalMessage, subStage } = technicalLine(rule, originalCode, error);
   return {
     code: rule.code,
     stage: classifiedStage,
+    subStage,
     userMessageKey: `onboarding.error.${rule.code.toLowerCase()}`,
     technicalMessage,
     recoverable: rule.recoverable,
@@ -585,7 +632,9 @@ export class OnboardingCoordinator {
       this.resetInMemoryEvidence();
       await this.publishPatch(context, { runtimePlatform: report.platform });
 
-      const needsWork = report.chroma !== "running" || report.embeddingRuntime !== "ready"
+      // The SQLite vector store needs no Chroma download, install or process.
+      const chromaRequired = report.chroma !== "not-required";
+      const needsWork = (chromaRequired && report.chroma !== "running") || report.embeddingRuntime !== "ready"
         || report.embeddingModel !== "ready" || report.index !== "ready";
       const previouslyConsented = context.runtimeRetryKey !== null
         || (context.mode !== "start" && loaded.startedAt !== null
@@ -606,19 +655,30 @@ export class OnboardingCoordinator {
       if (context.runtimeRetryKey) {
         const otherRuntimeReady = context.runtimeRetryKey === "chroma"
           ? report.embeddingRuntime === "ready"
-          : report.chroma === "running";
+          : !chromaRequired || report.chroma === "running";
         if (!otherRuntimeReady || report.embeddingModel !== "ready" || report.index !== "ready") {
           throw codedError("RUNTIME_SINGLE_ASSET_RETRY_UNAVAILABLE");
         }
       }
-      await this.prepareRuntime(context, "chroma", context.runtimeRetryKey === "chroma" ? false : chromaInstalled);
+      if (chromaRequired) {
+        await this.prepareRuntime(context, "chroma", context.runtimeRetryKey === "chroma" ? false : chromaInstalled);
+      }
       await this.prepareRuntime(context, "embedding", context.runtimeRetryKey === "embedding" ? false : embeddingInstalled);
       if (context.runtimeRetryKey !== "chroma") {
         await this.options.embeddingRuntimeManager.resolve();
         this.assertRunnable(context);
       }
+      // Prove the native inference engine loads before any model work, so a missing
+      // VC++ runtime or quarantined DLL is reported as such instead of a model failure.
+      if (typeof this.options.embeddingRuntimeManager.verifyNative === "function"
+        && context.runtimeRetryKey !== "chroma"
+        && (report.embeddingModel !== "ready" || report.embeddingRuntime !== "ready")) {
+        await this.publishStage(context, "verifying-embedding-native");
+        await this.options.embeddingRuntimeManager.verifyNative(context.controller.signal);
+        this.assertRunnable(context);
+      }
 
-      if (report.chroma !== "running") {
+      if (chromaRequired && report.chroma !== "running") {
         await this.publishStage(context, "starting-chroma");
         const before = this.options.chromaManager.getState();
         const state = await this.options.chromaManager.start(

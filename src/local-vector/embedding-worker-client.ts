@@ -19,6 +19,13 @@ import {
   type WorkerRequest,
   type WorkerResponse,
 } from "./embedding-worker-protocol";
+import {
+  classifyEmbeddingFailure,
+  classifyWorkerExit,
+  embeddingFailureError,
+  isEmbeddingFailureStage,
+  type EmbeddingFailureStage,
+} from "./embedding-failure";
 
 export interface EmbeddingWorkerClientOptions {
   pluginDir: string;
@@ -480,13 +487,25 @@ export class EmbeddingWorkerClient {
     if (validated.ok) {
       pending.resolve({ embeddings: validated.result, memory: validated.memory });
     } else {
-      pending.reject(new Error(validated.error));
+      // Keep the worker's classification so callers see the real cause and step.
+      pending.reject(Object.assign(new Error(validated.error), {
+        ...(validated.code ? { code: validated.code } : {}),
+        ...(isEmbeddingFailureStage(validated.subStage) ? { subStage: validated.subStage } : {}),
+        evidence: validated.evidence ?? [],
+      }));
     }
   }
 
   private onWorkerError(child: ChildProcess, err: Error): void {
     this.record("error", "worker.process.error", err.message);
-    this.rejectPendingFor(child, new Error(`Worker process error: ${err.message}`));
+    // Spawn failures (ENOENT, EACCES, EPERM, UNKNOWN) usually mean the runtime was
+    // quarantined or blocked by security software.
+    const errno = (err as NodeJS.ErrnoException).code;
+    const failure = classifyEmbeddingFailure(`${errno ?? ""} ${err.message}`, "worker-start", [errno]);
+    if (failure.code !== "RUNTIME_EXECUTION_BLOCKED" && /^(ENOENT|EACCES|EPERM|UNKNOWN)$/.test(String(errno))) {
+      failure.code = "RUNTIME_EXECUTION_BLOCKED";
+    }
+    this.rejectPendingFor(child, embeddingFailureError(failure, `Worker process error: ${err.message}`));
   }
 
   private onWorkerExit(child: ChildProcess, code: number | null, signal: string | null): void {
@@ -498,7 +517,12 @@ export class EmbeddingWorkerClient {
       lastTaskType: this.lastTaskType || "none",
       stderrTail,
     });
-    this.rejectPendingFor(child, new Error(`Worker exited code=${code} signal=${signal}`));
+    const stage: EmbeddingFailureStage = this.lastTaskType === "embed" ? "inference"
+      : this.activeInitialization?.worker === child ? "session-build" : "worker-start";
+    this.rejectPendingFor(child, embeddingFailureError(
+      classifyWorkerExit(code, signal, this.stderrBuffers.get(child) || "", stage),
+      `Worker exited code=${code} signal=${signal}`,
+    ));
     if (this.worker === child) {
       this.worker = null;
     }
@@ -543,6 +567,7 @@ export class EmbeddingWorkerClient {
     modelRevision?: string,
     onProgress?: (progress: EmbeddingInitializationProgress) => void,
     signal?: AbortSignal,
+    localFilesOnly = false,
   ): Promise<void> {
     return this.enqueue(async () => {
       if (signal?.aborted) throw new Error("EMBEDDING_INITIALIZATION_CANCELLED");
@@ -556,7 +581,7 @@ export class EmbeddingWorkerClient {
       signal?.addEventListener("abort", abort, { once: true });
       try {
         await this.sendRequest(
-          { id, type: "initialize", modelId, dtype, pooling, cacheDir, modelHost, modelRevision },
+          { id, type: "initialize", modelId, dtype, pooling, cacheDir, modelHost, modelRevision, localFilesOnly },
           true,
           onProgress,
         );
@@ -638,7 +663,11 @@ export class EmbeddingWorkerClient {
       const timer = setTimeout(() => {
         const pending = this.pending.get(req.id);
         if (!pending) return;
-        pending.failure = new Error(`Worker request ${req.type} timed out`);
+        pending.failure = embeddingFailureError({
+          code: "EMBEDDING_WORKER_TIMEOUT",
+          subStage: req.type === "embed" ? "inference" : "session-build",
+          evidence: [`timeout:${req.type}`],
+        }, `Worker request ${req.type} timed out`);
         if (terminateOnTimeout) {
           void this.terminateWorker(child, false);
         } else {
