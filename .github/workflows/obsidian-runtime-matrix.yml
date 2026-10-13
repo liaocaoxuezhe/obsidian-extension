@@ -98,13 +98,19 @@ jobs:
       # machine works; at least prove the app-local copies are inside the shipped archive.
       - name: Verify the app-local Visual C++ runtime is packed
         if: runner.os == 'Windows'
-        shell: bash
+        shell: pwsh
         run: |
-          archive=$(ls dist/runtime/analogy-embedding-runtime-*-win32-x64.zip | head -n 1)
-          entries=$(tar -tf "$archive")
-          for dll in msvcp140.dll msvcp140_1.dll msvcp140_atomic_wait.dll vcruntime140.dll vcruntime140_1.dll; do
-            echo "$entries" | grep -q "onnxruntime-node/bin/napi-v6/win32/x64/$dll" || { echo "::error::$dll missing from $archive"; exit 1; }
-          done
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = Get-ChildItem dist/runtime -Filter "analogy-embedding-runtime-*-win32-x64.zip" | Select-Object -First 1
+          if (-not $archive) { Write-Error "Windows runtime archive not found"; exit 1 }
+          $zip = [IO.Compression.ZipFile]::OpenRead($archive.FullName)
+          try { $entries = $zip.Entries | ForEach-Object { $_.FullName.Replace("\", "/") } } finally { $zip.Dispose() }
+          foreach ($dll in "msvcp140.dll", "msvcp140_1.dll", "msvcp140_atomic_wait.dll", "vcruntime140.dll", "vcruntime140_1.dll") {
+            if (-not ($entries | Where-Object { $_ -like "*/onnxruntime-node/bin/napi-v6/win32/x64/$dll" })) {
+              Write-Error "$dll missing from $($archive.Name)"; exit 1
+            }
+          }
+          Write-Output "All VC++ runtime DLLs are packed in $($archive.Name)"
       - name: Run fresh-cache native inference smoke
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         run: node scripts/run-native-runtime-smoke.mjs --platform ${{ matrix.key }} --input dist/runtime --output dist/runtime/native-smoke-statement.json
