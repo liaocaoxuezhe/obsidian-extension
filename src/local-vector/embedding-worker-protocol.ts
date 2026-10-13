@@ -18,6 +18,8 @@ export interface WorkerInitializeRequest {
   cacheDir: string;
   modelHost?: string;
   modelRevision?: string;
+  /** Load only files already verified in cacheDir; the worker never touches the network. */
+  localFilesOnly?: boolean;
 }
 
 export interface WorkerEmbedRequest {
@@ -59,6 +61,10 @@ export interface WorkerErrorResponse {
   error: {
     code: string;
     message: string;
+    /** Step that failed (native-load, model-files, session-build, ...). */
+    subStage?: string;
+    /** Allowlisted, non-sensitive tokens explaining the failure. */
+    evidence?: string[];
   };
 }
 
@@ -88,7 +94,15 @@ export function decodeMessage(line: string): WorkerRequest | WorkerResponse | nu
 export function validateResponse(
   response: WorkerTerminalResponse | null,
   expectedId: string
-): { ok: boolean; result?: number[][]; memory?: WorkerOkResponse["memoryUsage"]; error?: string } {
+): {
+  ok: boolean;
+  result?: number[][];
+  memory?: WorkerOkResponse["memoryUsage"];
+  error?: string;
+  code?: string;
+  subStage?: string;
+  evidence?: string[];
+} {
   if (!response) {
     return { ok: false, error: "Empty response from worker" };
   }
@@ -96,7 +110,13 @@ export function validateResponse(
     return { ok: false, error: `Response id mismatch: expected ${expectedId}, got ${response.id}` };
   }
   if (!response.ok) {
-    return { ok: false, error: response.error?.message || "Worker error" };
+    return {
+      ok: false,
+      error: response.error?.message || "Worker error",
+      code: typeof response.error?.code === "string" ? response.error.code : undefined,
+      subStage: typeof response.error?.subStage === "string" ? response.error.subStage : undefined,
+      evidence: Array.isArray(response.error?.evidence) ? response.error.evidence.slice(0, 4) : undefined,
+    };
   }
   return { ok: true, result: response.embeddings, memory: response.memoryUsage };
 }

@@ -5,7 +5,7 @@ import { t } from "../../util/i18n";
 const ROUTE_STAGES: ReadonlyArray<ReadonlyArray<OnboardingStage>> = [
   ["checking", "awaiting-consent"],
   ["downloading-chroma", "verifying-chroma", "installing-chroma", "downloading-embedding-runtime", "verifying-embedding-runtime", "installing-embedding-runtime"],
-  ["starting-chroma", "downloading-embedding-model", "warming-up-model"],
+  ["verifying-embedding-native", "starting-chroma", "downloading-embedding-model", "warming-up-model"],
   ["selecting-legacy-index-action", "preparing-legacy-snapshot", "migrating-legacy-index", "reconciling-legacy-index", "verifying-legacy-index", "selecting-index-scope", "building-quick-index"],
 ];
 

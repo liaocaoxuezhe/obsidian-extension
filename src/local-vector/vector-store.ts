@@ -55,7 +55,34 @@ export interface ChromaVectorRecord {
   embedding: number[];
 }
 
-export class LocalVectorStore {
+/** Storage contract shared by the SQLite store and the read-only Chroma importer. */
+export interface VectorStore {
+  initialize(port: number, vaultId: string, modelShortName: string, explicitCollectionName?: string): Promise<void>;
+  ensureCollection(name: string): Promise<void>;
+  upsertDocument(docId: string, chunks: DocumentChunk[], metadata: DocumentMetadata): Promise<void>;
+  upsertRecords(records: readonly ChromaVectorRecord[]): Promise<void>;
+  getRecordIdentityPage(offset: number, limit: number): Promise<{ ids: string[] }>;
+  deleteDocument(docId: string): Promise<void>;
+  deleteCollectionByName(port: number, name: string): Promise<void>;
+  search(queryEmbedding: number[], topK?: number): Promise<SearchResult[]>;
+  count(): Promise<number>;
+  getChunks(options?: ChromaGetOptions): Promise<ChromaGetResponse>;
+  listIndexedDocs(): Promise<string[]>;
+  listIndexedDocumentEntries(): Promise<IndexedDocumentEntry[]>;
+}
+
+export function assertValidCollectionName(vaultId: string, modelShortName: string, explicitCollectionName?: string): string {
+  const expectedPrefix = `analogy_${vaultId}_${modelShortName}`;
+  if (explicitCollectionName !== undefined
+    && explicitCollectionName !== expectedPrefix
+    && !new RegExp(`^${expectedPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_[0-9a-f]{12}$`).test(explicitCollectionName)) {
+    throw new Error("INVALID_CHROMA_COLLECTION_NAME");
+  }
+  return explicitCollectionName ?? expectedPrefix;
+}
+
+/** Chroma HTTP client. Retained only to read existing Chroma data during the one-time SQLite import. */
+export class LocalVectorStore implements VectorStore {
   private collectionId: string | null = null;
   private collectionName: string = "";
   private port: number = 8000;
@@ -68,14 +95,7 @@ export class LocalVectorStore {
   ): Promise<void> {
     this.port = port;
     await this.ensureV2Available();
-    const suffix = `_${modelShortName}`;
-    const expectedPrefix = `analogy_${vaultId}${suffix}`;
-    if (explicitCollectionName !== undefined
-      && explicitCollectionName !== expectedPrefix
-      && !new RegExp(`^${expectedPrefix.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}_[0-9a-f]{12}$`).test(explicitCollectionName)) {
-      throw new Error("INVALID_CHROMA_COLLECTION_NAME");
-    }
-    this.collectionName = explicitCollectionName ?? expectedPrefix;
+    this.collectionName = assertValidCollectionName(vaultId, modelShortName, explicitCollectionName);
     await this.ensureCollection(this.collectionName);
   }
 
@@ -93,6 +113,58 @@ export class LocalVectorStore {
       body
     );
     this.collectionId = collection.id;
+  }
+
+  /** Attaches to an existing collection without creating one, so imports never write to Chroma. */
+  async openExistingCollection(port: number, name: string): Promise<boolean> {
+    this.port = port;
+    await this.ensureV2Available();
+    const collections = await this.requestJson<Array<{ id?: unknown; name?: unknown }>>(
+      "GET",
+      `/api/v2/tenants/${TENANT}/databases/${DATABASE}/collections?limit=10000`,
+    );
+    const match = Array.isArray(collections)
+      ? collections.find((collection) => collection?.name === name && typeof collection.id === "string")
+      : undefined;
+    if (!match) return false;
+    this.collectionName = name;
+    this.collectionId = match.id as string;
+    return true;
+  }
+
+  /** Reads one page of complete records (including vectors) in Chroma's stable order. */
+  async getRecordPage(offset: number, limit: number): Promise<ChromaVectorRecord[]> {
+    if (!this.collectionId) throw new Error("Collection not initialized");
+    if (!Number.isSafeInteger(offset) || offset < 0 || !Number.isSafeInteger(limit) || limit < 1 || limit > 1024) {
+      throw new Error("CHROMA_VECTOR_PAGE_INVALID");
+    }
+    const response = await this.requestJson<ChromaGetResponse>("POST", this.collectionPath("/get"), {
+      offset,
+      limit,
+      include: ["documents", "metadatas", "embeddings"],
+    });
+    const ids = Array.isArray(response?.ids) ? response.ids as unknown[] : null;
+    const documents = Array.isArray(response?.documents) ? response.documents as unknown[] : null;
+    const metadatas = Array.isArray(response?.metadatas) ? response.metadatas as unknown[] : null;
+    const embeddings = Array.isArray(response?.embeddings) ? response.embeddings as unknown[] : null;
+    if (!ids || !documents || !metadatas || !embeddings || ids.length !== documents.length
+      || ids.length !== metadatas.length || ids.length !== embeddings.length) {
+      throw new Error("CHROMA_VECTOR_PAGE_INVALID");
+    }
+    return ids.map((id, index) => {
+      const embedding = embeddings[index];
+      if (typeof id !== "string" || !Array.isArray(embedding)) throw new Error("CHROMA_VECTOR_PAGE_INVALID");
+      const document = documents[index];
+      const metadata = metadatas[index];
+      return {
+        id,
+        document: typeof document === "string" ? document : null,
+        metadata: metadata && typeof metadata === "object" && !Array.isArray(metadata)
+          ? metadata as Record<string, string | number | boolean>
+          : null,
+        embedding: (embedding as unknown[]).map(Number),
+      };
+    });
   }
 
   async upsertDocument(

@@ -2091,6 +2091,111 @@
         "取消原生文件夹选择时不改变输入"
       ],
       "testNamesSource": "task-1-inventory"
+    },
+    {
+      "path": "test/vector-store-engine.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "vector-store",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [],
+      "testNames": [
+        "upsert keeps insertion order, replaces in place and rejects dimension changes",
+        "query returns exact squared-L2 nearest neighbours with documents and metadata",
+        "deleting a document updates counts, filters and the in-memory search matrix",
+        "document entries match the former Chroma listing semantics",
+        "collections are isolated, deletable, and persist across reopen",
+        "a read-only connection sees committed writes while the writer stays open"
+      ],
+      "testNamesSource": "sqlite-vector-store"
+    },
+    {
+      "path": "test/vector-store-process.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "vector-store",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [],
+      "testNames": [
+        "SqliteVectorStore round-trips documents through the vector-store child process",
+        "the store process restarts after an unexpected exit and keeps committed data",
+        "renderer-side store code never loads node:sqlite"
+      ],
+      "testNamesSource": "sqlite-vector-store"
+    },
+    {
+      "path": "test/chroma-sqlite-import.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "vector-store",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [],
+      "testNames": [
+        "imports every referenced v2 collection by direct vector copy and keeps Chroma files untouched",
+        "a vault without Chroma-era state needs no import and never starts Chroma",
+        "a changing source fails verification, retries once, then falls back to rebuild without partial data",
+        "a missing active collection fails while a missing previous collection is tolerated",
+        "an unavailable Chroma runtime goes straight to rebuild-required",
+        "legacy-generation state is carried over without starting Chroma",
+        "an already initialized SQLite store is never overwritten by Chroma-era state",
+        "a cancelled import does not count toward the rebuild fallback"
+      ],
+      "testNamesSource": "sqlite-vector-store"
+    },
+    {
+      "path": "test/sqlite-backend-lifecycle.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "vector-store",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [],
+      "testNames": [
+        "environment detection with the SQLite backend never probes Chroma",
+        "LocalServiceBootstrap runs on the SQLite store without touching Chroma",
+        "an unhealthy SQLite store fails bootstrap with a dedicated error",
+        "generation state can live in the isolated vector-store directory",
+        "MCP reads the SQLite store read-only and prefers the store's runtime state"
+      ],
+      "testNamesSource": "sqlite-vector-store"
+    },
+    {
+      "path": "test/embedding-failure-classification.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "onboarding",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [],
+      "testNames": [
+        "worker failures map to their real cause with path-free evidence",
+        "unexpected worker exits are classified from signal, exit code and stderr",
+        "onboarding errors keep the sub-stage and only allowlisted evidence",
+        "EmbeddingService keeps classified worker causes and collapses unknown ones",
+        "persisted onboarding errors keep safe technical lines and drop unsafe ones",
+        "the native probe reports blocked launches, native failures and success"
+      ],
+      "testNamesSource": "install-reliability-p0-p1"
+    },
+    {
+      "path": "test/download-resilience.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [],
+      "testNames": [
+        "the proxy-aware chunked transport downloads, resumes and verifies through the runtime downloader",
+        "a server that ignores ranges still yields the complete file",
+        "a failing or stalled transport falls back to the next one and to mirrors",
+        "model files download from the fastest source, verify hashes and classify failures",
+        "model files import offline from a folder only when every file verifies"
+      ],
+      "testNamesSource": "install-reliability-p0-p1"
     }
   ],
   "platformSkips": [

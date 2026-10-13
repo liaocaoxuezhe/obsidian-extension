@@ -247,6 +247,7 @@ function fixture(options = {}) {
     quickIndex,
     legacyMigration,
     finalizeQuickIndex: options.finalizeQuickIndex,
+    embeddingNativeCheck: options.embeddingNativeCheck,
     now: () => ++now,
   });
   return { coordinator, calls, store, getStored: () => clone(stored), chromaState };
@@ -1299,4 +1300,76 @@ test("adopting a persisted nonrecoverable failure publishes it before fail-close
   assert.equal(result.stage, "failed");
   assert.equal(observed.length, 1, "the adopted store snapshot must be observable even when retry fails closed");
   assert.equal(observed[0].error.code, "UNSUPPORTED_PLATFORM");
+});
+
+test("SQLite vector backend skips every Chroma download, install and start stage", async () => {
+  const { coordinator, calls } = fixture({ report: environment({ chroma: "not-required" }) });
+  const stages = [];
+  coordinator.subscribe((snapshot) => stages.push(snapshot.stage));
+  const operation = coordinator.start();
+  await passSuspensions(coordinator);
+  const result = await operation;
+  assert.equal(result.stage, "ready");
+  assert.deepEqual(stages.filter((stage, index) => stage !== stages[index - 1]), [
+    "not-started",
+    "checking",
+    "awaiting-consent",
+    "downloading-embedding-runtime",
+    "verifying-embedding-runtime",
+    "installing-embedding-runtime",
+    "downloading-embedding-model",
+    "warming-up-model",
+    "selecting-index-scope",
+    "building-quick-index",
+    "ready",
+  ]);
+  for (const call of ["chroma.download", "chroma.verify", "chroma.install", "chroma.start"]) {
+    assert.equal(calls.includes(call), false, `${call} must not run with the SQLite backend`);
+  }
+});
+
+test("SQLite vector backend with a ready environment needs no consent or setup work", async () => {
+  const { coordinator, calls } = fixture({
+    report: environment({
+      chroma: "not-required",
+      embeddingRuntime: "ready",
+      embeddingModel: "ready",
+      index: "ready",
+      recommendedAction: "start-services",
+    }),
+  });
+  const result = await coordinator.start();
+  assert.equal(result.stage, "ready");
+  assert.equal(calls.some((call) => typeof call === "string" && call.startsWith("chroma.")
+    && call !== "chroma.getState"), false);
+  assert.equal(calls.includes("save:awaiting-consent"), false);
+});
+
+test("the native inference check runs before model work and reports a classified failure", async () => {
+  const nativeCalls = [];
+  const { coordinator, calls } = fixture({
+    report: environment({ chroma: "not-required" }),
+    embeddingNativeCheck: {
+      async run() {
+        nativeCalls.push("native.run");
+        throw Object.assign(new Error("dlopen failed"), {
+          code: "EMBEDDING_NATIVE_LOAD_FAILED",
+          subStage: "native-load",
+          evidence: ["ERR_DLOPEN_FAILED", "onnxruntime_binding.node"],
+        });
+      },
+    },
+  });
+  const operation = coordinator.start();
+  await waitFor(() => coordinator.getSnapshot().stage === "awaiting-consent", "consent stage");
+  await coordinator.provideConsent(true);
+  const result = await operation;
+  assert.deepEqual(nativeCalls, ["native.run"]);
+  assert.equal(result.stage, "failed");
+  assert.equal(result.error.code, "EMBEDDING_NATIVE_LOAD_FAILED");
+  assert.equal(result.error.stage, "verifying-embedding-native");
+  assert.equal(result.error.subStage, "native-load");
+  assert.equal(result.error.technicalMessage,
+    "EMBEDDING_NATIVE_LOAD_FAILED native-load ERR_DLOPEN_FAILED onnxruntime_binding.node");
+  assert.equal(calls.includes("model.download"), false, "model work must not start after a native failure");
 });

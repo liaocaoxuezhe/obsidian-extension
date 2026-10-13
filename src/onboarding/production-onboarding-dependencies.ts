@@ -10,9 +10,10 @@ import type {
   EmbeddingRuntimeManager,
   ManagedEmbeddingRuntime,
 } from "../runtime/embedding-runtime-manager";
-import { downloadRuntimeAsset } from "../runtime/runtime-downloader";
+import { downloadRuntimeAsset, type RuntimeRequest } from "../runtime/runtime-downloader";
 import type { RuntimeAsset, RuntimePaths } from "../runtime/runtime-types";
 import { verifyRuntimeAsset } from "../runtime/runtime-verifier";
+import { runNativeProbe } from "../runtime/native-probe";
 import type {
   EmbeddingModelProgress,
   RuntimePipelineDependency,
@@ -21,6 +22,10 @@ import type {
 interface RuntimePipelineInput {
   asset: RuntimeAsset;
   paths: RuntimePaths;
+  /** Transports in fallback order; defaults to direct HTTPS. */
+  requests?: RuntimeRequest[];
+  /** Byte-identical mirrors of the asset URL (verified by SHA-256). */
+  alternateUrls?: string[];
 }
 
 interface EmbeddingModelInput {
@@ -53,6 +58,31 @@ function codedError(code: string, cause?: unknown): Error {
   error.code = code;
   if (cause !== undefined) error.cause = cause;
   return error;
+}
+
+/**
+ * Install-time readiness check: the pinned Node version must run, and the native
+ * inference engine must load and execute one tiny inference.
+ */
+async function runEmbeddingRuntimeSmokeTest(installedPath: string, asset: RuntimeAsset): Promise<void> {
+  const executablePath = path.join(installedPath, asset.executableRelativePath);
+  await runEmbeddingExecutableSmokeTest(executablePath);
+  const packRoot = path.join(installedPath, asset.executableRelativePath.split("/")[0]);
+  let moduleRootRelativePath = "node_modules";
+  try {
+    const manifest = JSON.parse(await fs.promises.readFile(path.join(packRoot, "manifest.json"), "utf8"));
+    if (typeof manifest?.moduleRootRelativePath === "string"
+      && /^[A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)*$/.test(manifest.moduleRootRelativePath)
+      && !manifest.moduleRootRelativePath.split("/").includes("..")) {
+      moduleRootRelativePath = manifest.moduleRootRelativePath;
+    }
+  } catch {
+    // The verified archive always carries a manifest; fall back to the documented layout.
+  }
+  await runNativeProbe({
+    nodeExecutable: executablePath,
+    moduleRoot: path.join(packRoot, ...moduleRootRelativePath.split("/")),
+  });
 }
 
 function runEmbeddingExecutableSmokeTest(executablePath: string): Promise<void> {
@@ -102,6 +132,8 @@ export function createProductionRuntimePipeline(input: RuntimePipelineInput): Ru
       partPath,
       signal,
       onProgress,
+      requests: input.requests,
+      alternateUrls: input.alternateUrls,
     }),
     verify: (downloaded) => verifyRuntimeAsset(input.asset, downloaded.path),
     install: (downloaded) => installRuntime({
@@ -110,7 +142,7 @@ export function createProductionRuntimePipeline(input: RuntimePipelineInput): Ru
       paths: input.paths,
       smokeTest: (installedPath) => input.asset.kind === "chroma"
         ? runChromaSmokeTest(installedPath, input.asset, input.paths)
-        : runEmbeddingExecutableSmokeTest(path.join(installedPath, input.asset.executableRelativePath)),
+        : runEmbeddingRuntimeSmokeTest(installedPath, input.asset),
     }),
   };
 }
@@ -131,7 +163,7 @@ export function createProductionEmbeddingModel(input: EmbeddingModelInput): {
     const candidate = error as { code?: unknown; message?: unknown } | null;
     const value = typeof candidate?.code === "string" ? candidate.code
       : typeof candidate?.message === "string" ? candidate.message : "";
-    const code = /^(?:DOWNLOAD_CANCELLED|EMBEDDING_(?:RUNTIME|MODEL|WORKER)_[A-Z0-9_]+)$/.test(value)
+    const code = /^(?:DOWNLOAD_CANCELLED|RUNTIME_EXECUTION_BLOCKED|ENOSPC|EACCES|EPERM|EMBEDDING_(?:RUNTIME|MODEL|WORKER|NATIVE)_[A-Z0-9_]+)$/.test(value)
       ? value
       : fallback;
     return codedError(code, error);

@@ -61,6 +61,8 @@ export interface EnvironmentDetectorOptions {
   chromaRuntimeManager?: Pick<ChromaRuntimeManager, "getState" | "health">;
   getRuntimeAsset?: (kind: RuntimeAssetKind, platform: SupportedPlatformKey) => RuntimeAsset | null;
   signal?: AbortSignal;
+  /** "sqlite" skips every Chroma probe and reports Chroma as not required. */
+  vectorBackend?: "chroma" | "sqlite";
 }
 
 export interface VerifiedChromaRuntimeSnapshot {
@@ -469,7 +471,7 @@ function recommendedAction(report: Omit<EnvironmentReport, "recommendedAction">)
     || report.index === "partial") return "resume";
   if (report.chroma === "missing" || report.embeddingRuntime === "missing"
     || report.embeddingModel === "missing" || report.index === "empty") return "setup";
-  if (report.chroma === "installed") return "start-services";
+  if (report.chroma === "installed" || report.chroma === "not-required") return "start-services";
   return "none";
 }
 
@@ -494,9 +496,12 @@ export async function detectEnvironment(options: EnvironmentDetectorOptions): Pr
     chromaInspection ??= inspectChromaRuntime(options.paths, options.platform, assetResolver);
     return chromaInspection;
   };
-  let chroma = inspectors.chromaRuntime
-    ? await inspectors.chromaRuntime()
-    : (await inspectInstalledChroma()).state;
+  const sqliteBackend = options.vectorBackend === "sqlite";
+  let chroma: ChromaState = sqliteBackend
+    ? "not-required"
+    : inspectors.chromaRuntime
+      ? await inspectors.chromaRuntime()
+      : (await inspectInstalledChroma()).state;
   assertNotAborted(options.signal);
   const embeddingRuntime = await (inspectors.embeddingRuntime?.()
     ?? inspectEmbeddingRuntime(options.paths, options.platform, assetResolver));
@@ -506,7 +511,7 @@ export async function detectEnvironment(options: EnvironmentDetectorOptions): Pr
   assertNotAborted(options.signal);
   const index = await (inspectors.index?.() ?? Promise.resolve(inspectIndexState(options.indexState)));
   assertNotAborted(options.signal);
-  if (options.chromaPort !== undefined) {
+  if (options.chromaPort !== undefined && !sqliteBackend) {
     const health = await boundedHealth(inspectors.chromaHealth ?? defaultChromaHealth, options.chromaPort, timeoutMs);
     const trustedManagedEndpoint = chroma === "installed" && options.chromaRuntimeManager
       ? await verifyManagedChromaIdentity(

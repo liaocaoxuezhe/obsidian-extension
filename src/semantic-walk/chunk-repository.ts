@@ -1,7 +1,7 @@
-import type { LocalVectorStore, ChromaGetResponse } from "../local-vector/vector-store";
+import type { VectorStore, ChromaGetResponse } from "../local-vector/vector-store";
 import type { ChunkRepository, IndexedChunk, IndexedDocumentEntry } from "./types";
 
-type ChunkStore = Pick<LocalVectorStore, "getChunks" | "listIndexedDocumentEntries">;
+type ChunkStore = Pick<VectorStore, "getChunks" | "listIndexedDocumentEntries">;
 
 export class ChromaChunkRepository implements ChunkRepository {
   constructor(private readonly vectorStore: ChunkStore) {}

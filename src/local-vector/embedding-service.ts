@@ -5,6 +5,13 @@ import { SafeModeManager } from "./safe-mode";
 import * as path from "path";
 import type { ManagedEmbeddingRuntime } from "../runtime/embedding-runtime-manager";
 import type { EmbeddingInitializationProgress } from "./embedding-worker-protocol";
+import { ensureModelFiles, getModelFileManifest } from "./model-files";
+import type { RuntimeRequest } from "../runtime/runtime-downloader";
+import {
+  findEmbeddingFailureDetails,
+  type EmbeddingFailureCode,
+  type EmbeddingFailureStage,
+} from "./embedding-failure";
 
 export interface UnifiedEmbeddingServiceOptions extends EmbeddingServiceOptions {
   pluginVersion?: string;
@@ -16,6 +23,15 @@ export interface UnifiedEmbeddingServiceOptions extends EmbeddingServiceOptions 
   onSafeModeEntered?: () => void | Promise<void>;
   managedRuntime?: ManagedEmbeddingRuntime;
   modelRevision?: string;
+  /**
+   * Download and verify pinned model files in the plugin (resumable, multi-source,
+   * proxy-aware), then load them in the worker without network access.
+   */
+  manageModelFiles?: boolean;
+  /** Model download hosts in preference order. */
+  modelHosts?: readonly string[];
+  /** Download transports in fallback order. */
+  downloadTransports?: readonly RuntimeRequest[];
 }
 
 export type EmbeddingInitializationState = "idle" | "initializing" | "ready";
@@ -23,15 +39,48 @@ export type EmbeddingInitializationState = "idle" | "initializing" | "ready";
 export type EmbeddingServiceErrorCode =
   | "EMBEDDING_SAFE_MODE"
   | "EMBEDDING_WORKER_UNAVAILABLE"
-  | "EMBEDDING_WORKER_FAILED";
+  | "EMBEDDING_WORKER_FAILED"
+  | EmbeddingFailureCode;
+
+const CLASSIFIED_FAILURE_CODES = new Set<string>([
+  "EMBEDDING_NATIVE_LOAD_FAILED",
+  "EMBEDDING_MODEL_NETWORK_FAILED",
+  "EMBEDDING_MODEL_OOM",
+  "EMBEDDING_WORKER_CRASHED",
+  "EMBEDDING_MODEL_CACHE_CORRUPT",
+  "EMBEDDING_WORKER_TIMEOUT",
+  "RUNTIME_EXECUTION_BLOCKED",
+]);
 
 export class EmbeddingServiceError extends Error {
   readonly code: EmbeddingServiceErrorCode;
+  subStage?: EmbeddingFailureStage;
+  evidence?: string[];
 
-  constructor(code: EmbeddingServiceErrorCode, message: string) {
+  constructor(code: EmbeddingServiceErrorCode, message: string, cause?: unknown) {
     super(message);
     this.name = "EmbeddingServiceError";
     this.code = code;
+    if (cause !== undefined) {
+      (this as Error & { cause?: unknown }).cause = cause;
+      const details = findEmbeddingFailureDetails(cause);
+      if (details.subStage) {
+        this.subStage = details.subStage;
+        this.evidence = details.evidence;
+      }
+    }
+  }
+
+  /** Keeps a worker's classified cause instead of collapsing it into a generic code. */
+  static fromWorkerFailure(error: unknown, message: string): EmbeddingServiceError {
+    const code = (error as { code?: unknown })?.code;
+    return new EmbeddingServiceError(
+      typeof code === "string" && CLASSIFIED_FAILURE_CODES.has(code)
+        ? code as EmbeddingFailureCode
+        : "EMBEDDING_WORKER_FAILED",
+      message,
+      error,
+    );
   }
 }
 
@@ -43,6 +92,7 @@ export class EmbeddingService {
   private initializationState: EmbeddingInitializationState = "idle";
   private initializationEpoch = 0;
   private initializingWorkers = new Map<number, EmbeddingWorkerClient>();
+  private modelFilesAbort: AbortController | null = null;
 
   constructor(options: UnifiedEmbeddingServiceOptions) {
     this.options = options;
@@ -81,6 +131,7 @@ export class EmbeddingService {
     this.initializationState = "initializing";
     if (this.shouldTryWorker()) {
       let attemptWorker: EmbeddingWorkerClient | null = null;
+      const localFilesOnly = await this.ensureModelFiles(epoch, onProgress);
       try {
         attemptWorker = this.createWorkerClient(epoch);
         this.initializingWorkers.set(epoch, attemptWorker);
@@ -96,6 +147,8 @@ export class EmbeddingService {
               onProgress?.(progress);
             }
           },
+          undefined,
+          localFilesOnly,
         );
         if (epoch !== this.initializationEpoch) {
           throw new Error("EMBEDDING_INITIALIZATION_CANCELLED");
@@ -124,8 +177,8 @@ export class EmbeddingService {
           model: this.options.modelConfig.shortName,
         });
         if (!this.options.allowInProcessFallback) {
-          throw new EmbeddingServiceError(
-            "EMBEDDING_WORKER_FAILED",
+          throw EmbeddingServiceError.fromWorkerFailure(
+            err,
             `Embedding worker initialization failed: ${(err as Error).message}`,
           );
         }
@@ -147,6 +200,40 @@ export class EmbeddingService {
     }));
     if (epoch !== this.initializationEpoch) throw new Error("EMBEDDING_INITIALIZATION_CANCELLED");
     this.initializationState = "ready";
+  }
+
+  /** Returns true when the worker can load the model from verified local files only. */
+  private async ensureModelFiles(
+    epoch: number,
+    onProgress?: (progress: EmbeddingInitializationProgress) => void,
+  ): Promise<boolean> {
+    if (!this.options.manageModelFiles || !getModelFileManifest(this.options.modelConfig.shortName)) return false;
+    const controller = new AbortController();
+    this.modelFilesAbort = controller;
+    try {
+      await ensureModelFiles({
+        shortName: this.options.modelConfig.shortName,
+        cacheDir: this.options.cacheDir,
+        hosts: this.options.modelHosts,
+        transports: this.options.downloadTransports,
+        signal: controller.signal,
+        onProgress: (progress) => {
+          if (epoch === this.initializationEpoch && this.initializationState === "initializing") onProgress?.(progress);
+        },
+      });
+    } catch (error) {
+      this.initializationState = "idle";
+      const code = (error as { code?: string })?.code;
+      if (controller.signal.aborted || code === "DOWNLOAD_CANCELLED") throw new Error("EMBEDDING_INITIALIZATION_CANCELLED");
+      // Disk and permission errors keep their own codes so setup can explain them.
+      if (code === "ENOSPC" || code === "EACCES" || code === "EPERM") throw error;
+      this.record("error", "model-files.failed", (error as Error).message, { model: this.options.modelConfig.shortName });
+      throw EmbeddingServiceError.fromWorkerFailure(error, `Embedding model files are unavailable: ${(error as Error).message}`);
+    } finally {
+      if (this.modelFilesAbort === controller) this.modelFilesAbort = null;
+    }
+    if (epoch !== this.initializationEpoch) throw new Error("EMBEDDING_INITIALIZATION_CANCELLED");
+    return true;
   }
 
   private createWorkerClient(epoch: number): EmbeddingWorkerClient {
@@ -202,6 +289,7 @@ export class EmbeddingService {
 
   async cancelInitialization(): Promise<void> {
     if (this.initializationState !== "initializing") return;
+    this.modelFilesAbort?.abort();
     this.initializationEpoch += 1;
     this.initializationState = "idle";
     this.useWorker = false;
@@ -279,8 +367,8 @@ export class EmbeddingService {
           this.useWorker = false;
         }
         if (!this.options.allowInProcessFallback) {
-          throw new EmbeddingServiceError(
-            "EMBEDDING_WORKER_FAILED",
+          throw EmbeddingServiceError.fromWorkerFailure(
+            err,
             `Embedding worker inference failed: ${(err as Error).message}`,
           );
         }
@@ -307,6 +395,7 @@ export class EmbeddingService {
   }
 
   async dispose(): Promise<void> {
+    this.modelFilesAbort?.abort();
     this.initializationEpoch += 1;
     this.initializationState = "idle";
     const initializingWorkers = [...this.initializingWorkers.values()];

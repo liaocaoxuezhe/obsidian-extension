@@ -4,7 +4,9 @@ import { EMBEDDING_MODELS, EmbeddingModelConfig } from "./embedding";
 import { deriveRuntimeVaultId, RuntimeVaultPlatform } from "./runtime-vault-identity";
 
 export interface McpConfig {
+  /** Retained for the Chroma compatibility tests; search reads SQLite. */
   chromaPort: number;
+  databasePath: string;
   vaultPath: string;
   vaultId: string;
   runtimeVaultId: string;
@@ -201,8 +203,12 @@ export function loadConfig(
     (platform === "win32" ? "win32-x64" : "darwin-arm64") as RuntimeVaultPlatform,
   );
   const localDataRoot = resolveLocalDataRoot(environment, platform, options.homeDirectory ?? require("os").homedir());
+  const vaultRoot = path.join(localDataRoot, "vaults", runtimeVaultId);
+  const vectorStoreRoot = path.join(vaultRoot, "vector-store");
+  // The SQLite store keeps its own state; the vault-level file is the frozen Chroma-era copy.
+  const storeStatePath = path.join(vectorStoreRoot, "runtime-state.json");
   const runtimeState = readRuntimeState(
-    path.join(localDataRoot, "vaults", runtimeVaultId, "runtime-state.json"),
+    fs.existsSync(storeStatePath) ? storeStatePath : path.join(vaultRoot, "runtime-state.json"),
     runtimeVaultId,
   );
 
@@ -264,6 +270,7 @@ export function loadConfig(
 
   return {
     chromaPort,
+    databasePath: path.join(vectorStoreRoot, "vectors.sqlite"),
     vaultPath,
     vaultId,
     runtimeVaultId,

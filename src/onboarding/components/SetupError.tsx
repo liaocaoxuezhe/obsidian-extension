@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import type { OnboardingError, OnboardingSnapshot } from "../onboarding-types";
 import { t } from "../../util/i18n";
+import type { EnvironmentFacts } from "../../diagnostics/environment-facts";
 
 const MAX_DIAGNOSTIC_EVENTS = 20;
 export const SAFE_ONBOARDING_DIAGNOSTIC_EVENT_CODES = [
@@ -53,10 +54,18 @@ function safeDiagnosticEvent(value: unknown): OnboardingDiagnosticEvent | null {
   return event;
 }
 
+/** Only "CODE token token" lines built from allowlisted tokens are shown or copied. */
+function safeDetail(error: OnboardingError | null | undefined): string | null {
+  const value = error?.technicalMessage;
+  if (!error || typeof value !== "string" || !value.startsWith(`${error.code} `) || value.length > 160) return null;
+  return /^[A-Z][A-Z0-9_]{2,80}(?: [A-Za-z0-9._:-]{1,60}){1,8}$/.test(value) ? value : null;
+}
+
 export function createOnboardingDiagnosticText(
   snapshot: Readonly<OnboardingSnapshot>,
   pluginBuildId: string,
   diagnosticEvents: readonly unknown[],
+  environment?: EnvironmentFacts | null,
 ): string {
   const error = snapshot.error;
   const log = diagnosticEvents.slice(-MAX_DIAGNOSTIC_EVENTS)
@@ -70,6 +79,10 @@ export function createOnboardingDiagnosticText(
     embeddingRuntimeId: safeIdentifier(snapshot.embeddingRuntimeId),
     pluginBuildId: safeIdentifier(pluginBuildId),
   };
+  if (error?.subStage) diagnostic.subStage = error.subStage;
+  const detail = safeDetail(error);
+  if (detail) diagnostic.detail = detail;
+  if (environment) diagnostic.environment = environment;
   if (log.length > 0) diagnostic.log = log;
   return JSON.stringify(diagnostic, null, 2);
 }
@@ -79,6 +92,7 @@ export interface SetupErrorProps {
   snapshot: Readonly<OnboardingSnapshot>;
   pluginBuildId: string;
   diagnosticEvents: readonly OnboardingDiagnosticEvent[];
+  environmentFacts?: EnvironmentFacts | null;
   onRetry(): void;
   onChangePort(): void;
   onOpenHelp(): void;
@@ -96,7 +110,9 @@ export function SetupError(props: SetupErrorProps): React.ReactElement {
   };
   const actionKey = `onboarding.errorAction.${error.action}`;
   const copyDiagnostics = () => {
-    const text = createOnboardingDiagnosticText(props.snapshot, props.pluginBuildId, props.diagnosticEvents);
+    const text = createOnboardingDiagnosticText(
+      props.snapshot, props.pluginBuildId, props.diagnosticEvents, props.environmentFacts,
+    );
     void navigator.clipboard.writeText(text).then(() => setCopyState("copied"), () => setCopyState("failed"));
   };
 
@@ -105,6 +121,9 @@ export function SetupError(props: SetupErrorProps): React.ReactElement {
     <div>
       <h2 id="analogy-onboarding-error-title">{t("onboarding.failed.heading")}</h2>
       <p role="alert">{t(error.userMessageKey)}</p>
+      {error.subStage ? <p className="analogy-onboarding-error__substage">
+        {t("onboarding.diagnostics.failedAt", { step: t(`onboarding.subStage.${error.subStage}`) })}
+      </p> : null}
     </div>
     <button type="button" className="mod-cta analogy-onboarding__primary" data-primary-action="true" onClick={action}>{t(actionKey)}</button>
     <details className="analogy-onboarding-error__details">
@@ -112,6 +131,10 @@ export function SetupError(props: SetupErrorProps): React.ReactElement {
       <dl>
         <div><dt>{t("onboarding.diagnostics.code")}</dt><dd><code>{error.code}</code></dd></div>
         <div><dt>{t("onboarding.diagnostics.stage")}</dt><dd>{t(`onboarding.stage.${error.stage}`)}</dd></div>
+        {error.subStage ? <div><dt>{t("onboarding.diagnostics.subStage")}</dt><dd>{t(`onboarding.subStage.${error.subStage}`)}</dd></div> : null}
+        {safeDetail(error)
+          ? <div><dt>{t("onboarding.diagnostics.detail")}</dt><dd><code>{safeDetail(error)}</code></dd></div>
+          : null}
       </dl>
       <button type="button" onClick={copyDiagnostics}>{t("onboarding.diagnostics.copy")}</button>
       <span className="analogy-onboarding-error__copy-state" aria-live="polite">

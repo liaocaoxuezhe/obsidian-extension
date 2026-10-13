@@ -1,3 +1,4 @@
+import type { EnvironmentFacts } from "../diagnostics/environment-facts";
 import React, { useEffect, useRef, useState } from "react";
 import type { LegacyIndexChoice, OnboardingSnapshot, QuickIndexScope } from "./onboarding-types";
 import { SetupSteps } from "./components/SetupSteps";
@@ -26,12 +27,13 @@ export interface OnboardingViewProps {
   onChangePort(): void;
   pluginBuildId: string;
   diagnosticEvents?: readonly OnboardingDiagnosticEvent[];
+  environmentFacts?: EnvironmentFacts | null;
 }
 
 const INSTALL_STAGES = new Set([
   "checking", "downloading-chroma", "verifying-chroma", "installing-chroma",
   "downloading-embedding-runtime", "verifying-embedding-runtime", "installing-embedding-runtime",
-  "starting-chroma", "downloading-embedding-model", "warming-up-model", "building-quick-index",
+  "verifying-embedding-native", "starting-chroma", "downloading-embedding-model", "warming-up-model", "building-quick-index",
   "preparing-legacy-snapshot", "migrating-legacy-index", "reconciling-legacy-index", "verifying-legacy-index",
 ]);
 
@@ -201,7 +203,7 @@ export function OnboardingView(props: OnboardingViewProps): React.ReactElement {
 
     {snapshot.stage === "failed" && snapshot.error ? <SetupError
       error={snapshot.error} snapshot={snapshot} pluginBuildId={props.pluginBuildId}
-      diagnosticEvents={props.diagnosticEvents ?? []} onRetry={retry} onChangePort={props.onChangePort}
+      diagnosticEvents={props.diagnosticEvents ?? []} environmentFacts={props.environmentFacts ?? null} onRetry={retry} onChangePort={props.onChangePort}
       onOpenHelp={props.onOpenHelp} onClose={props.onClose}
     /> : null}
 

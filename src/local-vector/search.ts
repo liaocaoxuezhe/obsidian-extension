@@ -1,6 +1,6 @@
 import { TFile } from "obsidian";
 import { EmbeddingService } from "./embedding-service";
-import { LocalVectorStore, SearchResult } from "./vector-store";
+import type { VectorStore, SearchResult } from "./vector-store";
 import { cleanMarkdown } from "./strip-markdown";
 import type { DocumentIndexer } from "./document-indexer";
 import type { DocumentSummarizer } from "./document-summarizer";
@@ -48,14 +48,14 @@ export function createDocumentSearchInput(content: string, maxInputChars: number
 
 export class LocalSemanticSearch {
   private embedding: EmbeddingService;
-  private vectorStore: LocalVectorStore;
+  private vectorStore: VectorStore;
   private maxInputChars: number;
   private documentIndexer: DocumentIndexer | null = null;
   private summarizer?: DocumentSummarizer;
 
   constructor(
     embedding: EmbeddingService,
-    vectorStore: LocalVectorStore,
+    vectorStore: VectorStore,
     maxInputChars: number = 512,
     summarizer?: DocumentSummarizer
   ) {

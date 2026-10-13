@@ -25,7 +25,8 @@ export interface VerifiedChromaRuntime {
 }
 
 export interface VerifiedLocalRuntimes {
-  chroma: VerifiedChromaRuntime;
+  /** Null when the SQLite vector store is active and Chroma is not used. */
+  chroma: VerifiedChromaRuntime | null;
   embedding: ManagedEmbeddingRuntime;
 }
 
@@ -85,9 +86,19 @@ export interface LocalServiceStopOptions {
   preserveChromaLease?: boolean;
 }
 
+export interface SqliteVectorBackend {
+  /** Starts the store process if needed and confirms it answers requests. */
+  healthy(): Promise<boolean>;
+  /** Process identity exposed where callers previously read the Chroma lease. */
+  describe(): ManagedProcessState;
+  controller(): LocalChromaServiceController;
+}
+
 export interface LocalServiceBootstrapOptions {
   resolveVerifiedRuntimes(signal: AbortSignal): Promise<VerifiedLocalRuntimes>;
   chromaManager: BootstrapChromaManager;
+  /** When present, services run on the SQLite store and Chroma is never started. */
+  sqliteBackend?: SqliteVectorBackend;
   vaultId: string;
   modelShortName: string;
   maxInputChars: number;
@@ -145,7 +156,7 @@ function rollbackFailure(primary: unknown, cleanupError: unknown): RollbackFailu
 }
 
 function isReadyEnvironment(report: EnvironmentReport): boolean {
-  return (report.chroma === "installed" || report.chroma === "running")
+  return (report.chroma === "installed" || report.chroma === "running" || report.chroma === "not-required")
     && report.embeddingRuntime === "ready"
     && report.embeddingModel === "ready"
     && report.index === "ready"
@@ -303,32 +314,15 @@ export class LocalServiceBootstrap {
       this.assertCurrent(context);
       const runtimes = await this.options.resolveVerifiedRuntimes(context.controller.signal);
       this.assertCurrent(context);
-      const chromaSnapshot = await runtimes.chroma.revalidate();
-      this.assertCurrent(context);
-      if (chromaSnapshot.runtimeId !== runtimes.chroma.runtimeId
-        || chromaSnapshot.executablePath !== runtimes.chroma.executablePath
-        || chromaSnapshot.runtimeVersion !== runtimes.chroma.runtimeVersion
-        || chromaSnapshot.assetSha256 !== runtimes.chroma.assetSha256) {
-        throw bootstrapError("LOCAL_SERVICE_CHROMA_SNAPSHOT_MISMATCH");
+      const sqliteBackend = this.options.sqliteBackend;
+      let lease: ManagedProcessState;
+      if (sqliteBackend) {
+        if (!await sqliteBackend.healthy()) throw bootstrapError("LOCAL_SERVICE_VECTOR_STORE_NOT_READY");
+        this.assertCurrent(context);
+        lease = { ...sqliteBackend.describe() };
+      } else {
+        lease = await this.startChroma(context, runtimes.chroma);
       }
-      const startOptions: ChromaStartOptions = {
-        executablePath: runtimes.chroma.executablePath,
-        dataPath: runtimes.chroma.dataPath,
-        preferredPort: runtimes.chroma.preferredPort,
-        runtimeVersion: runtimes.chroma.runtimeVersion,
-      };
-      context.chromaStartBaseline = this.options.chromaManager.getState();
-      context.chromaStartOptions = startOptions;
-      context.chromaStartPromise = this.options.chromaManager.start(startOptions);
-      const lease = await context.chromaStartPromise;
-      context.chromaStartPromise = null;
-      context.lease = { ...lease };
-      this.assertCurrent(context);
-      this.assertLease(runtimes.chroma, lease);
-      if (!await this.options.chromaManager.health(lease.port)) {
-        throw bootstrapError("LOCAL_SERVICE_CHROMA_NOT_READY");
-      }
-      this.assertCurrent(context);
 
       const vectorStore = this.options.createVectorStore();
       const collectionName = await this.options.resolveCollectionName?.();
@@ -361,7 +355,9 @@ export class LocalServiceBootstrap {
       this.assertCurrent(context);
       indexer.watchVault();
 
-      const chromaManager = this.createChromaController(runtimes.chroma, lease);
+      const chromaManager = sqliteBackend
+        ? sqliteBackend.controller()
+        : this.createChromaController(runtimes.chroma!, lease);
       const ready: LocalServiceReady = {
         embeddingService: embedding,
         vectorStore,
@@ -379,7 +375,7 @@ export class LocalServiceBootstrap {
       this.options.updateSearchState({
         status: "ready",
         chromaManager,
-        dbPath: runtimes.chroma.dataPath,
+        dbPath: chromaManager.getDbPath(),
         port: lease.port,
         embeddingStatus: "ready",
         vectorStoreStatus: "ready",
@@ -409,6 +405,40 @@ export class LocalServiceBootstrap {
       this.options.updateSearchState({ status: "error", lastError: message });
       throw error;
     }
+  }
+
+  private async startChroma(
+    context: BootstrapGeneration,
+    runtime: VerifiedChromaRuntime | null,
+  ): Promise<ManagedProcessState> {
+    if (!runtime) throw bootstrapError("LOCAL_SERVICE_CHROMA_RUNTIME_MISSING");
+    const chromaSnapshot = await runtime.revalidate();
+    this.assertCurrent(context);
+    if (chromaSnapshot.runtimeId !== runtime.runtimeId
+      || chromaSnapshot.executablePath !== runtime.executablePath
+      || chromaSnapshot.runtimeVersion !== runtime.runtimeVersion
+      || chromaSnapshot.assetSha256 !== runtime.assetSha256) {
+      throw bootstrapError("LOCAL_SERVICE_CHROMA_SNAPSHOT_MISMATCH");
+    }
+    const startOptions: ChromaStartOptions = {
+      executablePath: runtime.executablePath,
+      dataPath: runtime.dataPath,
+      preferredPort: runtime.preferredPort,
+      runtimeVersion: runtime.runtimeVersion,
+    };
+    context.chromaStartBaseline = this.options.chromaManager.getState();
+    context.chromaStartOptions = startOptions;
+    context.chromaStartPromise = this.options.chromaManager.start(startOptions);
+    const lease = await context.chromaStartPromise;
+    context.chromaStartPromise = null;
+    context.lease = { ...lease };
+    this.assertCurrent(context);
+    this.assertLease(runtime, lease);
+    if (!await this.options.chromaManager.health(lease.port)) {
+      throw bootstrapError("LOCAL_SERVICE_CHROMA_NOT_READY");
+    }
+    this.assertCurrent(context);
+    return lease;
   }
 
   private assertCurrent(context: BootstrapGeneration): void {
