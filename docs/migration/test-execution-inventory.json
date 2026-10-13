@@ -2207,7 +2207,7 @@
       "sourceEvidence": [],
       "testNames": [
         "the Visual C++ runtime is found in the Visual Studio redistributable folder only",
-        "the runtime DLLs are copied next to onnxruntime_binding.node"
+        "every VC++ DLL imported by the native payload is copied next to the binding"
       ],
       "testNamesSource": "install-reliability-p0-p1"
     }
