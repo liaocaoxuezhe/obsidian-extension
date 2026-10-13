@@ -103,9 +103,11 @@ export interface OnboardingCoordinatorOptions {
     stopOwnedProcess(expectedLease: ManagedProcessState): Promise<unknown>;
   };
   chromaStartOptions(installed: InstalledRuntime | null): ChromaStartOptions;
-  embeddingRuntimeManager: { resolve(): Promise<unknown> };
-  /** Loads the native inference engine and runs one tiny inference; throws a classified error. */
-  embeddingNativeCheck?: { run(signal: AbortSignal): Promise<void> };
+  embeddingRuntimeManager: {
+    resolve(): Promise<unknown>;
+    /** Loads the native inference engine and runs one tiny inference; throws a classified error. */
+    verifyNative?(signal: AbortSignal): Promise<void>;
+  };
   embeddingModel: {
     download(
       signal: AbortSignal,
@@ -668,10 +670,11 @@ export class OnboardingCoordinator {
       }
       // Prove the native inference engine loads before any model work, so a missing
       // VC++ runtime or quarantined DLL is reported as such instead of a model failure.
-      if (this.options.embeddingNativeCheck && context.runtimeRetryKey !== "chroma"
+      if (typeof this.options.embeddingRuntimeManager.verifyNative === "function"
+        && context.runtimeRetryKey !== "chroma"
         && (report.embeddingModel !== "ready" || report.embeddingRuntime !== "ready")) {
         await this.publishStage(context, "verifying-embedding-native");
-        await this.options.embeddingNativeCheck.run(context.controller.signal);
+        await this.options.embeddingRuntimeManager.verifyNative(context.controller.signal);
         this.assertRunnable(context);
       }
 

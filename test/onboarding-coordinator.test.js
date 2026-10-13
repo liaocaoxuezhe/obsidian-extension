@@ -242,12 +242,12 @@ function fixture(options = {}) {
         if (options.resolveEmbedding) return options.resolveEmbedding();
         return { runtimeId: "embedding-runtime-fixture" };
       },
+      ...(options.verifyNative ? { verifyNative: options.verifyNative } : {}),
     },
     embeddingModel,
     quickIndex,
     legacyMigration,
     finalizeQuickIndex: options.finalizeQuickIndex,
-    embeddingNativeCheck: options.embeddingNativeCheck,
     now: () => ++now,
   });
   return { coordinator, calls, store, getStored: () => clone(stored), chromaState };
@@ -1349,15 +1349,13 @@ test("the native inference check runs before model work and reports a classified
   const nativeCalls = [];
   const { coordinator, calls } = fixture({
     report: environment({ chroma: "not-required" }),
-    embeddingNativeCheck: {
-      async run() {
-        nativeCalls.push("native.run");
-        throw Object.assign(new Error("dlopen failed"), {
-          code: "EMBEDDING_NATIVE_LOAD_FAILED",
-          subStage: "native-load",
-          evidence: ["ERR_DLOPEN_FAILED", "onnxruntime_binding.node"],
-        });
-      },
+    async verifyNative() {
+      nativeCalls.push("native.run");
+      throw Object.assign(new Error("dlopen failed"), {
+        code: "EMBEDDING_NATIVE_LOAD_FAILED",
+        subStage: "native-load",
+        evidence: ["ERR_DLOPEN_FAILED", "onnxruntime_binding.node"],
+      });
     },
   });
   const operation = coordinator.start();

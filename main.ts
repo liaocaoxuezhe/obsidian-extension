@@ -10,7 +10,6 @@ import {EmbeddingService} from "./src/local-vector/embedding-service";
 import {SafeModeManager, type SafeModeState} from "./src/local-vector/safe-mode";
 import {LocalVectorStore, type VectorStore} from "./src/local-vector/vector-store";
 import {SqliteVectorStore} from "./src/local-vector/sqlite-vector-store";
-import {runNativeProbe} from "./src/runtime/native-probe";
 import {collectEnvironmentFacts} from "./src/diagnostics/environment-facts";
 import {VectorStoreHost} from "./src/local-vector/vector-store-host";
 import type {VectorStoreOperation, VectorStoreOperations} from "./src/local-vector/vector-store-protocol";
@@ -946,12 +945,6 @@ export default class Analogy extends Plugin {
 				runtimeVersion: chromaAsset.version,
 			}),
 			embeddingRuntimeManager,
-			embeddingNativeCheck: {
-				run: async () => {
-					const runtime = await embeddingRuntimeManager.resolve();
-					await runNativeProbe({nodeExecutable: runtime.nodeExecutable, moduleRoot: runtime.moduleRoot});
-				},
-			},
 			embeddingModel,
 			quickIndex,
 			legacyMigration,

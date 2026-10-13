@@ -660,17 +660,15 @@ async function main() {
 
     const installedPackages = collectInstalledPackages(installedNodeModules);
     const licenseCatalog = loadVerifiedLicenseCatalog();
-    const notices = renderThirdPartyNotices({
+    const renderedNotices = renderThirdPartyNotices({
       nodeAsset: { ...nodeAsset, nodeVersion: nodeCatalog.nodeVersion },
       nodeLicense: fs.readFileSync(nodeLicenseSource, "utf8"),
       packages: installedPackages,
       licenseCatalog,
     });
-    await fs.promises.writeFile(
-      path.join(packRoot, "THIRD_PARTY_NOTICES.txt"),
-      bundledVcRuntime ? `${notices}\n${VC_RUNTIME_NOTICE}\n` : notices,
-      "utf8",
-    );
+    // The internal manifest binds these exact bytes, so append before hashing.
+    const notices = bundledVcRuntime ? `${renderedNotices}\n${VC_RUNTIME_NOTICE}\n` : renderedNotices;
+    await fs.promises.writeFile(path.join(packRoot, "THIRD_PARTY_NOTICES.txt"), notices, "utf8");
     await fs.promises.rename(installedNodeModules, path.join(packRoot, "node_modules"));
 
     const files = await collectFileHashes(packRoot);
