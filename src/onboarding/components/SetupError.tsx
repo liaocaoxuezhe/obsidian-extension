@@ -87,6 +87,13 @@ export function createOnboardingDiagnosticText(
   return JSON.stringify(diagnostic, null, 2);
 }
 
+/** Renders https links inside a translated message as clickable anchors. */
+function withLinks(text: string): React.ReactNode[] {
+  return text.split(/(https:\/\/[^\s，。、；）)]+)/).map((part, index) => (index % 2 === 1
+    ? <a key={index} href={part} target="_blank" rel="noopener noreferrer">{part}</a>
+    : part));
+}
+
 export interface SetupErrorProps {
   error: OnboardingError;
   snapshot: Readonly<OnboardingSnapshot>;
@@ -120,7 +127,7 @@ export function SetupError(props: SetupErrorProps): React.ReactElement {
     <div className="analogy-onboarding-error__mark" aria-hidden="true">!</div>
     <div>
       <h2 id="analogy-onboarding-error-title">{t("onboarding.failed.heading")}</h2>
-      <p role="alert">{t(error.userMessageKey)}</p>
+      <p role="alert">{withLinks(t(error.userMessageKey))}</p>
       {error.subStage ? <p className="analogy-onboarding-error__substage">
         {t("onboarding.diagnostics.failedAt", { step: t(`onboarding.subStage.${error.subStage}`) })}
       </p> : null}

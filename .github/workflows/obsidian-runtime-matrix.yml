@@ -102,7 +102,7 @@ jobs:
         run: |
           archive=$(ls dist/runtime/analogy-embedding-runtime-*-win32-x64.zip | head -n 1)
           entries=$(tar -tf "$archive")
-          for dll in msvcp140.dll vcruntime140.dll vcruntime140_1.dll; do
+          for dll in msvcp140.dll msvcp140_1.dll msvcp140_atomic_wait.dll vcruntime140.dll vcruntime140_1.dll; do
             echo "$entries" | grep -q "onnxruntime-node/bin/napi-v6/win32/x64/$dll" || { echo "::error::$dll missing from $archive"; exit 1; }
           done
       - name: Run fresh-cache native inference smoke
