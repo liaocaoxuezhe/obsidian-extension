@@ -1011,6 +1011,10 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
   "onboarding.error.insufficient_disk_space": { en: "There is not enough free disk space to finish setup.", zh: "磁盘可用空间不足，无法完成初始化。" },
   "onboarding.error.onboarding_state_corrupt": { en: "The saved setup state could not be read safely.", zh: "无法安全读取已保存的初始化状态。" },
   "onboarding.error.download_network_error": { en: "The runtime download was interrupted by a network error.", zh: "运行时下载因网络错误而中断。" },
+  "onboarding.error.download_proxy_auth_required": {
+    en: "Your network proxy asks for a username and password. Sign in to the proxy (system proxy settings or the prompt Obsidian shows), then retry. Finished downloads are kept.",
+    zh: "网络代理要求用户名和密码。请先登录代理（系统代理设置或 Obsidian 弹出的登录框），然后重试，已下载的部分会保留。",
+  },
   "onboarding.error.download_cancelled": { en: "The runtime download was cancelled.", zh: "运行时下载已取消。" },
   "onboarding.error.download_size_mismatch": { en: "The downloaded file size did not match the verified release.", zh: "下载文件的大小与已验证发行包不一致。" },
   "onboarding.error.download_hash_mismatch": { en: "The downloaded file did not pass integrity verification.", zh: "下载文件未通过完整性验证。" },

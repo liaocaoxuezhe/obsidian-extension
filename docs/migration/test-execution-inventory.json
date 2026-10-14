@@ -2198,7 +2198,8 @@
         "a server that ignores ranges still yields the complete file",
         "a failing or stalled transport falls back to the next one and to mirrors",
         "model files download from the fastest source, verify hashes and classify failures",
-        "model files import offline from a folder only when every file verifies"
+        "model files import offline from a folder only when every file verifies",
+        "a proxy that asks for credentials is reported as such instead of a generic network error"
       ],
       "testNamesSource": "install-reliability-p0-p1"
     },
@@ -2343,6 +2344,22 @@
         "vault_semantic_search embeds offline with the managed runtime and finds identifiers by keyword"
       ],
       "testNamesSource": "mcp-bundled-1.3.0"
+    },
+    {
+      "path": "test/manual/proxy-download-check.ts",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "runtime",
+      "conflictAction": "manual-release-check-proxy"
+    },
+    {
+      "path": "test/manual/proxy-only.sb",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "runtime",
+      "conflictAction": "manual-release-check-proxy"
     }
   ],
   "platformSkips": [

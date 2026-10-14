@@ -168,6 +168,8 @@ test/manual/*
 !test/manual/windows-runtime-harness.ts
 !test/manual/build-windows-harness.mjs
 !test/manual/windows-clean-vm.sh
+!test/manual/proxy-download-check.ts
+!test/manual/proxy-only.sb
 !test/helpers/
 test/helpers/*
 !test/helpers/download-pinned-chroma.js

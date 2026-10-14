@@ -20,6 +20,7 @@ When setup fails, Analogy shows an error code and one technical line (codes and 
 | 错误码 / Code | 含义 | 处理 | Meaning & fix |
 |---|---|---|---|
 | `DOWNLOAD_NETWORK_ERROR` | 下载因网络中断 | 重试即可断点续传；需要代理时开启系统代理（插件会跟随系统代理 / PAC）；无网络时使用“离线安装” | Network error. Retry to resume; enable the system proxy if needed; use Offline install without network |
+| `DOWNLOAD_PROXY_AUTH_REQUIRED` | 网络代理要求用户名和密码 | 先在系统代理设置或 Obsidian 弹出的登录框中登录代理，再重试；已下载部分保留 | The proxy needs credentials. Sign in to the proxy (system settings or Obsidian's prompt), then retry |
 | `DOWNLOAD_SIZE_MISMATCH` / `DOWNLOAD_HASH_MISMATCH` | 下载内容与已验证的发行包不一致（网络劫持、镜像异常、文件损坏） | 点击“重新下载”；不要手动替换文件 | Downloaded bytes do not match the pinned release. Redownload; never replace files by hand |
 | `DOWNLOAD_CANCELLED` | 下载已取消 | 重新开始初始化 | Cancelled; start setup again |
 | `INSUFFICIENT_DISK_SPACE` | 磁盘空间不足 | 运行时约 60–120 MB，模型 25–330 MB，请预留足够空间 | Not enough disk space (runtime ~60–120 MB, model 25–330 MB) |

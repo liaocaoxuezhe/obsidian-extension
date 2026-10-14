@@ -171,3 +171,27 @@ test("model files import offline from a folder only when every file verifies", a
   assert.equal(result.imported, 4);
   assert.ok(fs.existsSync(path.join(root, "cache", "Xenova", "bge-small-en-v1.5", "tokenizer.json")));
 });
+
+test("a proxy that asks for credentials is reported as such instead of a generic network error", async (t) => {
+  const { createChunkedTransport } = await loadModule("runtime/download-transport.ts");
+  const { downloadRuntimeAsset } = await loadModule("runtime/runtime-downloader.ts");
+  const { classifyOnboardingError } = await loadModule("onboarding/onboarding-coordinator.ts");
+  const root = tempDir(t, "analogy-proxy-auth-");
+  const body = crypto.randomBytes(1024);
+  const asset = { id: "proxy-auth", url: "https://example.test/a.bin", size: body.length, sha256: sha256(body) };
+  const directFails = async () => { throw Object.assign(new Error("connect ETIMEDOUT"), { code: "ETIMEDOUT" }); };
+  for (const fetch of [
+    async () => ({ status: 407, headers: { "Proxy-Authenticate": "Basic" }, arrayBuffer: new ArrayBuffer(0) }),
+    async () => { throw new Error("net::ERR_PROXY_AUTH_REQUESTED"); },
+  ]) {
+    const error = await downloadRuntimeAsset({
+      asset, partPath: path.join(root, `${crypto.randomUUID()}.part`), signal: new AbortController().signal,
+      requests: [directFails, createChunkedTransport(fetch)],
+    }).then(() => null, (failure) => failure);
+    assert.equal(error?.code, "DOWNLOAD_PROXY_AUTH_REQUIRED");
+    const classified = classifyOnboardingError(error, "downloading-embedding-runtime");
+    assert.equal(classified.code, "DOWNLOAD_PROXY_AUTH_REQUIRED");
+    assert.equal(classified.userMessageKey, "onboarding.error.download_proxy_auth_required");
+    assert.equal(classified.recoverable, true);
+  }
+});

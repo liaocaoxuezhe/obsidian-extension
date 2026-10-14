@@ -232,6 +232,9 @@ function knownErrorRule(code: string, stage: OnboardingStage): ErrorRule | null 
   if (["ECONNRESET", "ETIMEDOUT", "EPIPE", "ENETUNREACH"].includes(code)) {
     return { code: "DOWNLOAD_NETWORK_ERROR", action: "retry", recoverable: true };
   }
+  if (code === "DOWNLOAD_PROXY_AUTH_REQUIRED") {
+    return { code: "DOWNLOAD_PROXY_AUTH_REQUIRED", action: "retry", recoverable: true };
+  }
   if (code === "DOWNLOAD_SIZE_MISMATCH" || code === "DOWNLOAD_HASH_MISMATCH") {
     return { code, action: "redownload", recoverable: true } as ErrorRule;
   }
