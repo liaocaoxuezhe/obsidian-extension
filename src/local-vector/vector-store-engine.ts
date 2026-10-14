@@ -14,7 +14,7 @@ import {
   type VectorStoreFtsStatus,
   type VectorStoreHybridMatch,
 } from "./vector-store-protocol";
-import { buildKeywordQuery, clampKeywordWeight, likePattern, reciprocalRankFusion } from "./keyword-search";
+import { buildKeywordQuery, clampKeywordWeight, reciprocalRankFusion } from "./keyword-search";
 import type { ParallelVectorScanner } from "./parallel-scan";
 
 /** Below this many rows a single-threaded scan is already a few milliseconds. */
@@ -390,16 +390,17 @@ export class VectorStoreEngine {
     }
     const ftsIds = keyword.match
       ? this.db.prepare(`
-          SELECT r.id AS id FROM records_fts JOIN records r ON r.seq = records_fts.rowid
+          SELECT r.id AS id FROM records_fts CROSS JOIN records r ON r.seq = records_fts.rowid
           WHERE records_fts MATCH ? AND r.collection_id = ?
-          ORDER BY bm25(records_fts) LIMIT ?
+          ORDER BY bm25(records_fts), r.seq LIMIT ?
         `).all(keyword.match, collection.id, candidateCount).map((row) => String(row.id))
       : [];
     const likeCounts = new Map<string, number>();
     for (const term of keyword.shortTerms) {
+      // instr() is an exact substring scan, much cheaper than LIKE's case folding (CJK has no case).
       const rows = this.db.prepare(
-        "SELECT id FROM records WHERE collection_id = ? AND document LIKE ? ESCAPE '\\' ORDER BY seq LIMIT ?",
-      ).all(collection.id, likePattern(term), candidateCount);
+        "SELECT id FROM records WHERE collection_id = ? AND instr(document, ?) > 0 ORDER BY seq LIMIT ?",
+      ).all(collection.id, term, candidateCount);
       for (const row of rows) likeCounts.set(String(row.id), (likeCounts.get(String(row.id)) ?? 0) + 1);
     }
     const likeIds = [...likeCounts.entries()].sort((left, right) => right[1] - left[1]).map(([id]) => id);

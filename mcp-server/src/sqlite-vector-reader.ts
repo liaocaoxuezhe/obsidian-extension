@@ -151,16 +151,16 @@ export class SqliteVectorReader {
     if (!id || !this.keywordIndexReady()) return { fts: [], like: [] };
     const fts = match
       ? this.db.prepare(
-        "SELECT r.id AS id FROM records_fts JOIN records r ON r.seq = records_fts.rowid "
-          + "WHERE records_fts MATCH ? AND r.collection_id = ? ORDER BY bm25(records_fts) LIMIT ?",
+        // CROSS JOIN keeps the FTS lookup as the outer loop; a plain join lets the planner scan every record.
+        "SELECT r.id AS id FROM records_fts CROSS JOIN records r ON r.seq = records_fts.rowid "
+          + "WHERE records_fts MATCH ? AND r.collection_id = ? ORDER BY bm25(records_fts), r.seq LIMIT ?",
       ).all(match, id, limit).map((row) => String(row.id))
       : [];
     const counts = new Map<string, number>();
     for (const term of shortTerms) {
-      const pattern = `%${term.replace(/[\\%_]/g, (character) => `\\${character}`)}%`;
       for (const row of this.db.prepare(
-        "SELECT id FROM records WHERE collection_id = ? AND document LIKE ? ESCAPE '\\' ORDER BY seq LIMIT ?",
-      ).all(id, pattern, limit)) {
+        "SELECT id FROM records WHERE collection_id = ? AND instr(document, ?) > 0 ORDER BY seq LIMIT ?",
+      ).all(id, term, limit)) {
         counts.set(String(row.id), (counts.get(String(row.id)) ?? 0) + 1);
       }
     }

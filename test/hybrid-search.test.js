@@ -62,7 +62,7 @@ async function seededEngine(t) {
 }
 
 test("keyword queries keep code identifiers whole and split CJK runs into trigrams", async () => {
-  const { buildKeywordQuery, likePattern } = await loadModule("local-vector/keyword-search.ts");
+  const { buildKeywordQuery } = await loadModule("local-vector/keyword-search.ts");
   assert.deepEqual(buildKeywordQuery("useEffect 依赖"), { match: "\"useeffect\"", shortTerms: ["依赖"] });
   assert.deepEqual(buildKeywordQuery("张三"), { match: null, shortTerms: ["张三"] });
   const chinese = buildKeywordQuery("复盘流程");
@@ -70,7 +70,6 @@ test("keyword queries keep code identifiers whole and split CJK runs into trigra
   assert.equal(buildKeywordQuery("react-dom user_id a").match, "\"react-dom\" OR \"user_id\"");
   assert.equal(buildKeywordQuery("say \"hi\" there").match, "\"say\" OR \"there\"");
   assert.equal(buildKeywordQuery("").match, null);
-  assert.equal(likePattern("50%_off\\"), "%50\\%\\_off\\\\%");
 });
 
 test("reciprocal rank fusion rewards agreement and honours list weights", async () => {

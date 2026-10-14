@@ -15,7 +15,7 @@ const MAX_TERMS = 32;
 export interface KeywordQuery {
   /** FTS5 MATCH expression over the trigram index, or null when no term has 3+ characters. */
   match: string | null;
-  /** Two-character CJK terms (typical Chinese names) matched with LIKE instead. */
+  /** Two-character CJK terms (typical Chinese names) matched by substring search instead. */
   shortTerms: string[];
 }
 
@@ -56,11 +56,6 @@ export function buildKeywordQuery(text: string): KeywordQuery {
     match: selected.length ? selected.map(quote).join(" OR ") : null,
     shortTerms: [...shortTerms].slice(0, 8),
   };
-}
-
-/** Escapes a term for a LIKE pattern used with ESCAPE '\'. */
-export function likePattern(term: string): string {
-  return `%${term.replace(/[\\%_]/g, (character) => `\\${character}`)}%`;
 }
 
 export interface RankedList {
