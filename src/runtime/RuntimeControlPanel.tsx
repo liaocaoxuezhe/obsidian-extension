@@ -70,7 +70,8 @@ export type RuntimeCapsuleState = "ready" | "preparing" | "degraded" | "attentio
 
 export function getRuntimeCapsuleState(service: ServiceState, onboarding: OnboardingState): RuntimeCapsuleState {
   const stage = onboarding.snapshot?.stage ?? "not-started";
-  if (stage === "failed" || onboarding.environment?.recommendedAction === "repair" || service.status === "error") {
+  if (stage === "failed" || onboarding.environment?.recommendedAction === "repair"
+    || onboarding.environment?.recommendedAction === "upgrade" || service.status === "error") {
     return "attention";
   }
   if (ACTIVE_STAGES.has(stage) || service.status === "initializing" || service.status === "stopping"

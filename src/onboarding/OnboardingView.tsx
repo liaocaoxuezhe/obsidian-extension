@@ -37,6 +37,16 @@ const INSTALL_STAGES = new Set([
   "preparing-legacy-snapshot", "migrating-legacy-index", "reconciling-legacy-index", "verifying-legacy-index",
 ]);
 
+const UPGRADE_STAGE_KEYS: Partial<Record<OnboardingSnapshot["stage"], string>> = {
+  "downloading-embedding-runtime": "onboarding.upgrade.stage.downloading",
+  "verifying-embedding-runtime": "onboarding.upgrade.stage.verifying",
+  "installing-embedding-runtime": "onboarding.upgrade.stage.installing",
+};
+
+function formatDownloadSize(bytes: number): string {
+  return bytes > 0 ? `${(bytes / 1_000_000).toFixed(0)} MB` : t("onboarding.progress.sizeUnknown");
+}
+
 function validFolderPath(value: string): boolean {
   const path = value.trim().replace(/\\/g, "/");
   return Boolean(path) && path.length <= 1024 && !path.startsWith("/") && !/^[A-Za-z]:\//.test(path)
@@ -170,17 +180,37 @@ export function OnboardingView(props: OnboardingViewProps): React.ReactElement {
   const consent = () => { void props.coordinator.provideConsent(true).catch(() => undefined); };
   const cancel = () => { void props.coordinator.cancel().catch(() => undefined); };
   const isWelcome = snapshot.stage === "not-started" || snapshot.stage === "awaiting-consent" || snapshot.stage === "cancelled";
-  const titleKey = props.mode === "repair" ? "onboarding.repair.title" : isWelcome ? "onboarding.welcome.title" : "onboarding.install.title";
+  const upgrade = snapshot.runtimeUpgrade ?? null;
+  const isUpgrade = upgrade !== null && props.mode !== "repair";
+  const titleKey = props.mode === "repair" ? "onboarding.repair.title"
+    : isUpgrade ? (isWelcome ? "onboarding.upgrade.title" : "onboarding.upgrade.installTitle")
+    : isWelcome ? "onboarding.welcome.title" : "onboarding.install.title";
+  const ledeKey = props.mode === "repair" ? "onboarding.repair.description"
+    : isUpgrade ? "onboarding.upgrade.description"
+    : isWelcome ? "onboarding.welcome.description" : "onboarding.install.description";
+  const stageKey = isUpgrade && UPGRADE_STAGE_KEYS[snapshot.stage] ? UPGRADE_STAGE_KEYS[snapshot.stage] as string : `onboarding.stage.${snapshot.stage}`;
 
   return <main className="analogy-onboarding" data-state={props.mode === "repair" ? "repair" : snapshot.stage}>
     <button type="button" className="analogy-onboarding__close" aria-label={t("onboarding.close")} onClick={props.onClose}>{t("onboarding.close")}</button>
     <header className="analogy-onboarding__header">
       <p className="analogy-onboarding__kicker">{t(props.mode === "repair" ? "onboarding.repair.kicker" : "onboarding.kicker")}</p>
       <h1 ref={heading} tabIndex={-1}>{t(titleKey)}</h1>
-      <p className="analogy-onboarding__lede">{t(props.mode === "repair" ? "onboarding.repair.description" : isWelcome ? "onboarding.welcome.description" : "onboarding.install.description")}</p>
+      <p className="analogy-onboarding__lede">{t(ledeKey)}</p>
     </header>
 
-    {isWelcome ? <section className="analogy-onboarding-welcome">
+    {isWelcome && isUpgrade && upgrade ? <section className="analogy-onboarding-welcome" data-upgrade="embedding-runtime">
+      <ul>
+        <li>{t("onboarding.upgrade.download", { size: formatDownloadSize(upgrade.downloadBytes) })}</li>
+        <li>{t("onboarding.upgrade.keeps")}</li>
+        <li>{t("onboarding.upgrade.cleanup")}</li>
+      </ul>
+      <div className="analogy-onboarding__actions">
+        <button type="button" className="mod-cta analogy-onboarding__primary" data-primary-action="true" onClick={consent}>{t("onboarding.upgrade.accept")}</button>
+        <button type="button" onClick={later}>{t("onboarding.welcome.later")}</button>
+      </div>
+    </section> : null}
+
+    {isWelcome && !isUpgrade ? <section className="analogy-onboarding-welcome">
       <ul>
         <li>{t("onboarding.welcome.local")}</li>
         <li>{t("onboarding.welcome.download")}</li>
@@ -193,7 +223,7 @@ export function OnboardingView(props: OnboardingViewProps): React.ReactElement {
     </section> : null}
 
     {INSTALL_STAGES.has(snapshot.stage) ? <section>
-      <p className="analogy-onboarding__stage" aria-live="polite" aria-atomic="true">{t(`onboarding.stage.${snapshot.stage}`)}</p>
+      <p className="analogy-onboarding__stage" aria-live="polite" aria-atomic="true">{t(stageKey)}</p>
       <SetupSteps snapshot={snapshot} speedBytesPerSecond={speed} />
       <button type="button" className="analogy-onboarding__cancel" onClick={cancel}>{t("onboarding.install.cancel")}</button>
     </section> : null}

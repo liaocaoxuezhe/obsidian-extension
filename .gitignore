@@ -85,6 +85,8 @@ test/*
 !test/embedding-failure-classification.test.js
 !test/download-resilience.test.js
 !test/vc-runtime-bundle.test.js
+!test/runtime-platform-versions.test.js
+!test/runtime-upgrade.test.js
 !test/embedding-runtime-release-chain.test.js
 !test/embedding-service-safety.test.js
 !test/embedding-worker-environment.test.js
@@ -156,6 +158,11 @@ test/*
 !test/test-execution-set.test.js
 !test/test-runner-manifest.json
 !test/test-ci-manifest.json
+!test/manual/
+test/manual/*
+!test/manual/windows-runtime-harness.ts
+!test/manual/build-windows-harness.mjs
+!test/manual/windows-clean-vm.sh
 !test/helpers/
 test/helpers/*
 !test/helpers/download-pinned-chroma.js

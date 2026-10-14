@@ -35,9 +35,24 @@ function canonicalJson(value) {
   return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
 }
 
+const RELEASE_TAG_PREFIX = "runtime-";
+
+/** The immutable per-version release directory every asset of that version is served from. */
+export function runtimeAssetBaseUrl(releaseRoot, version) {
+  return `${releaseRoot}/${RELEASE_TAG_PREFIX}${version}`;
+}
+
+function derivedPlatformVersions(assets) {
+  return Object.fromEntries(assets.map((asset) => [asset.platform, asset.version]));
+}
+
+/**
+ * Schema 2: each platform carries its own runtime version and is served from the
+ * release tagged with that version, so one platform can be upgraded alone.
+ */
 function publicRuntimeManifest(releaseManifest) {
-  if (!releaseManifest || releaseManifest.schemaVersion !== 1
-    || typeof releaseManifest.runtimeVersion !== "string" || typeof releaseManifest.baseUrl !== "string"
+  if (!releaseManifest || releaseManifest.schemaVersion !== 2
+    || typeof releaseManifest.releaseRoot !== "string" || !releaseManifest.releaseRoot
     || !Array.isArray(releaseManifest.assets) || releaseManifest.assets.length === 0) {
     throw new Error("Canonical staging runtime manifest has no complete public asset matrix");
   }
@@ -46,10 +61,23 @@ function publicRuntimeManifest(releaseManifest) {
     || releaseManifest.assets.some((asset) => JSON.stringify(asset.runtimeVersions) !== JSON.stringify(runtimeVersions))) {
     throw new Error("Canonical staging runtime manifest assets do not share one runtimeVersions value");
   }
+  const platforms = releaseManifest.assets.map((asset) => asset.platform);
+  if (new Set(platforms).size !== platforms.length) {
+    throw new Error("Canonical staging runtime manifest lists a platform more than once");
+  }
+  for (const asset of releaseManifest.assets) {
+    if (typeof asset.version !== "string" || typeof asset.fileName !== "string"
+      || asset.url !== `${runtimeAssetBaseUrl(releaseManifest.releaseRoot, asset.version)}/${asset.fileName}`) {
+      throw new Error(`Runtime asset ${asset.platform} is not served from its own versioned release`);
+    }
+  }
+  if (releaseManifest.platformVersions !== undefined
+    && JSON.stringify(releaseManifest.platformVersions) !== JSON.stringify(derivedPlatformVersions(releaseManifest.assets))) {
+    throw new Error("Canonical staging runtime manifest platformVersions disagree with its assets");
+  }
   return {
     schemaVersion: releaseManifest.schemaVersion,
-    runtimeVersion: releaseManifest.runtimeVersion,
-    baseUrl: releaseManifest.baseUrl,
+    releaseRoot: releaseManifest.releaseRoot,
     runtimeVersions,
     assets: releaseManifest.assets.map(publicAsset),
   };
@@ -90,20 +118,20 @@ export function extractGeneratedRuntimeManifestSha256(source, { allowExactDevelo
   const runtimeVersions = parseSingleJsonExport(normalizedSource, "EMBEDDING_RUNTIME_VERSIONS");
   const assets = parseSingleJsonExport(normalizedSource, "GENERATED_EMBEDDING_RUNTIME_ASSETS");
   const firstAsset = assets[0];
-  const suffix = typeof firstAsset?.fileName === "string" ? `/${firstAsset.fileName}` : "";
-  if (!suffix || typeof firstAsset?.url !== "string" || !firstAsset.url.endsWith(suffix)
-    || typeof firstAsset?.version !== "string") {
+  const suffix = typeof firstAsset?.fileName === "string" && typeof firstAsset?.version === "string"
+    ? `/${RELEASE_TAG_PREFIX}${firstAsset.version}/${firstAsset.fileName}`
+    : "";
+  if (!suffix || typeof firstAsset?.url !== "string" || !firstAsset.url.endsWith(suffix)) {
     throw new Error("Published canonical generated runtime manifest cannot derive its release identity");
   }
-  const baseUrl = firstAsset.url.slice(0, -suffix.length);
-  if (assets.some((asset) => asset.url !== `${baseUrl}/${asset.fileName}` || asset.version !== firstAsset.version
+  const releaseRoot = firstAsset.url.slice(0, -suffix.length);
+  if (assets.some((asset) => asset.url !== `${runtimeAssetBaseUrl(releaseRoot, asset.version)}/${asset.fileName}`
     || JSON.stringify(asset.runtimeVersions) !== JSON.stringify(runtimeVersions))) {
     throw new Error("Published canonical generated runtime manifest assets do not share one release identity");
   }
   const inferredManifest = {
-    schemaVersion: 1,
-    runtimeVersion: firstAsset.version,
-    baseUrl,
+    schemaVersion: 2,
+    releaseRoot,
     assets,
   };
   if (computePublicRuntimeManifestSha256(inferredManifest) !== declaredDigest) {

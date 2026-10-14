@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "releaseRoot": "https://github.com/liaocaoxuezhe/obsidian-extension/releases/download",
+  "platforms": {
+    "darwin-arm64": {
+      "version": "node22-v1"
+    },
+    "win32-x64": {
+      "version": "node22-v2",
+      "windows": {
+        "visualCppRuntime": "bundled",
+        "directMl": "stripped"
+      }
+    }
+  }
+}

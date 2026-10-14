@@ -5,16 +5,16 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   EXPECTED_PACKS,
-  PACK_ROOT_NAME,
-  RUNTIME_VERSION,
   RUNTIME_VERSIONS,
   artifactNames,
   sha256File,
   validateRuntimeMatrix,
 } from "./runtime-package-validator.mjs";
-import { renderPublishedRuntimeTypeScript } from "./runtime-manifest-binding.mjs";
+import { renderPublishedRuntimeTypeScript, runtimeAssetBaseUrl } from "./runtime-manifest-binding.mjs";
+import { loadPlatformVersionTable } from "./runtime-platform-versions.mjs";
 
-const REQUIRED_OPTIONS = ["input", "output", "base-url"];
+const REQUIRED_OPTIONS = ["input", "output"];
+const OPTIONAL_OPTIONS = ["release-root"];
 
 function parseArguments(argv) {
   const values = new Map();
@@ -23,7 +23,7 @@ function parseArguments(argv) {
     const value = argv[index + 1];
     if (!option?.startsWith("--") || !value || value.startsWith("--")) throw new Error(`Invalid argument sequence near ${option || "<end>"}`);
     const name = option.slice(2);
-    if (!REQUIRED_OPTIONS.includes(name)) throw new Error(`Unknown argument: ${option}`);
+    if (!REQUIRED_OPTIONS.includes(name) && !OPTIONAL_OPTIONS.includes(name)) throw new Error(`Unknown argument: ${option}`);
     if (values.has(name)) throw new Error(`Duplicate argument: ${option}`);
     values.set(name, value);
   }
@@ -32,11 +32,11 @@ function parseArguments(argv) {
   return Object.fromEntries(values);
 }
 
-function validateBaseUrl(value) {
+function validateReleaseRoot(value) {
   const url = new URL(value);
   if (url.protocol !== "https:" || url.username || url.password || url.search || url.hash
-    || /(?:^|\/)latest(?:\/|$)/i.test(url.pathname)) {
-    throw new Error("--base-url must be an immutable HTTPS release URL without credentials, query, hash, or latest");
+    || /(?:^|\/)latest(?:\/|$)/i.test(url.pathname) || /\/runtime-[^/]+\/?$/.test(url.pathname)) {
+    throw new Error("--release-root must be the immutable HTTPS releases/download root without credentials, query, hash, latest, or a tag");
   }
   return value.replace(/\/+$/, "");
 }
@@ -71,10 +71,10 @@ async function writeAtomic(filename, body) {
   }
 }
 
-export async function generateRuntimeManifest({ inputRoot: requestedInputRoot, outputPath: requestedOutputPath, baseUrl: requestedBaseUrl, trustPolicy } = {}) {
+export async function generateRuntimeManifest({ inputRoot: requestedInputRoot, outputPath: requestedOutputPath, releaseRoot: requestedReleaseRoot, trustPolicy } = {}) {
   const inputRoot = path.resolve(requestedInputRoot);
   const outputPath = path.resolve(requestedOutputPath);
-  const baseUrl = validateBaseUrl(requestedBaseUrl);
+  const releaseRoot = validateReleaseRoot(requestedReleaseRoot ?? loadPlatformVersionTable().releaseRoot);
   requireRealDirectory(inputRoot, "Runtime input");
   const missingPacks = EXPECTED_PACKS.filter(({ fileName }) => !fs.existsSync(path.join(inputRoot, fileName))).map(({ fileName }) => fileName);
   if (missingPacks.length) throw new Error(`Missing runtime packs: ${missingPacks.join(", ")}`);
@@ -84,17 +84,18 @@ export async function generateRuntimeManifest({ inputRoot: requestedInputRoot, o
   const validated = validateRuntimeMatrix(inputRoot, { trustPolicy });
   const assets = validated.map(({ expected, binding, names }) => {
     const noticesSize = fs.statSync(path.join(inputRoot, names.notices)).size;
+    const baseUrl = runtimeAssetBaseUrl(releaseRoot, expected.version);
     return {
-      id: `embedding-runtime-${RUNTIME_VERSION}-${expected.platform}`,
+      id: expected.id,
       kind: "embedding-runtime",
       platform: expected.platform,
-      version: RUNTIME_VERSION,
+      version: expected.version,
       url: `${baseUrl}/${expected.fileName}`,
       fileName: expected.fileName,
       archive: expected.archive,
       size: binding.archiveSize,
       sha256: binding.archiveSha256,
-      executableRelativePath: `${PACK_ROOT_NAME}/${expected.internalExecutableRelativePath}`,
+      executableRelativePath: `${expected.packRootName}/${expected.internalExecutableRelativePath}`,
       licenseName: "See bundled THIRD_PARTY_NOTICES.txt",
       licenseUrl: `${baseUrl}/${names.notices}`,
       source: "published",
@@ -111,7 +112,8 @@ export async function generateRuntimeManifest({ inputRoot: requestedInputRoot, o
     };
   });
 
-  const releaseManifest = { schemaVersion: 1, runtimeVersion: RUNTIME_VERSION, baseUrl, assets };
+  const platformVersions = Object.fromEntries(assets.map((asset) => [asset.platform, asset.version]));
+  const releaseManifest = { schemaVersion: 2, releaseRoot, platformVersions, assets };
   await writeAtomic(path.join(inputRoot, "embedding-runtime-manifest.json"), `${JSON.stringify(releaseManifest, null, 2)}\n`);
   await writeAtomic(outputPath, renderPublishedRuntimeTypeScript(releaseManifest));
   console.log(`[runtime-manifest] Generated ${path.relative(process.cwd(), outputPath) || path.basename(outputPath)}`);
@@ -123,7 +125,7 @@ async function main() {
   await generateRuntimeManifest({
     inputRoot: options.input,
     outputPath: options.output,
-    baseUrl: options["base-url"],
+    releaseRoot: options["release-root"],
   });
 }
 

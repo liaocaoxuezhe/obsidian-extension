@@ -9,6 +9,7 @@ import {
   type OnboardingErrorCode,
   type OnboardingSnapshot,
   type OnboardingStage,
+  type OnboardingRuntimeUpgrade,
   type QuickIndexScope,
   type LegacyIndexChoice,
   type RecommendedAction,
@@ -187,6 +188,23 @@ function normalizeError(value: unknown): OnboardingError | null {
   };
 }
 
+function normalizeRuntimeUpgrade(value: unknown): OnboardingRuntimeUpgrade | null {
+  if (!value || typeof value !== "object") return null;
+  const upgrade = value as Record<string, unknown>;
+  const fromRuntimeId = safeRuntimeId(upgrade.fromRuntimeId);
+  const toRuntimeId = safeRuntimeId(upgrade.toRuntimeId);
+  if (upgrade.kind !== "embedding-runtime" || !fromRuntimeId || !toRuntimeId || fromRuntimeId === toRuntimeId
+    || typeof upgrade.downloadBytes !== "number" || !Number.isSafeInteger(upgrade.downloadBytes)
+    || upgrade.downloadBytes < 0) return null;
+  return {
+    kind: "embedding-runtime",
+    fromRuntimeId,
+    toRuntimeId,
+    downloadBytes: upgrade.downloadBytes,
+    acceptedAt: finiteOrNull(upgrade.acceptedAt),
+  };
+}
+
 function defaultSnapshot(updatedAt = 0): OnboardingSnapshot {
   return {
     schemaVersion: 1,
@@ -223,6 +241,7 @@ function normalizeSnapshot(value: unknown, now: number, allowLegacy: boolean): O
   if (input.schemaVersion === undefined && !allowLegacy) throw stateError("ONBOARDING_STATE_CORRUPT");
   if (!STAGES.has(input.stage as OnboardingStage)) throw stateError("ONBOARDING_STATE_CORRUPT");
   const updatedAt = finiteOrNull(input.updatedAt) ?? now;
+  const runtimeUpgrade = normalizeRuntimeUpgrade(input.runtimeUpgrade);
   return {
     schemaVersion: 1,
     stage: input.stage as OnboardingStage,
@@ -245,6 +264,7 @@ function normalizeSnapshot(value: unknown, now: number, allowLegacy: boolean): O
     completedAt: finiteOrNull(input.completedAt),
     dismissedAt: finiteOrNull(input.dismissedAt),
     error: normalizeError(input.error),
+    ...(runtimeUpgrade ? { runtimeUpgrade } : {}),
   };
 }
 
@@ -304,6 +324,7 @@ function progressOnly(previous: OnboardingSnapshot, next: OnboardingSnapshot): b
     completedAt: snapshot.completedAt,
     dismissedAt: snapshot.dismissedAt,
     error: snapshot.error,
+    runtimeUpgrade: snapshot.runtimeUpgrade ?? null,
   });
   return JSON.stringify(omitProgress(previous)) === JSON.stringify(omitProgress(next));
 }

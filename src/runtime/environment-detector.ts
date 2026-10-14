@@ -10,12 +10,18 @@ import {
   type ManagedProcessState,
 } from "./chroma-runtime-manager";
 import { EmbeddingRuntimeManager } from "./embedding-runtime-manager";
-import { getRuntimeAsset as getPinnedRuntimeAsset } from "./runtime-manifest";
+import {
+  RUNTIME_HISTORY_BINDING_REGISTRY,
+  createRetainedRuntimeAssetResolver,
+  getRuntimeAsset as getPinnedRuntimeAsset,
+} from "./runtime-manifest";
 import type { RuntimeAsset, RuntimeAssetKind, RuntimePaths, SupportedPlatformKey } from "./runtime-types";
 import type { EnvironmentReport, RecommendedAction } from "../onboarding/onboarding-types";
 
 type ChromaState = EnvironmentReport["chroma"];
 type EmbeddingRuntimeState = EnvironmentReport["embeddingRuntime"];
+type EmbeddingRuntimeUpgrade = NonNullable<EnvironmentReport["embeddingRuntimeUpgrade"]>;
+type RetainedRuntimeResolver = (kind: RuntimeAssetKind, runtimeId: string) => { id: string; sha256: string } | null;
 type EmbeddingModelState = EnvironmentReport["embeddingModel"];
 type IndexState = EnvironmentReport["index"];
 
@@ -60,6 +66,8 @@ export interface EnvironmentDetectorOptions {
   externalChromaConfirmed?: boolean;
   chromaRuntimeManager?: Pick<ChromaRuntimeManager, "getState" | "health">;
   getRuntimeAsset?: (kind: RuntimeAssetKind, platform: SupportedPlatformKey) => RuntimeAsset | null;
+  /** Superseded runtime bindings; an installed match is reported as "upgradable". */
+  resolveRetainedRuntimeAsset?: RetainedRuntimeResolver;
   signal?: AbortSignal;
   /** "sqlite" skips every Chroma probe and reports Chroma as not required. */
   vectorBackend?: "chroma" | "sqlite";
@@ -313,29 +321,53 @@ async function verifyManagedChromaIdentity(
   }
 }
 
+interface EmbeddingRuntimeInspection {
+  state: EmbeddingRuntimeState;
+  upgrade: EmbeddingRuntimeUpgrade | null;
+}
+
 async function inspectEmbeddingRuntime(
   paths: RuntimePaths,
   platform: SupportedPlatformKey,
   assetResolver: (kind: RuntimeAssetKind, platform: SupportedPlatformKey) => RuntimeAsset | null,
-): Promise<EmbeddingRuntimeState> {
+  retainedResolver: RetainedRuntimeResolver,
+): Promise<EmbeddingRuntimeInspection> {
   try {
     const asset = assetResolver("embedding-runtime", platform);
-    if (!asset || asset.kind !== "embedding-runtime") return "corrupt";
+    if (!asset || asset.kind !== "embedding-runtime") return { state: "corrupt", upgrade: null };
     const pointer = await readCurrentRuntimeForAsset(paths, asset);
-    if (!pointer) return "missing";
+    if (!pointer) return { state: "missing", upgrade: null };
     const pointerPath = path.join(paths.current, "embedding-runtime.json");
-    if (await assertPathChain(paths.root, pointerPath, false) === "missing") return "missing";
+    if (await assertPathChain(paths.root, pointerPath, false) === "missing") return { state: "missing", upgrade: null };
+    if (pointer.runtimeId !== asset.id) {
+      // A superseded but still trusted version (exact id + archive SHA-256 from the reviewed
+      // registry) is an upgrade, not damage: offer the new version instead of a repair.
+      const retained = retainedResolver("embedding-runtime", pointer.runtimeId);
+      if (retained && retained.id === pointer.runtimeId
+        && retained.sha256.toLowerCase() === pointer.assetSha256.toLowerCase()
+        && pointer.installedPath === path.join(paths.embeddingVersions, pointer.runtimeId)) {
+        return {
+          state: "upgradable",
+          upgrade: { fromRuntimeId: pointer.runtimeId, toRuntimeId: asset.id, downloadBytes: asset.size },
+        };
+      }
+      return { state: "corrupt", upgrade: null };
+    }
     const expectedRoot = path.join(paths.embeddingVersions, asset.id);
-    if (pointer.runtimeId !== asset.id || pointer.assetSha256 !== asset.sha256
-      || pointer.installedPath !== expectedRoot) return "corrupt";
+    if (pointer.assetSha256 !== asset.sha256 || pointer.installedPath !== expectedRoot) {
+      return { state: "corrupt", upgrade: null };
+    }
     await assertSafeRuntimeTree(paths.root, expectedRoot);
     const manager = new EmbeddingRuntimeManager({ paths, platform, getAsset: () => asset });
     await manager.resolve();
-    return "ready";
+    return { state: "ready", upgrade: null };
   } catch (error) {
-    return isMissing(error) || /EMBEDDING_RUNTIME_NOT_INSTALLED/.test((error as Error)?.message ?? "")
-      ? "missing"
-      : "corrupt";
+    return {
+      state: isMissing(error) || /EMBEDDING_RUNTIME_NOT_INSTALLED/.test((error as Error)?.message ?? "")
+        ? "missing"
+        : "corrupt",
+      upgrade: null,
+    };
   }
 }
 
@@ -467,6 +499,7 @@ function recommendedAction(report: Omit<EnvironmentReport, "recommendedAction">)
   if (report.chroma === "corrupt" || report.chroma === "incompatible"
     || report.embeddingRuntime === "corrupt" || report.embeddingModel === "corrupt"
     || report.index === "legacy") return "repair";
+  if (report.embeddingRuntime === "upgradable") return "upgrade";
   if (report.embeddingRuntime === "installed" || report.embeddingModel === "cached"
     || report.index === "partial") return "resume";
   if (report.chroma === "missing" || report.embeddingRuntime === "missing"
@@ -503,8 +536,12 @@ export async function detectEnvironment(options: EnvironmentDetectorOptions): Pr
       ? await inspectors.chromaRuntime()
       : (await inspectInstalledChroma()).state;
   assertNotAborted(options.signal);
-  const embeddingRuntime = await (inspectors.embeddingRuntime?.()
-    ?? inspectEmbeddingRuntime(options.paths, options.platform, assetResolver));
+  const retainedResolver = options.resolveRetainedRuntimeAsset
+    ?? createRetainedRuntimeAssetResolver(RUNTIME_HISTORY_BINDING_REGISTRY, options.platform);
+  const embeddingInspection: EmbeddingRuntimeInspection = inspectors.embeddingRuntime
+    ? { state: await inspectors.embeddingRuntime(), upgrade: null }
+    : await inspectEmbeddingRuntime(options.paths, options.platform, assetResolver, retainedResolver);
+  const embeddingRuntime = embeddingInspection.state;
   assertNotAborted(options.signal);
   const embeddingModel = await (inspectors.embeddingModel?.()
     ?? inspectModelCache(options.paths, options.modelCacheKey));
@@ -529,7 +566,11 @@ export async function detectEnvironment(options: EnvironmentDetectorOptions): Pr
   }
   const report = { platform: options.platform, chroma, embeddingRuntime, embeddingModel, index };
   assertNotAborted(options.signal);
-  return { ...report, recommendedAction: recommendedAction(report) };
+  return {
+    ...report,
+    ...(embeddingInspection.upgrade ? { embeddingRuntimeUpgrade: embeddingInspection.upgrade } : {}),
+    recommendedAction: recommendedAction(report),
+  };
 }
 
 export async function resolveVerifiedChromaRuntime(

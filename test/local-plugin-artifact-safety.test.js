@@ -65,9 +65,8 @@ test("published runtime renderer keeps the internal manifest binding required at
   )).href);
   const internalManifestSha256 = "2".repeat(64);
   const source = binding.renderPublishedRuntimeTypeScript({
-    schemaVersion: 1,
-    runtimeVersion: "node22-v1",
-    baseUrl: "https://github.com/Nixum/analogy/releases/download/runtime-node22-v1",
+    schemaVersion: 2,
+    releaseRoot: "https://github.com/Nixum/analogy/releases/download",
     assets: [{
       id: "embedding-runtime-node22-v1-darwin-arm64",
       kind: "embedding-runtime",

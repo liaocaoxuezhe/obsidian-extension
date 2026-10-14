@@ -95,6 +95,12 @@ export function resolveVisualCppRuntimeDirectory({
 
 /** Lists the DLL names a PE image imports, including delay-loaded ones. */
 export function readPeImports(buffer) {
+  const { imports, delayImports } = readPeImportTables(buffer);
+  return [...new Set([...imports, ...delayImports])];
+}
+
+/** Splits a PE image's imported DLL names into load-time imports and delay-loaded imports. */
+export function readPeImportTables(buffer) {
   const peOffset = buffer.readUInt32LE(0x3c);
   if (buffer.toString("latin1", peOffset, peOffset + 4) !== "PE\0\0") throw new Error("Not a PE image");
   const sectionCount = buffer.readUInt16LE(peOffset + 6);
@@ -121,17 +127,45 @@ export function readPeImports(buffer) {
     const start = fileOffset(rva);
     return buffer.toString("latin1", start, buffer.indexOf(0, start));
   };
-  const names = new Set();
-  for (const [directory, stride, nameField] of [[1, 20, 12], [13, 32, 4]]) {
+  const tables = { imports: new Set(), delayImports: new Set() };
+  for (const [directory, stride, nameField, target] of [[1, 20, 12, "imports"], [13, 32, 4, "delayImports"]]) {
     const rva = buffer.readUInt32LE(dataDirectories + directory * 8);
     if (!rva) continue;
     for (let offset = fileOffset(rva); ; offset += stride) {
       const descriptor = buffer.subarray(offset, offset + stride);
       if (descriptor.every((byte) => byte === 0)) break;
-      names.add(readName(descriptor.readUInt32LE(nameField)));
+      tables[target].add(readName(descriptor.readUInt32LE(nameField)));
     }
   }
-  return [...names];
+  return { imports: [...tables.imports], delayImports: [...tables.delayImports] };
+}
+
+/**
+ * Removes the DirectML / DirectX shader files, but only after proving no native
+ * file needs them at load time: a load-time import would make onnxruntime fail
+ * to start without them, whereas a delay-loaded one is resolved only when the
+ * DirectML execution provider is requested, which CPU-only inference never does.
+ */
+export async function stripDelayLoadedNativeFiles(nativeDirectory, fileNames) {
+  const lowered = new Set(fileNames.map((name) => name.toLowerCase()));
+  for (const name of fs.readdirSync(nativeDirectory)) {
+    if (!/\.(dll|node)$/i.test(name) || lowered.has(name.toLowerCase())) continue;
+    const { imports } = readPeImportTables(fs.readFileSync(path.join(nativeDirectory, name)));
+    const hard = imports.filter((imported) => lowered.has(imported.toLowerCase()));
+    if (hard.length) {
+      throw new Error(`${name} imports ${hard.join(", ")} at load time; keep them (set windows.directMl to "kept")`);
+    }
+  }
+  const removed = [];
+  for (const fileName of fileNames) {
+    const target = path.join(nativeDirectory, fileName);
+    const stat = await fs.promises.lstat(target).catch(() => null);
+    if (!stat) throw new Error(`Expected native file to strip is missing: ${fileName}`);
+    if (!stat.isFile() || stat.isSymbolicLink()) throw new Error(`Native file to strip is not a regular file: ${fileName}`);
+    await fs.promises.rm(target);
+    removed.push(fileName);
+  }
+  return removed;
 }
 
 /** VC++ runtime DLLs (msvcp*, vcruntime*, concrt*, vccorlib*) imported by the native payload. */

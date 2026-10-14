@@ -13,13 +13,17 @@ import { installOrtNativeOverlay, verifyOrtNativeOverlay } from "./runtime-nativ
 import { compareUtf8Bytes as compareUtf8ByteOrder } from "./runtime-archive.mjs";
 import { validateRuntimeLockfile } from "./runtime-lockfile-validator.mjs";
 import { LICENSE_CATALOG_SHA256 } from "./runtime-package-validator.mjs";
-import { VC_RUNTIME_NOTICE, bundleVisualCppRuntime, resolveVisualCppRuntimeDirectory } from "./vc-runtime-bundle.mjs";
+import {
+  VC_RUNTIME_NOTICE,
+  bundleVisualCppRuntime,
+  resolveVisualCppRuntimeDirectory,
+  stripDelayLoadedNativeFiles,
+} from "./vc-runtime-bundle.mjs";
+import { DIRECT_ML_FILES, loadPlatformVersionTable, packFileName, packRootName, runtimeAssetId } from "./runtime-platform-versions.mjs";
 
 const execFileAsync = promisify(execFile);
 const REQUIRED_OPTIONS = ["platform", "arch", "node-version", "output"];
 const OPTIONAL_OPTIONS = ["ort-native-overlay", "vc-redist-dir"];
-const RUNTIME_VERSION = "node22-v1";
-const PACK_ROOT_NAME = `analogy-embedding-runtime-${RUNTIME_VERSION}`;
 const NORMALIZED_MTIME = new Date("2000-01-01T00:00:00.000Z");
 const SCRIPT_DIRECTORY = path.dirname(fileURLToPath(import.meta.url));
 const EXTENSION_ROOT = path.resolve(SCRIPT_DIRECTORY, "..");
@@ -539,6 +543,12 @@ async function main() {
   const platformKey = `${options.platform}-${options.arch}`;
   const nodeAsset = nodeCatalog.assets.find((asset) => asset.platformKey === platformKey);
   if (!nodeAsset) throw new Error(`Unsupported native runtime target: ${platformKey}`);
+  // darwin-x64 stays outside the hosted table; it builds under the darwin-arm64 version.
+  const versionTable = loadPlatformVersionTable();
+  const tableEntry = versionTable.platforms[platformKey] ?? (platformKey === "darwin-x64" ? versionTable.platforms["darwin-arm64"] : null);
+  if (!tableEntry) throw new Error(`No reviewed runtime version for ${platformKey}`);
+  const runtimeVersion = tableEntry.version;
+  const windowsProfile = options.platform === "win32" ? tableEntry.windows : null;
   let verifiedOrtNativeOverlay = null;
   if (options["ort-native-overlay"]) {
     verifiedOrtNativeOverlay = await verifyOrtNativeOverlay(options["ort-native-overlay"], platformKey);
@@ -563,11 +573,12 @@ async function main() {
   const cacheRoot = path.join(outputRoot, ".cache");
   const workRoot = path.join(outputRoot, `.build-${platformKey}-${process.pid}`);
   const packParent = path.join(workRoot, "pack");
-  const packRoot = path.join(packParent, PACK_ROOT_NAME);
+  const packRoot = path.join(packParent, packRootName(runtimeVersion));
   const nodeExtractRoot = path.join(workRoot, "node-extract");
   const npmInstallRoot = path.join(workRoot, "npm-install");
   const archiveKind = options.platform === "win32" ? "zip" : "tar.gz";
-  const archiveName = `analogy-embedding-runtime-${RUNTIME_VERSION}-${platformKey}.${archiveKind}`;
+  const archiveName = packFileName(runtimeVersion, platformKey);
+  if (!archiveName.endsWith(`.${archiveKind}`)) throw new Error(`Archive kind mismatch for ${archiveName}`);
   const publicationStage = path.join(workRoot, "publication");
   const archivePath = path.join(publicationStage, archiveName);
   const nodeArchivePath = path.join(cacheRoot, nodeAsset.fileName);
@@ -643,14 +654,19 @@ async function main() {
     }
     await pruneRuntimeTree(installedNodeModules, options.platform, options.arch);
     let bundledVcRuntime = false;
-    if (options.platform === "win32") {
-      // Clean Windows machines often lack the VC++ runtime; ship it next to the binding.
-      const vcRuntimeDirectory = resolveVisualCppRuntimeDirectory({ explicit: options["vc-redist-dir"] ?? null });
-      await bundleVisualCppRuntime(
-        vcRuntimeDirectory,
-        path.join(installedNodeModules, "onnxruntime-node", "bin", "napi-v6", "win32", options.arch),
-      );
-      bundledVcRuntime = true;
+    let strippedNativeFiles = [];
+    if (windowsProfile) {
+      const windowsNativeDirectory = path.join(installedNodeModules, "onnxruntime-node", "bin", "napi-v6", "win32", options.arch);
+      if (windowsProfile.visualCppRuntime === "bundled") {
+        // Clean Windows machines often lack the VC++ runtime; ship it next to the binding.
+        const vcRuntimeDirectory = resolveVisualCppRuntimeDirectory({ explicit: options["vc-redist-dir"] ?? null });
+        await bundleVisualCppRuntime(vcRuntimeDirectory, windowsNativeDirectory);
+        bundledVcRuntime = true;
+      }
+      if (windowsProfile.directMl === "stripped") {
+        // Analogy runs CPU-only inference; DirectML is delay-loaded and never requested.
+        strippedNativeFiles = await stripDelayLoadedNativeFiles(windowsNativeDirectory, [...DIRECT_ML_FILES]);
+      }
     }
     const transformersPackage = readJson(path.join(installedNodeModules, "@huggingface", "transformers", "package.json"));
     const onnxRuntimePackage = readJson(path.join(installedNodeModules, "onnxruntime-node", "package.json"));
@@ -674,10 +690,10 @@ async function main() {
     const files = await collectFileHashes(packRoot);
     const internalManifest = {
       schemaVersion: 1,
-      id: `embedding-runtime-${RUNTIME_VERSION}-${platformKey}`,
+      id: runtimeAssetId(runtimeVersion, platformKey),
       kind: "embedding-runtime",
       platform: platformKey,
-      version: RUNTIME_VERSION,
+      version: runtimeVersion,
       runtimeVersions: {
         node: nodeCatalog.nodeVersion,
         transformers: "4.2.0",
@@ -706,6 +722,7 @@ async function main() {
           runner,
         },
         ...(verifiedOrtNativeOverlay ? { onnxruntimeNativeOverlay: verifiedOrtNativeOverlay.provenance } : {}),
+        ...(strippedNativeFiles.length ? { strippedNativeFiles } : {}),
       },
       packages: installedPackages.map(({ metadata }) => ({
         name: metadata.name,

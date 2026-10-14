@@ -420,7 +420,9 @@ export default class Analogy extends Plugin {
 		);
 
 		if (!environmentCanStartServices(report)) {
-			const visible = loaded.snapshot.dismissedAt === null;
+			// A pending runtime upgrade blocks local services, so it is offered on every start
+			// until accepted, even if the user dismissed setup earlier.
+			const visible = loaded.snapshot.dismissedAt === null || report.embeddingRuntime === "upgradable";
 			updateOnboardingState({
 				environment: report,
 				snapshot: loaded.snapshot,
@@ -997,7 +999,22 @@ export default class Analogy extends Plugin {
 		let recordedSetupStage = "";
 		let recordedSetupError = "";
 		let setupStageStartedAt = Date.now();
+		let acceptedRuntimeUpgradeFrom: string | null = null;
 		const unsubscribeCoordinator = coordinator.subscribe((snapshot) => {
+			if (snapshot.runtimeUpgrade?.acceptedAt) acceptedRuntimeUpgradeFrom = snapshot.runtimeUpgrade.fromRuntimeId;
+			if (snapshot.stage === "ready" && acceptedRuntimeUpgradeFrom) {
+				const supersededRuntimeId = acceptedRuntimeUpgradeFrom;
+				acceptedRuntimeUpgradeFrom = null;
+				void controlSurface?.isolateSupersededRuntime("embedding-runtime", supersededRuntimeId).then((result) => {
+					this.diagnosticRecorder?.info("runtime.install", "runtime.upgrade.isolated", "Superseded runtime isolated after upgrade", {
+						removed: result.removed, failed: result.failed, skipped: result.skipped,
+					});
+				}, (error: unknown) => {
+					this.diagnosticRecorder?.info("runtime.install", "runtime.upgrade.isolation-deferred", "Superseded runtime kept for manual cleanup", {
+						code: error instanceof Error ? error.message.slice(0, 60) : "unknown",
+					});
+				});
+			}
 			if (snapshot.stage !== recordedSetupStage) {
 				const now = Date.now();
 				this.diagnosticRecorder?.recordRuntimeSetup({

@@ -3,8 +3,9 @@ import path from "path";
 import crypto from "crypto";
 import { execFileSync } from "child_process";
 import { fileURLToPath } from "node:url";
-import { assertGeneratedRuntimeBinding, computePublicRuntimeManifestSha256 } from "./runtime-manifest-binding.mjs";
+import { assertGeneratedRuntimeBinding, computePublicRuntimeManifestSha256, runtimeAssetBaseUrl } from "./runtime-manifest-binding.mjs";
 import { EXPECTED_PACKS, RUNTIME_VERSIONS, validateRuntimeArtifactGroup } from "./runtime-package-validator.mjs";
+import { platformVersionMap } from "./runtime-platform-versions.mjs";
 
 const root = process.cwd();
 const COMMUNITY_PLUGIN_FILES = Object.freeze(["main.js", "manifest.json", "styles.css"]);
@@ -95,15 +96,20 @@ export function verifyRuntimeRelease(runtimeStaging, {
 	if (runtimeManifestSource !== `${JSON.stringify(runtimeManifest, null, 2)}\n`) {
 		throw new Error("embedding-runtime-manifest.json must use the canonical generated JSON representation");
 	}
-	if (runtimeManifest.schemaVersion !== 1 || runtimeManifest.runtimeVersion !== "node22-v1"
-		|| typeof runtimeManifest.baseUrl !== "string" || !runtimeManifest.baseUrl.startsWith("https://")) {
+	if (runtimeManifest.schemaVersion !== 2
+		|| typeof runtimeManifest.releaseRoot !== "string" || !runtimeManifest.releaseRoot.startsWith("https://")) {
 		throw new Error("Invalid embedding-runtime-manifest.json header");
 	}
-	const expectedPlatforms = ["darwin-arm64", "win32-x64"];
+	// The reviewed platform version table is the only source of which version each platform ships.
+	const expectedVersions = platformVersionMap();
+	if (JSON.stringify(runtimeManifest.platformVersions) !== JSON.stringify(expectedVersions)) {
+		throw new Error(`Runtime release manifest platform versions must equal runtime-package/platform-versions.json: ${JSON.stringify(expectedVersions)}`);
+	}
+	const expectedPlatforms = EXPECTED_PACKS.map((pack) => pack.platform);
 	if (!Array.isArray(runtimeManifest.assets)
 		|| runtimeManifest.assets.length !== expectedPlatforms.length
 		|| JSON.stringify(runtimeManifest.assets.map((asset) => asset.platform)) !== JSON.stringify(expectedPlatforms)) {
-		throw new Error("Runtime release manifest must contain exactly one asset for darwin-arm64 and win32-x64");
+		throw new Error(`Runtime release manifest must contain exactly one asset for ${expectedPlatforms.join(" and ")}`);
 	}
 
 	for (const asset of runtimeManifest.assets) {
@@ -111,15 +117,16 @@ export function verifyRuntimeRelease(runtimeStaging, {
 		if (!expected || expected.fileName !== asset.fileName || expected.archive !== asset.archive) {
 			throw new Error(`Unexpected runtime archive identity for ${asset.platform}`);
 		}
+		const assetBaseUrl = runtimeAssetBaseUrl(runtimeManifest.releaseRoot, expected.version);
 		requireSafeFilename(asset.fileName, "Runtime pack filename");
 		requireSafeFilename(asset.internalManifestFile, "Internal manifest filename");
 		requireSafeFilename(asset.noticesFile, "Notices filename");
 		requireSafeFilename(asset.smokeAttestationFile, "Smoke attestation filename");
 		requireSafeFilename(asset.completionMarkerFile, "Completion marker filename");
-		if (asset.kind !== "embedding-runtime" || asset.version !== "node22-v1" || asset.source !== "published"
-			|| asset.id !== `embedding-runtime-node22-v1-${asset.platform}`
-			|| asset.url !== `${runtimeManifest.baseUrl}/${asset.fileName}`
-			|| asset.licenseUrl !== `${runtimeManifest.baseUrl}/${asset.noticesFile}`
+		if (asset.kind !== "embedding-runtime" || asset.version !== expected.version || asset.source !== "published"
+			|| asset.id !== expected.id
+			|| asset.url !== `${assetBaseUrl}/${asset.fileName}`
+			|| asset.licenseUrl !== `${assetBaseUrl}/${asset.noticesFile}`
 			|| !/^[0-9a-f]{64}$/.test(asset.sha256 || "")
 			|| !/^[0-9a-f]{64}$/.test(asset.internalManifestSha256 || "")
 			|| !/^[0-9a-f]{64}$/.test(asset.noticesSha256 || "")
@@ -150,7 +157,7 @@ export function verifyRuntimeRelease(runtimeStaging, {
 		const internalManifest = JSON.parse(fs.readFileSync(internalManifestPath, "utf8"));
 		if (internalManifest.schemaVersion !== 1 || internalManifest.id !== asset.id
 			|| internalManifest.platform !== asset.platform || internalManifest.version !== asset.version
-			|| `analogy-embedding-runtime-node22-v1/${internalManifest.executableRelativePath}` !== asset.executableRelativePath
+			|| `${expected.packRootName}/${internalManifest.executableRelativePath}` !== asset.executableRelativePath
 			|| internalManifest.noticesRelativePath !== "THIRD_PARTY_NOTICES.txt") {
 			throw new Error(`Runtime internal manifest mismatch for ${asset.fileName}`);
 		}

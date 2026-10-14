@@ -70,7 +70,7 @@ export async function runNativeRuntimeSmoke({platform, input, output}) {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "analogy-native-smoke-"));
   try {
     execFileSync("tar", [expected.archive === "tar.gz" ? "-xzf" : "-xf", archivePath, "-C", tempRoot], {stdio: "inherit"});
-    const packRoot = path.join(tempRoot, "analogy-embedding-runtime-node22-v1");
+    const packRoot = path.join(tempRoot, expected.packRootName);
     const nodeExecutable = path.join(packRoot, ...manifest.executableRelativePath.split("/"));
     const modelRoot = path.join(tempRoot, "fresh-model-cache", "model");
     await downloadModel(model, modelRoot);

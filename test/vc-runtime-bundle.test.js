@@ -84,3 +84,59 @@ test("every VC++ DLL imported by the native payload is copied next to the bindin
   fs.writeFileSync(path.join(native, "onnxruntime.dll"), minimalPe(["MSVCP140_9.dll"]));
   await assert.rejects(bundleVisualCppRuntime(crt, native), /msvcp140_9\.dll/);
 });
+
+/** Builds a PE32+ image with both a load-time import table and a delay-load import table. */
+function peWithDelayImports(importNames, delayNames) {
+  const buffer = minimalPe(importNames);
+  const optional = 0x58;
+  const dataDirectories = optional + 112;
+  const sectionRva = 0x1000;
+  const raw = 0x200;
+  // Place delay descriptors (32 bytes each, DLL name RVA at +4) after the import names.
+  let cursor = raw + (importNames.length + 1) * 20 + importNames.reduce((sum, name) => sum + name.length + 1, 0);
+  cursor = (cursor + 7) & ~7;
+  const delayTable = cursor;
+  buffer.writeUInt32LE(sectionRva + (delayTable - raw), dataDirectories + 13 * 8);
+  let nameOffset = delayTable + (delayNames.length + 1) * 32;
+  delayNames.forEach((name, index) => {
+    buffer.writeUInt32LE(sectionRva + (nameOffset - raw), delayTable + index * 32 + 4);
+    buffer.write(`${name}\0`, nameOffset, "latin1");
+    nameOffset += name.length + 1;
+  });
+  return buffer;
+}
+
+test("DirectML files are stripped only when no native file imports them at load time", async (t) => {
+  const { readPeImportTables, readPeImports, stripDelayLoadedNativeFiles } = await modulePromise;
+  const directMl = ["DirectML.dll", "dxcompiler.dll", "dxil.dll"];
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "analogy-directml-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const onnxruntime = peWithDelayImports(["KERNEL32.dll", "MSVCP140.dll"], ["DirectML.dll", "d3d12.dll", "dxgi.dll"]);
+  assert.deepEqual(readPeImportTables(onnxruntime), {
+    imports: ["KERNEL32.dll", "MSVCP140.dll"],
+    delayImports: ["DirectML.dll", "d3d12.dll", "dxgi.dll"],
+  });
+  assert.deepEqual(readPeImports(onnxruntime), ["KERNEL32.dll", "MSVCP140.dll", "DirectML.dll", "d3d12.dll", "dxgi.dll"]);
+
+  const delayLoaded = path.join(root, "delay");
+  fs.mkdirSync(delayLoaded);
+  fs.writeFileSync(path.join(delayLoaded, "onnxruntime.dll"), onnxruntime);
+  fs.writeFileSync(path.join(delayLoaded, "onnxruntime_binding.node"), minimalPe(["onnxruntime.dll"]));
+  // DirectML itself hard-imports d3d12; it is one of the files being removed, so it is not analysed.
+  fs.writeFileSync(path.join(delayLoaded, "DirectML.dll"), minimalPe(["d3d12.dll"]));
+  for (const name of ["dxcompiler.dll", "dxil.dll"]) fs.writeFileSync(path.join(delayLoaded, name), minimalPe(["KERNEL32.dll"]));
+  assert.deepEqual(await stripDelayLoadedNativeFiles(delayLoaded, directMl), directMl);
+  assert.deepEqual(fs.readdirSync(delayLoaded).sort(), ["onnxruntime.dll", "onnxruntime_binding.node"]);
+
+  const hardImport = path.join(root, "hard");
+  fs.mkdirSync(hardImport);
+  fs.writeFileSync(path.join(hardImport, "onnxruntime.dll"), minimalPe(["KERNEL32.dll", "DirectML.dll"]));
+  for (const name of directMl) fs.writeFileSync(path.join(hardImport, name), minimalPe(["KERNEL32.dll"]));
+  await assert.rejects(stripDelayLoadedNativeFiles(hardImport, directMl), /imports DirectML\.dll at load time/);
+  assert.equal(fs.readdirSync(hardImport).length, 4, "nothing is removed when a load-time import exists");
+
+  const missing = path.join(root, "missing");
+  fs.mkdirSync(missing);
+  fs.writeFileSync(path.join(missing, "onnxruntime.dll"), onnxruntime);
+  await assert.rejects(stripDelayLoadedNativeFiles(missing, directMl), /Expected native file to strip is missing: DirectML\.dll/);
+});

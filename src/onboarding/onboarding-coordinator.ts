@@ -11,6 +11,7 @@ import type {
   OnboardingErrorCode,
   OnboardingSnapshot,
   OnboardingStage,
+  OnboardingRuntimeUpgrade,
   QuickIndexScope,
   LegacyIndexChoice,
 } from "./onboarding-types";
@@ -395,7 +396,7 @@ function initialSnapshot(): OnboardingSnapshot {
 }
 
 function copySnapshot(snapshot: OnboardingSnapshot): OnboardingSnapshot {
-  return {
+  const copy: OnboardingSnapshot = {
     ...snapshot,
     legacyIndexChoice: snapshot.legacyIndexChoice ?? null,
     legacyRecordsCopied: finiteNonNegative(snapshot.legacyRecordsCopied),
@@ -404,13 +405,35 @@ function copySnapshot(snapshot: OnboardingSnapshot): OnboardingSnapshot {
     selectedIndexScope: snapshot.selectedIndexScope ? { ...snapshot.selectedIndexScope } : null,
     error: snapshot.error ? { ...snapshot.error } : null,
   };
+  // The upgrade descriptor exists only while an upgrade is pending.
+  if (snapshot.runtimeUpgrade) copy.runtimeUpgrade = { ...snapshot.runtimeUpgrade };
+  else delete copy.runtimeUpgrade;
+  return copy;
 }
 
 function immutableSnapshot(snapshot: OnboardingSnapshot): Readonly<OnboardingSnapshot> {
   const copy = copySnapshot(snapshot);
   if (copy.selectedIndexScope) Object.freeze(copy.selectedIndexScope);
   if (copy.error) Object.freeze(copy.error);
+  if (copy.runtimeUpgrade) Object.freeze(copy.runtimeUpgrade);
   return Object.freeze(copy);
+}
+
+function pendingRuntimeUpgrade(
+  report: EnvironmentReport,
+  previous: OnboardingRuntimeUpgrade | null | undefined,
+): OnboardingRuntimeUpgrade | null {
+  const upgrade = report.embeddingRuntimeUpgrade;
+  if (report.embeddingRuntime !== "upgradable" || !upgrade) return null;
+  const sameUpgrade = previous?.fromRuntimeId === upgrade.fromRuntimeId
+    && previous.toRuntimeId === upgrade.toRuntimeId;
+  return {
+    kind: "embedding-runtime",
+    fromRuntimeId: upgrade.fromRuntimeId,
+    toRuntimeId: upgrade.toRuntimeId,
+    downloadBytes: Number.isSafeInteger(upgrade.downloadBytes) && upgrade.downloadBytes > 0 ? upgrade.downloadBytes : 0,
+    acceptedAt: sameUpgrade ? finiteNonNegative(previous?.acceptedAt) : null,
+  };
 }
 
 function finiteNonNegative(value: unknown): number | null {
@@ -639,7 +662,12 @@ export class OnboardingCoordinator {
       const previouslyConsented = context.runtimeRetryKey !== null
         || (context.mode !== "start" && loaded.startedAt !== null
           && !["not-started", "awaiting-consent", "cancelled"].includes(previousStage));
-      if (needsWork && !previouslyConsented) {
+      // An upgrade downloads a new runtime for an already working setup, so it always needs
+      // its own consent (showing the download size) even when setup was accepted long ago.
+      const upgrade = pendingRuntimeUpgrade(report, loaded.runtimeUpgrade);
+      if (upgrade || this.snapshot.runtimeUpgrade) await this.publishPatch(context, { runtimeUpgrade: upgrade });
+      const needsUpgradeConsent = upgrade !== null && upgrade.acceptedAt === null;
+      if ((needsWork && !previouslyConsented) || needsUpgradeConsent) {
         context.consent = createSuspension<boolean>();
         await this.publishStage(context, "awaiting-consent");
         const accepted = await context.consent.promise;
@@ -648,6 +676,7 @@ export class OnboardingCoordinator {
         if (!accepted) {
           return await this.settleCancelled(context, { dismissedAt: this.now() });
         }
+        if (upgrade) await this.publishPatch(context, { runtimeUpgrade: { ...upgrade, acceptedAt: this.now() } });
       }
 
       const chromaInstalled = report.chroma === "installed" || report.chroma === "running";
@@ -977,7 +1006,7 @@ export class OnboardingCoordinator {
   }
 
   private snapshotWith(patch: Partial<OnboardingSnapshot>): OnboardingSnapshot {
-    return {
+    return copySnapshot({
       ...copySnapshot(this.snapshot),
       ...patch,
       selectedIndexScope: patch.selectedIndexScope === undefined
@@ -985,7 +1014,7 @@ export class OnboardingCoordinator {
         : patch.selectedIndexScope,
       error: patch.error === undefined ? this.snapshot.error : patch.error,
       updatedAt: this.now(),
-    };
+    });
   }
 
   private async commitReady(context: GenerationContext): Promise<Readonly<OnboardingSnapshot>> {
@@ -1001,6 +1030,7 @@ export class OnboardingCoordinator {
       currentItem: "",
       completedAt: this.now(),
       error: null,
+      runtimeUpgrade: null,
     });
     await this.options.store.save(copySnapshot(candidate));
     // This synchronous block is the ready linearization point. A cancellation

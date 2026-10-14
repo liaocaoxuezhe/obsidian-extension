@@ -428,6 +428,19 @@ export class RuntimeControlSurface implements RuntimeControlSurfaceCapability {
     return history.map((item) => ({ ...item }));
   }
 
+  /**
+   * After an upgrade, moves the superseded runtime version through the normal trusted
+   * history cleanup (registry binding, quarantine, trash). Unknown or still-active ids
+   * are skipped by the isolation adapter, so this never touches the running runtime.
+   */
+  async isolateSupersededRuntime(kind: RuntimeAssetKind, runtimeId: string): Promise<RuntimeCleanupResult> {
+    if (!SAFE_RUNTIME_ID.test(runtimeId)) return { removed: 0, failed: 0, skipped: 1 };
+    const items = (await this.listRuntimeHistory())
+      .filter((item) => item.kind === kind && item.runtimeId === runtimeId);
+    if (items.length === 0) return { removed: 0, failed: 0, skipped: 0 };
+    return this.cleanRuntimeHistory(items);
+  }
+
   async listRuntimeCleanupRecoveries(): Promise<RuntimeCleanupRecoveryItem[]> {
     return this.historyIsolationAdapter.listRecoveries().map((item) => ({ ...item }));
   }
