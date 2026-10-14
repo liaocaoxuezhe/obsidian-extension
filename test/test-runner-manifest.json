@@ -25,6 +25,8 @@
         "test/helpers/create-semantic-walk-vault.js",
         "test/legacy-vector-migration.test.js",
         "test/manual/build-windows-harness.mjs",
+        "test/manual/proxy-download-check.ts",
+        "test/manual/proxy-only.sb",
         "test/manual/windows-clean-vm.sh",
         "test/manual/windows-runtime-harness.ts",
         "test/license-api.test.js",
@@ -88,7 +90,11 @@
         "test/download-resilience.test.js",
         "test/vc-runtime-bundle.test.js",
         "test/runtime-platform-versions.test.js",
-        "test/runtime-upgrade.test.js"
+        "test/runtime-upgrade.test.js",
+        "test/model-tiers.test.js",
+        "test/hybrid-search.test.js",
+        "test/parallel-scan.test.js",
+        "test/mcp-bundled-server.test.js"
       ]
     },
     "runtime": {

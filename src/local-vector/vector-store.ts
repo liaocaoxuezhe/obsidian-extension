@@ -9,6 +9,8 @@ export interface SearchResult {
   distance: number;
   score: number;
   metadata: any;
+  /** Which retrievers found this chunk in a hybrid search. */
+  matchedBy?: Array<"vector" | "keyword">;
 }
 
 export interface DocumentChunk {
@@ -65,6 +67,8 @@ export interface VectorStore {
   deleteDocument(docId: string): Promise<void>;
   deleteCollectionByName(port: number, name: string): Promise<void>;
   search(queryEmbedding: number[], topK?: number): Promise<SearchResult[]>;
+  /** Vector + keyword retrieval fused by RRF; stores without a keyword index omit it. */
+  hybridSearch?(queryEmbedding: number[], queryText: string, topK: number, keywordWeight: number): Promise<SearchResult[]>;
   count(): Promise<number>;
   getChunks(options?: ChromaGetOptions): Promise<ChromaGetResponse>;
   listIndexedDocs(): Promise<string[]>;

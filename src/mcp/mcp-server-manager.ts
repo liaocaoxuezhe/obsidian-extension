@@ -1,7 +1,4 @@
-import { ChildProcess, spawn, spawnSync } from "child_process";
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
+import { ChildProcess, spawn } from "child_process";
 
 export type McpServiceStatus =
   | "stopped"
@@ -15,16 +12,19 @@ export interface McpServiceState {
   message: string;
 }
 
-export interface McpServerManagerOptions {
-  serverDir: string;
+/** How to launch the bundled MCP server: the managed runtime's Node, the materialized entry, its env. */
+export interface McpLaunch {
+  nodeExecutable: string;
+  entry: string;
   env: NodeJS.ProcessEnv;
-  installTimeoutMs?: number;
-  buildTimeoutMs?: number;
+}
+
+export interface McpServerManagerOptions {
+  /** Materializes the server bundled in main.js and resolves the managed runtime; throws when unavailable. */
+  prepare(): Promise<McpLaunch>;
   readinessTimeoutMs?: number;
 }
 
-const INSTALL_TIMEOUT_MS = 10 * 60 * 1000;
-const BUILD_TIMEOUT_MS = 5 * 60 * 1000;
 const READINESS_TIMEOUT_MS = 120 * 1000;
 const MAX_LOG_LINES = 500;
 
@@ -34,117 +34,22 @@ interface PendingReply {
   timer: ReturnType<typeof setTimeout>;
 }
 
-function mergeEnv(base: NodeJS.ProcessEnv, extra: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
-  return { ...base, ...extra };
-}
-
-function probeVersion(executable: string, env: NodeJS.ProcessEnv): string | null {
-  if (executable.includes(path.sep) && !fs.existsSync(executable)) return null;
-  try {
-    const probe = spawnSync(executable, ["--version"], {
-      env,
-      encoding: "utf-8",
-      timeout: 5000,
-      windowsHide: true,
-    });
-    if (probe.status !== 0) return null;
-    return `${probe.stdout || ""}${probe.stderr || ""}`.trim();
-  } catch {
-    return null;
-  }
-}
-
-function resolveNodeExecutable(env: NodeJS.ProcessEnv): string {
-  const candidates: string[] = [];
-  if (env.ANALOGY_NODE_PATH) candidates.push(env.ANALOGY_NODE_PATH);
-
-  try {
-    const dataRoot =
-      process.platform === "win32"
-        ? env.LOCALAPPDATA || path.join(os.homedir(), "AppData", "Local", "Analogy")
-        : path.join(os.homedir(), "Library", "Application Support", "Analogy");
-    const currentPointer = path.join(dataRoot, "runtime", "current", "embedding-runtime.json");
-    if (fs.existsSync(currentPointer)) {
-      const pointer = JSON.parse(fs.readFileSync(currentPointer, "utf8"));
-      const installed = typeof pointer?.installedPath === "string" ? pointer.installedPath : "";
-      if (installed && fs.existsSync(installed)) {
-        for (const name of fs.readdirSync(installed)) {
-          const dir = path.join(installed, name);
-          try {
-            if (!fs.statSync(dir).isDirectory()) continue;
-          } catch {
-            continue;
-          }
-          const candidate =
-            process.platform === "win32"
-              ? path.join(dir, "node", "node.exe")
-              : path.join(dir, "node", "bin", "node");
-          if (fs.existsSync(candidate)) candidates.push(candidate);
-        }
-      }
-    }
-  } catch {
-    // ignore; fall back to PATH
-  }
-
-  const pathName = process.platform === "win32" ? "node.exe" : "node";
-  for (const dir of (env.PATH || "").split(path.delimiter).filter(Boolean)) {
-    candidates.push(path.join(dir, pathName));
-  }
-  candidates.push(pathName);
-
-  for (const candidate of candidates) {
-    const version = probeVersion(candidate, env);
-    if (version && /^v?\d+\.\d+\.\d+/.test(version)) return candidate;
-  }
-  throw new Error(
-    "A Node.js runtime is required to start the MCP server. Enable the Analogy managed runtime, or set ANALOGY_NODE_PATH.",
-  );
-}
-
-function resolveNpmExecutable(env: NodeJS.ProcessEnv): string {
-  if (env.ANALOGY_NPM_PATH) {
-    const version = probeVersion(env.ANALOGY_NPM_PATH, env);
-    if (version && /^\d+\.\d+\.\d+/.test(version)) return env.ANALOGY_NPM_PATH;
-  }
-  let nodeDir = "";
-  try {
-    nodeDir = path.dirname(resolveNodeExecutable(env));
-  } catch {
-    nodeDir = "";
-  }
-  const name = process.platform === "win32" ? "npm.cmd" : "npm";
-  const candidates: string[] = [];
-  if (nodeDir) candidates.push(path.join(nodeDir, name));
-  for (const dir of (env.PATH || "").split(path.delimiter).filter(Boolean)) {
-    candidates.push(path.join(dir, name));
-  }
-  for (const candidate of candidates) {
-    const version = probeVersion(candidate, env);
-    if (version && /^\d+\.\d+\.\d+/.test(version)) return candidate;
-  }
-  return process.platform === "win32" ? "npm.cmd" : "npm";
-}
-
+/**
+ * Runs the bundled MCP server inside Obsidian to prove it starts and can read the index.
+ * MCP clients launch their own copy from the same materialized file; no npm or tsc is used.
+ */
 export class McpServerManager {
-  private readonly serverDir: string;
-  private readonly env: NodeJS.ProcessEnv;
-  private readonly installTimeoutMs: number;
-  private readonly buildTimeoutMs: number;
+  private readonly prepareLaunch: () => Promise<McpLaunch>;
   private readonly readinessTimeoutMs: number;
 
   private child: ChildProcess | null = null;
-  private activeBuild: ChildProcess | null = null;
   private pending = new Map<string, PendingReply>();
   private logs: string[] = [];
   private state: McpServiceState = { status: "stopped", message: "" };
   private listeners = new Set<() => void>();
 
   constructor(options: McpServerManagerOptions) {
-    this.serverDir = options.serverDir;
-    this.env = options.env;
-    this.installTimeoutMs = options.installTimeoutMs ?? INSTALL_TIMEOUT_MS;
-    this.buildTimeoutMs = options.buildTimeoutMs ?? BUILD_TIMEOUT_MS;
+    this.prepareLaunch = () => options.prepare();
     this.readinessTimeoutMs = options.readinessTimeoutMs ?? READINESS_TIMEOUT_MS;
   }
 
@@ -173,10 +78,10 @@ export class McpServerManager {
     }
     this.setState({ status: "building", message: "Preparing MCP server" });
     try {
-      await this.ensureBuilt();
+      const launch = await this.prepareLaunch();
       if (this.getState().status !== "building") return;
       this.setState({ status: "starting", message: "Starting MCP server" });
-      await this.spawnAndWaitReady();
+      await this.spawnAndWaitReady(launch);
       if (this.getState().status !== "starting") return;
       this.setState({ status: "running", message: "MCP service is running" });
     } catch (err) {
@@ -190,7 +95,6 @@ export class McpServerManager {
 
   async stop(): Promise<void> {
     this.setState({ status: "stopped", message: "MCP service stopped" });
-    this.killActiveBuild();
     await this.killChild();
   }
 
@@ -213,110 +117,10 @@ export class McpServerManager {
     }
   }
 
-  private getEnv(): NodeJS.ProcessEnv {
-    return mergeEnv(process.env, this.env);
-  }
-
-  private async ensureBuilt(): Promise<void> {
-    const distEntry = path.join(this.serverDir, "dist", "index.js");
-    if (fs.existsSync(distEntry)) return;
-
-    if (!fs.existsSync(path.join(this.serverDir, "package.json"))) {
-      throw new Error(`The MCP server is not installed in ${this.serverDir}`);
-    }
-    const hasLockfile = fs.existsSync(path.join(this.serverDir, "package-lock.json"));
-
-    this.setState({ status: "building", message: "Installing MCP server dependencies" });
-    await this.runNpmCommand(hasLockfile ? ["ci"] : ["install"], this.installTimeoutMs);
-    if (this.getState().status !== "building") return;
-
-    this.setState({ status: "building", message: "Building MCP server" });
-    await this.runNpmCommand(["run", "build"], this.buildTimeoutMs);
-    if (this.getState().status !== "building") return;
-
-    if (!fs.existsSync(distEntry)) {
-      throw new Error(`MCP server build finished but ${distEntry} was not produced`);
-    }
-  }
-
-  private runNpmCommand(args: string[], timeoutMs: number): Promise<void> {
+  private spawnAndWaitReady(launch: McpLaunch): Promise<void> {
     return new Promise<void>((resolve, reject) => {
-      const env = this.getEnv();
-      const npmExecutable = resolveNpmExecutable(env);
-      const child = spawn(npmExecutable, args, {
-        cwd: this.serverDir,
-        env,
-        shell: process.platform === "win32",
-        windowsHide: true,
-      });
-      this.activeBuild = child;
-      const timer = setTimeout(() => {
-        try {
-          child.kill("SIGTERM");
-        } catch {
-          // ignore
-        }
-        setTimeout(() => {
-          try {
-            child.kill("SIGKILL");
-          } catch {
-            // ignore
-          }
-        }, 3000);
-      }, timeoutMs);
-
-      let stderrTail = "";
-      child.stdout?.setEncoding("utf-8");
-      child.stderr?.setEncoding("utf-8");
-      child.stdout?.on("data", (chunk) => this.pushLog(String(chunk)));
-      child.stderr?.on("data", (chunk) => {
-        this.pushLog(String(chunk));
-        stderrTail = `${stderrTail}${String(chunk)}`.slice(-4000);
-      });
-      child.on("error", (err) => {
-        clearTimeout(timer);
-        if (this.activeBuild === child) this.activeBuild = null;
-        if (this.state.status === "stopped") {
-          reject(new Error("Cancelled"));
-        } else {
-          reject(new Error(`Failed to run ${npmExecutable}: ${err.message}`));
-        }
-      });
-      child.on("exit", (code) => {
-        clearTimeout(timer);
-        if (this.activeBuild === child) this.activeBuild = null;
-        if (this.state.status === "stopped") {
-          reject(new Error("Cancelled"));
-          return;
-        }
-        if (code !== 0) {
-          reject(
-            new Error(
-              `${npmExecutable} ${args.join(" ")} exited with code ${code}${stderrTail ? `\n${stderrTail}` : ""}`,
-            ),
-          );
-        } else {
-          resolve();
-        }
-      });
-    });
-  }
-
-  private spawnAndWaitReady(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      const env = this.getEnv();
-      let nodeExecutable: string;
-      try {
-        nodeExecutable = resolveNodeExecutable(env);
-      } catch (err) {
-        reject(err as Error);
-        return;
-      }
-
-      const entry = path.join(this.serverDir, "dist", "index.js");
-      const child = spawn(nodeExecutable, [entry], {
-        cwd: this.serverDir,
-        env,
+      const child = spawn(launch.nodeExecutable, [launch.entry], {
+        env: { ...process.env, ...launch.env },
         stdio: ["pipe", "pipe", "pipe"],
         windowsHide: true,
       });
@@ -468,16 +272,5 @@ export class McpServerManager {
         }
       }
     });
-  }
-
-  private killActiveBuild(): void {
-    const child = this.activeBuild;
-    this.activeBuild = null;
-    if (!child || child.exitCode !== null) return;
-    try {
-      child.kill("SIGTERM");
-    } catch {
-      // ignore
-    }
   }
 }

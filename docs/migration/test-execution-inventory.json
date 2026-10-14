@@ -2198,7 +2198,8 @@
         "a server that ignores ranges still yields the complete file",
         "a failing or stalled transport falls back to the next one and to mirrors",
         "model files download from the fastest source, verify hashes and classify failures",
-        "model files import offline from a folder only when every file verifies"
+        "model files import offline from a folder only when every file verifies",
+        "a proxy that asks for credentials is reported as such instead of a generic network error"
       ],
       "testNamesSource": "install-reliability-p0-p1"
     },
@@ -2276,6 +2277,89 @@
       "ciJob": "public-ci",
       "domain": "runtime",
       "conflictAction": "manual-release-check-windows-clean-vm"
+    },
+    {
+      "path": "test/model-tiers.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "embedding",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [],
+      "testNames": [
+        "download sizes come from the exact pinned file manifest",
+        "memory estimate is calibrated on the measured jina-nano worker (about 1.06 GB)",
+        "low-memory devices do not see 200M+ models unless one is already selected",
+        "switching to a heavy or large model requires confirmation",
+        "Chinese-first vaults get the multilingual default; mixed or English vaults keep the small default"
+      ],
+      "testNamesSource": "model-tiers-1.3.0"
+    },
+    {
+      "path": "test/hybrid-search.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "search",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [],
+      "testNames": [
+        "keyword queries keep code identifiers whole and split CJK runs into trigrams",
+        "reciprocal rank fusion rewards agreement and honours list weights",
+        "hybrid search surfaces exact names, people and identifiers that vector search misses",
+        "the keyword index follows upserts and deletes, including writes from an older plugin version",
+        "an existing store is backfilled in batches and searches stay vector-only until it is ready"
+      ],
+      "testNamesSource": "hybrid-search-1.3.0"
+    },
+    {
+      "path": "test/parallel-scan.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "search",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [],
+      "testNames": [
+        "thread count leaves one core free and caps at four",
+        "sharded scans return exactly the single-threaded top results, ties and updates included"
+      ],
+      "testNamesSource": "parallel-scan-1.3.0"
+    },
+    {
+      "path": "test/mcp-bundled-server.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "mcp",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [],
+      "testNames": [
+        "the minimal MCP protocol negotiates versions and serves tools",
+        "hybrid fusion in the MCP server loads keyword-only chunks and labels their source",
+        "client configuration plans add only the Analogy entry and detect configured or outdated state",
+        "applying a client plan keeps a backup and replaces the file atomically",
+        "the bundled server is materialized once to a stable path and rewritten when it changes",
+        "the bundled server answers MCP clients from the read-only store without the plugin running",
+        "vault_semantic_search embeds offline with the managed runtime and finds identifiers by keyword"
+      ],
+      "testNamesSource": "mcp-bundled-1.3.0"
+    },
+    {
+      "path": "test/manual/proxy-download-check.ts",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "runtime",
+      "conflictAction": "manual-release-check-proxy"
+    },
+    {
+      "path": "test/manual/proxy-only.sb",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "runtime",
+      "conflictAction": "manual-release-check-proxy"
     }
   ],
   "platformSkips": [

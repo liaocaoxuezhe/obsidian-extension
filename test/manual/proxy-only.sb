@@ -1,0 +1,7 @@
+;; W3: block every direct outbound connection except to the local proxy port.
+;; sandbox-exec -D PROXY_PORT=7897 -f test/manual/proxy-only.sb <command>
+(version 1)
+(allow default)
+(deny network-outbound)
+(allow network-outbound (remote ip (string-append "localhost:" (param "PROXY_PORT"))))
+(allow network-outbound (remote unix-socket))

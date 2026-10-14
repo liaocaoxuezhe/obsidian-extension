@@ -181,7 +181,7 @@ export async function ensureModelFiles(input: EnsureModelFilesInput): Promise<bo
       } catch (error) {
         const code = (error as { code?: string })?.code ?? "";
         if (code === "DOWNLOAD_CANCELLED" || signal.aborted) throw error;
-        if (code === "ENOSPC" || code === "EACCES" || code === "EPERM") throw error;
+        if (code === "ENOSPC" || code === "EACCES" || code === "EPERM" || code === "DOWNLOAD_PROXY_AUTH_REQUIRED") throw error;
         throw embeddingFailureError({
           code: "EMBEDDING_MODEL_NETWORK_FAILED",
           subStage: "model-download",

@@ -2,7 +2,7 @@
 
 Analogy adds local semantic search to Obsidian and exposes your indexed vault to MCP clients for retrieval-augmented generation.
 
-The plugin is desktop-only because it uses Node.js APIs, starts a local ChromaDB process, and loads local embedding models.
+The plugin is desktop-only because it runs a managed local runtime (Node.js, ONNX Runtime) for embeddings and a local SQLite vector store.
 
 ## Features
 
@@ -10,8 +10,8 @@ The plugin is desktop-only because it uses Node.js APIs, starts a local ChromaDB
 - Search the current vault semantically from the Analogy side pane.
 - Explore related indexed chunks in a local Semantic Walk canvas.
 - Exclude folders or files from the local index.
-- Run ChromaDB locally on `127.0.0.1`.
-- Use the companion MCP server to let tools such as Claude Code or Cursor search approved vault content.
+- Hybrid search: semantic similarity fused with keyword matching for exact names, people and code identifiers.
+- Built-in MCP server with one-click setup for Claude Desktop, Claude Code, Cursor, opencode and Codex.
 
 ## Install
 
@@ -31,31 +31,24 @@ Required release assets:
 
 Enable the plugin in Obsidian Settings -> Community plugins.
 
-### Local RAG runtime
+### Local runtime
 
-Obsidian only installs the three plugin assets above. Open Analogy settings and use the Local RAG runtime installer to install the embedding runtime in the plugin folder. Analogy also creates a small runtime `package.json`, installs the embedding runtime, and starts ChromaDB automatically when possible.
+Obsidian installs only the three files above; Analogy's guided onboarding sets up the rest. It downloads the managed embedding runtime for your platform from this repository's `runtime-<version>` release and one embedding model, verifies every file against hashes pinned in the plugin, and builds a first index. No Python, `npm install` or command line is needed. Supported: macOS on Apple Silicon and Windows x64.
 
-On first launch, the guided onboarding flow detects the local environment, downloads the pinned ChromaDB and embedding runtimes, verifies their checksums and signed release metadata, installs them atomically, and builds a small first index. Managed runtime downloads currently support macOS on Apple Silicon and Windows on x64. Intel Mac runtime publication is temporarily deferred until its pinned ONNX Runtime native payload can be built and verified outside the pull-request critical path. The Ollama summary model is optional and can be skipped without blocking local semantic search.
+- Each platform has its own runtime version, so a Windows runtime update never re-downloads anything on macOS. When a runtime is superseded, Analogy offers an **Upgrade the inference engine** step that keeps your index and models.
+- Downloads resume after interruptions and follow the system proxy. Without network, use **Settings → Local runtime → Offline install** to import the runtime archive and model folder; both are verified before use.
+- The model picker shows download size and estimated memory; first installs choose a multilingual model for Chinese-first vaults.
 
-Existing compatible Chroma indexes are migrated into the managed runtime without re-embedding. If migration or setup is interrupted, onboarding resumes from its saved recovery state; setup, repair, diagnostics, and rebuild controls remain available in Analogy settings.
-
-
-If automatic installation fails, run the setup command inside the installed plugin folder:
-
-```bash
-npm run setup:local
-```
-
-If you need the companion MCP server files too, download the full runtime zip from the GitHub release.
+Details: [docs/local-runtime.md](docs/local-runtime.md). Error codes: [docs/install-troubleshooting.md](docs/install-troubleshooting.md).
 
 ## Usage
 
 1. Open Obsidian and enable Analogy.
 2. Click the Analogy ribbon icon to open the side pane.
 3. Open Settings -> Analogy - RAG in your vault.
-4. Verify that ChromaDB and the embedding model show as ready.
+4. Verify that the local runtime and the embedding model show as ready.
 5. Click Continue index or Rebuild index.
-6. Search your vault from the Analogy pane, or connect an MCP client to the bundled MCP server.
+6. Search your vault from the Analogy pane, or connect an AI client under **Settings → MCP** ([docs/mcp-server.md](docs/mcp-server.md)).
 
 ### Semantic Walk
 
@@ -67,15 +60,15 @@ Indexes created by older Analogy versions may lack stable chunk identity, headin
 
 ## Privacy and data flow
 
-- Your vector index is stored locally in the plugin folder.
+- Your vector index is stored in a device-local data folder outside the vault (`~/Library/Application Support/Analogy` or `%LOCALAPPDATA%\Analogy`) and is never synced.
 - Semantic Walk reuses the local chunk index and embedding worker; it does not create a remote graph service or upload note content.
-- ChromaDB listens on `127.0.0.1` by default.
+- The vector store is a local SQLite file; no network service is opened.
 - Markdown content is read from the current vault for indexing.
 - Embedding model files may be downloaded from the configured model host, which defaults to `https://hf-mirror.com/`.
 - License validation uses `https://analogy.zexing.club/api/v1/obsidian/license/validate`; deactivation uses `/api/v1/obsidian/license/deactivate`. These requests send the license key, plugin version, a local device identifier, and a vault identifier, but never note contents, paths, queries, or embeddings.
 - Purchase and account-management actions open `https://analogy.zexing.club/analogy` and `https://analogy.zexing.club/analogy/account` in the browser. The plugin does not receive Stripe credentials or payment-card data.
 - The plugin caches license state locally and normally refreshes it about every 7 days. If the service is temporarily unavailable, the last active state remains usable only through the server-provided `grace_until`; after that, the plugin falls back to the free limits without blocking local note access.
-- MCP clients can access search snippets only when you explicitly configure and run the MCP server.
+- MCP clients can access search snippets only when you explicitly configure them. Writing a client configuration shows the exact change first and keeps a backup. The MCP server records only the time, tool and result count of the last query, never the query text.
 - Use `ANALOGY_ALLOWED_PATHS` to restrict which vault paths the MCP server can return.
 - Semantic Walk diagnostics contain only a hashed chunk identifier and allowlisted runtime metadata; they exclude chunk text, paths, queries, embeddings, and license keys.
 
@@ -109,8 +102,10 @@ The release tag must exactly match `manifest.json` `version`.
 ## Repository layout
 
 - `src/` - Obsidian plugin source.
-- `mcp-server/` - Companion MCP server source.
-- `scripts/` - Setup helpers such as model download.
+- `src/mcp/server/` - MCP server bundled into `main.js`; reuses the read-only store reader and config in `mcp-server/src/`.
+- `runtime-package/` - Reviewed managed-runtime inputs, including the per-platform version table.
+- `scripts/` - Runtime build, verification and release scripts.
+- `benchmark/` - Hybrid retrieval and vector scan benchmarks.
 - `.obsidian/` - Local development vault, ignored by the standalone plugin repo.
 
 ## License

@@ -10,8 +10,11 @@ export interface EmbeddingModelConfig {
   dtype: string;
   localModelDir?: string;
   maxInputChars: number;
+  /** Must match the plugin's indexing pooling, or query vectors land in a different space. */
+  pooling: "mean" | "cls" | "last_token";
 }
 
+/** Mirrors the plugin's EMBEDDING_MODELS (src/local-vector/embedding.ts) for query embedding. */
 export const EMBEDDING_MODELS: Record<string, EmbeddingModelConfig> = {
   "bge-small-en-v1.5": {
     id: "Xenova/bge-small-en-v1.5",
@@ -19,6 +22,31 @@ export const EMBEDDING_MODELS: Record<string, EmbeddingModelConfig> = {
     queryPrefix: "Represent this sentence for searching relevant passages: ",
     dtype: "q8",
     maxInputChars: 1500,
+    pooling: "mean",
+  },
+  "all-MiniLM-L6-v2": {
+    id: "Xenova/all-MiniLM-L6-v2",
+    shortName: "all-MiniLM-L6-v2",
+    queryPrefix: "",
+    dtype: "q8",
+    maxInputChars: 1500,
+    pooling: "mean",
+  },
+  "bge-small-zh": {
+    id: "Xenova/bge-small-zh-v1.5",
+    shortName: "bge-small-zh",
+    queryPrefix: "Represent this sentence for searching relevant passages: ",
+    dtype: "q8",
+    maxInputChars: 1500,
+    pooling: "mean",
+  },
+  "embedding-gemma-300m": {
+    id: "onnx-community/embeddinggemma-300m-ONNX",
+    shortName: "embedding-gemma-300m",
+    queryPrefix: "task: search result | query: ",
+    dtype: "q8",
+    maxInputChars: 4000,
+    pooling: "mean",
   },
   "jina-nano": {
     id: "jinaai/jina-embeddings-v5-text-nano-retrieval",
@@ -27,13 +55,23 @@ export const EMBEDDING_MODELS: Record<string, EmbeddingModelConfig> = {
     dtype: "q8",
     localModelDir: "models/jina-nano",
     maxInputChars: 8000,
+    pooling: "last_token",
   },
-  "bge-small-zh": {
-    id: "Xenova/bge-small-zh-v1.5",
-    shortName: "bge-small-zh",
-    queryPrefix: "Represent this sentence for searching relevant passages: ",
+  "granite-97m-multilingual-r2": {
+    id: "onnx-community/granite-embedding-97m-multilingual-r2-ONNX",
+    shortName: "granite-97m-multilingual-r2",
+    queryPrefix: "",
     dtype: "q8",
-    maxInputChars: 1500,
+    maxInputChars: 8000,
+    pooling: "cls",
+  },
+  "granite-small-english-r2": {
+    id: "onnx-community/granite-embedding-small-english-r2-ONNX",
+    shortName: "granite-small-english-r2",
+    queryPrefix: "",
+    dtype: "q8",
+    maxInputChars: 8000,
+    pooling: "cls",
   },
 };
 
@@ -141,7 +179,7 @@ export class EmbeddingService {
     }
     const truncated = text.slice(0, this.modelConfig.maxInputChars);
     const output = await this.pipeline(truncated, {
-      pooling: "mean",
+      pooling: this.modelConfig.pooling,
       normalize: true,
     });
     return Array.from(output.data as Float32Array);

@@ -73,13 +73,19 @@ export function createChunkedTransport(fetch: ProxyAwareFetch, options: ChunkedT
     const fetchRange = async (from: number, validator: string | null) => {
       const headers: Record<string, string> = { Range: `bytes=${from}-${from + chunkSize - 1}` };
       if (validator) headers["If-Range"] = validator;
+      let response: Awaited<ReturnType<ProxyAwareFetch>>;
       try {
-        return await withTimeout(fetch({ url: url.toString(), method: "GET", headers, throw: false }), chunkTimeoutMs, requestOptions.signal);
+        response = await withTimeout(fetch({ url: url.toString(), method: "GET", headers, throw: false }), chunkTimeoutMs, requestOptions.signal);
       } catch (error) {
         const code = (error as { code?: string })?.code;
         if (code === "DOWNLOAD_STALLED" || code === "DOWNLOAD_CANCELLED") throw error;
+        // Electron reports an unanswered proxy login as net::ERR_PROXY_AUTH_*.
+        if (/ERR_PROXY_AUTH|\b407\b/.test(String((error as Error)?.message ?? ""))) throw transportError("DOWNLOAD_PROXY_AUTH_REQUIRED", error);
         throw transportError("DOWNLOAD_NETWORK_ERROR", error);
       }
+      // A proxy that needs credentials must be reported as such, not as a generic network error.
+      if (response.status === 407) throw transportError("DOWNLOAD_PROXY_AUTH_REQUIRED");
+      return response;
     };
 
     const first = await fetchRange(start, incoming["if-range"] ?? null);

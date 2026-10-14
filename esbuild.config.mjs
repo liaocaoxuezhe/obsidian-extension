@@ -135,6 +135,27 @@ if (!workerSource.trim()) {
 	throw new Error("Embedding worker build produced no output");
 }
 
+// The MCP server ships inside main.js (Community installs only get three files) and is
+// materialized at runtime; it runs on the managed runtime's Node and loads models offline.
+const mcpServerBuild = await esbuild.build({
+	entryPoints: ["src/mcp/server/index.ts"],
+	bundle: true,
+	external: [...builtins],
+	format: "cjs",
+	platform: "node",
+	target: "es2020",
+	logLevel: "info",
+	sourcemap: false,
+	treeShaking: true,
+	write: false,
+	define: { __ANALOGY_MCP_SERVER_VERSION__: JSON.stringify(buildId) },
+	banner: { js: "#!/usr/bin/env node" },
+});
+const mcpServerSource = mcpServerBuild.outputFiles[0]?.text || "";
+if (!mcpServerSource.trim()) {
+	throw new Error("MCP server build produced no output");
+}
+
 for (const staleWorkerFile of ["embedding-worker.js", "embedding-worker.js.map"]) {
 	fs.rmSync(staleWorkerFile, { force: true });
 }
@@ -155,6 +176,7 @@ const context = await esbuild.context({
 	define: {
 		__ANALOGY_BUILD_ID__: JSON.stringify(buildId),
 		__ANALOGY_EMBEDDING_WORKER_SOURCE__: JSON.stringify(workerSource),
+		__ANALOGY_MCP_SERVER_SOURCE__: JSON.stringify(mcpServerSource),
 	},
 	treeShaking: true,
 	outdir: ".",
