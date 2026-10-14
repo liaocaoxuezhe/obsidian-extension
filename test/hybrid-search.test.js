@@ -8,6 +8,24 @@ const test = require("node:test");
 const esbuild = require("esbuild");
 const { DatabaseSync } = require("node:sqlite");
 
+/**
+ * Cleanup in reverse order of registration (close handles and child processes before deleting
+ * their files). node:test runs t.after hooks first-registered-first, and Windows refuses to
+ * delete open files; a failing delete would also skip every later hook.
+ */
+const cleanupStacks = new WeakMap();
+function deferCleanup(t, fn) {
+  let stack = cleanupStacks.get(t);
+  if (!stack) {
+    stack = [];
+    cleanupStacks.set(t, stack);
+    t.after(async () => {
+      while (stack.length) await stack.pop()();
+    });
+  }
+  stack.push(fn);
+}
+
 async function loadModule(source) {
   const result = await esbuild.build({
     entryPoints: [path.join(__dirname, "..", "src", source)],
@@ -25,7 +43,7 @@ async function loadModule(source) {
 
 function tempDatabase(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "analogy-hybrid-"));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  deferCleanup(t, () => fs.rmSync(root, { recursive: true, force: true }));
   return path.join(root, "混合 检索", "vectors.sqlite");
 }
 
@@ -55,7 +73,7 @@ async function seededEngine(t) {
   const file = tempDatabase(t);
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const engine = new VectorStoreEngine(new DatabaseSync(file));
-  t.after(() => { try { engine.close(); } catch { /* already closed */ } });
+  deferCleanup(t, () => { try { engine.close(); } catch { /* already closed */ } });
   engine.ensureCollection(COLLECTION);
   engine.upsert(COLLECTION, NOTES.map(([id, document, embedding]) => record(id, document, embedding)));
   return { engine, file, VectorStoreEngine };
@@ -121,7 +139,7 @@ test("the keyword index follows upserts and deletes, including writes from an ol
   engine.close();
   const { VectorStoreEngine } = await loadModule("local-vector/vector-store-engine.ts");
   const reopened = new VectorStoreEngine(new DatabaseSync(file));
-  t.after(() => reopened.close());
+  deferCleanup(t, () => reopened.close());
   assert.ok(reopened.hybridQuery(COLLECTION, QUERY, "obsidian", 3, 1).some((match) => match.id === "legacy"));
 });
 
@@ -135,7 +153,7 @@ test("an existing store is backfilled in batches and searches stay vector-only u
   raw.close();
 
   const upgraded = new VectorStoreEngine(new DatabaseSync(file));
-  t.after(() => upgraded.close());
+  deferCleanup(t, () => upgraded.close());
   assert.deepEqual(upgraded.keywordStatus(), { state: "backfilling", indexed: 0, total: NOTES.length });
   const before = upgraded.hybridQuery(COLLECTION, QUERY, "useEffect", 3, 1);
   assert.ok(before.every((match) => match.matchedBy.length === 1 && match.matchedBy[0] === "vector"));

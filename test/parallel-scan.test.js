@@ -8,6 +8,24 @@ const test = require("node:test");
 const esbuild = require("esbuild");
 const { DatabaseSync } = require("node:sqlite");
 
+/**
+ * Cleanup in reverse order of registration (close handles and child processes before deleting
+ * their files). node:test runs t.after hooks first-registered-first, and Windows refuses to
+ * delete open files; a failing delete would also skip every later hook.
+ */
+const cleanupStacks = new WeakMap();
+function deferCleanup(t, fn) {
+  let stack = cleanupStacks.get(t);
+  if (!stack) {
+    stack = [];
+    cleanupStacks.set(t, stack);
+    t.after(async () => {
+      while (stack.length) await stack.pop()();
+    });
+  }
+  stack.push(fn);
+}
+
 async function loadModule(source) {
   const result = await esbuild.build({
     entryPoints: [path.join(__dirname, "..", "src", source)],
@@ -42,9 +60,9 @@ test("sharded scans return exactly the single-threaded top results, ties and upd
   const { ParallelVectorScanner } = await loadModule("local-vector/parallel-scan.ts");
   const { VectorStoreEngine } = await loadModule("local-vector/vector-store-engine.ts");
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "analogy-parallel-scan-"));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  deferCleanup(t, () => fs.rmSync(root, { recursive: true, force: true }));
   const scanner = new ParallelVectorScanner(3);
-  t.after(() => scanner.dispose());
+  deferCleanup(t, () => scanner.dispose());
   const random = seededRandom(7);
   const dimension = 48;
   const vector = () => Array.from({ length: dimension }, random);
@@ -56,7 +74,7 @@ test("sharded scans return exactly the single-threaded top results, ties and upd
   }));
   const parallel = new VectorStoreEngine(new DatabaseSync(path.join(root, "parallel.sqlite")), { scanner, parallelThreshold: 100 });
   const inline = new VectorStoreEngine(new DatabaseSync(path.join(root, "inline.sqlite")));
-  t.after(() => { parallel.close(); inline.close(); });
+  deferCleanup(t, () => { parallel.close(); inline.close(); });
   for (const engine of [parallel, inline]) {
     engine.ensureCollection(COLLECTION);
     for (let offset = 0; offset < records.length; offset += 1000) engine.upsert(COLLECTION, records.slice(offset, offset + 1000));

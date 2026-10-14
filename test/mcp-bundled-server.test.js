@@ -10,6 +10,24 @@ const esbuild = require("esbuild");
 const builtins = require("builtin-modules");
 const { DatabaseSync } = require("node:sqlite");
 
+/**
+ * Cleanup in reverse order of registration (close handles and child processes before deleting
+ * their files). node:test runs t.after hooks first-registered-first, and Windows refuses to
+ * delete open files; a failing delete would also skip every later hook.
+ */
+const cleanupStacks = new WeakMap();
+function deferCleanup(t, fn) {
+  let stack = cleanupStacks.get(t);
+  if (!stack) {
+    stack = [];
+    cleanupStacks.set(t, stack);
+    t.after(async () => {
+      while (stack.length) await stack.pop()();
+    });
+  }
+  stack.push(fn);
+}
+
 const repositoryRoot = path.resolve(__dirname, "..");
 
 async function loadModule(source) {
@@ -131,7 +149,7 @@ test("client configuration plans add only the Analogy entry and detect configure
 test("applying a client plan keeps a backup and replaces the file atomically", async (t) => {
   const config = await loadModule("src/mcp/mcp-client-config.ts");
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "analogy-mcp-client-"));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  deferCleanup(t, () => fs.rmSync(root, { recursive: true, force: true }));
   const cursor = config.MCP_CLIENTS.find((client) => client.id === "cursor");
   const file = path.join(root, ".cursor", "mcp.json");
   const fresh = config.planMcpClientConfig(cursor, SPEC, { home: root });
@@ -147,7 +165,7 @@ test("applying a client plan keeps a backup and replaces the file atomically", a
 test("the bundled server is materialized once to a stable path and rewritten when it changes", async (t) => {
   const { materializeMcpServer, readMcpLastQuery } = await loadModule("src/mcp/mcp-bundle.ts");
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "analogy-mcp-bundle-"));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  deferCleanup(t, () => fs.rmSync(root, { recursive: true, force: true }));
   const first = materializeMcpServer(root, "console.log(1)");
   assert.equal(first.written, true);
   assert.equal(first.entry, path.join(root, "mcp", "analogy-mcp-server.cjs"));
@@ -210,13 +228,17 @@ async function prepareVault(root, { modelShortName, embeddingFor }) {
 
 function startServer(t, entry, env) {
   const child = spawn(process.execPath, ["--no-warnings", entry], { env: { ...process.env, ...env }, stdio: ["pipe", "pipe", "pipe"] });
-  t.after(() => child.kill());
+  deferCleanup(t, () => new Promise((resolve) => {
+    if (child.exitCode !== null || child.signalCode !== null) { resolve(); return; }
+    child.once("exit", resolve);
+    child.kill();
+  }));
   return rpc(child);
 }
 
 test("the bundled server answers MCP clients from the read-only store without the plugin running", async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "analogy-mcp-e2e-"));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  deferCleanup(t, () => fs.rmSync(root, { recursive: true, force: true }));
   const vault = await prepareVault(root, { modelShortName: "bge-small-en-v1.5", embeddingFor: async () => [1, 0, 0, 0] });
   const entry = path.join(root, "analogy-mcp-server.cjs");
   fs.writeFileSync(entry, await bundleServer());
@@ -239,7 +261,7 @@ test("the bundled server answers MCP clients from the read-only store without th
 const modelCache = process.env.ANALOGY_TEST_MODEL_CACHE;
 test("vault_semantic_search embeds offline with the managed runtime and finds identifiers by keyword", { skip: !modelCache && "set ANALOGY_TEST_MODEL_CACHE to a bge-small-en-v1.5 cache" }, async (t) => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "analogy-mcp-search-"));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  deferCleanup(t, () => fs.rmSync(root, { recursive: true, force: true }));
   const transformers = require(path.join(repositoryRoot, "node_modules", "@huggingface", "transformers"));
   transformers.env.allowRemoteModels = false;
   transformers.env.localModelPath = modelCache;
