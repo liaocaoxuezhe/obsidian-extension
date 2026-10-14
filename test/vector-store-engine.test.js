@@ -8,6 +8,24 @@ const test = require("node:test");
 const esbuild = require("esbuild");
 const { DatabaseSync } = require("node:sqlite");
 
+/**
+ * Cleanup in reverse order of registration (close handles and child processes before deleting
+ * their files). node:test runs t.after hooks first-registered-first, and Windows refuses to
+ * delete open files; a failing delete would also skip every later hook.
+ */
+const cleanupStacks = new WeakMap();
+function deferCleanup(t, fn) {
+  let stack = cleanupStacks.get(t);
+  if (!stack) {
+    stack = [];
+    cleanupStacks.set(t, stack);
+    t.after(async () => {
+      while (stack.length) await stack.pop()();
+    });
+  }
+  stack.push(fn);
+}
+
 async function loadModule(source) {
   const result = await esbuild.build({
     entryPoints: [path.join(__dirname, "..", "src", source)],
@@ -25,7 +43,7 @@ async function loadModule(source) {
 
 function tempDatabase(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "analogy-vector-engine-"));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  deferCleanup(t, () => fs.rmSync(root, { recursive: true, force: true }));
   return path.join(root, "向量 数据", "vectors.sqlite");
 }
 
@@ -60,7 +78,7 @@ async function openEngine(t, filename = tempDatabase(t)) {
   const { VectorStoreEngine } = await loadModule("local-vector/vector-store-engine.ts");
   fs.mkdirSync(path.dirname(filename), { recursive: true });
   const engine = new VectorStoreEngine(new DatabaseSync(filename));
-  t.after(() => { try { engine.close(); } catch { /* already closed */ } });
+  deferCleanup(t, () => { try { engine.close(); } catch { /* already closed */ } });
   return { engine, filename, VectorStoreEngine };
 }
 
@@ -160,7 +178,7 @@ test("collections are isolated, deletable, and persist across reopen", async (t)
   engine.close();
 
   const reopened = new VectorStoreEngine(new DatabaseSync(filename));
-  t.after(() => reopened.close());
+  deferCleanup(t, () => reopened.close());
   assert.equal(reopened.count(active), 1);
   assert.equal(reopened.query(active, unit([1, 0]), 1)[0].id, "a#0");
 });
@@ -171,7 +189,7 @@ test("a read-only connection sees committed writes while the writer stays open",
   engine.ensureCollection(name);
   engine.upsert(name, [record("a#0", "a", unit([1, 0]))]);
   const reader = new DatabaseSync(filename, { readOnly: true });
-  t.after(() => reader.close());
+  deferCleanup(t, () => reader.close());
   const countRows = () => reader.prepare("SELECT COUNT(*) AS total FROM records").get().total;
   assert.equal(countRows(), 1);
   engine.upsert(name, [record("b#0", "b", unit([0, 1]))]);

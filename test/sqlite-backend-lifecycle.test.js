@@ -8,6 +8,24 @@ const test = require("node:test");
 const esbuild = require("esbuild");
 const { DatabaseSync } = require("node:sqlite");
 
+/**
+ * Cleanup in reverse order of registration (close handles and child processes before deleting
+ * their files). node:test runs t.after hooks first-registered-first, and Windows refuses to
+ * delete open files; a failing delete would also skip every later hook.
+ */
+const cleanupStacks = new WeakMap();
+function deferCleanup(t, fn) {
+  let stack = cleanupStacks.get(t);
+  if (!stack) {
+    stack = [];
+    cleanupStacks.set(t, stack);
+    t.after(async () => {
+      while (stack.length) await stack.pop()();
+    });
+  }
+  stack.push(fn);
+}
+
 async function loadModule(entry) {
   const result = await esbuild.build({
     entryPoints: [path.join(__dirname, "..", entry)],
@@ -26,7 +44,7 @@ async function loadModule(entry) {
 
 function tempRoot(t, prefix) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), prefix));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  deferCleanup(t, () => fs.rmSync(root, { recursive: true, force: true }));
   return root;
 }
 
@@ -156,7 +174,7 @@ test("MCP reads the SQLite store read-only and prefers the store's runtime state
   const { SqliteVectorReader } = await loadModule("mcp-server/src/sqlite-vector-reader.ts");
   const databasePath = path.join(root, "vectors.sqlite");
   const engine = new VectorStoreEngine(new DatabaseSync(databasePath));
-  t.after(() => engine.close());
+  deferCleanup(t, () => engine.close());
   const name = `analogy_${VAULT}_bge-small`;
   engine.ensureCollection(name);
   const unit = (values) => {
@@ -168,7 +186,7 @@ test("MCP reads the SQLite store read-only and prefers the store's runtime state
     { id: "b#0", document: "乙", metadata: { path: "b.md", title: "乙" }, embedding: unit([0, 1, 0]) },
   ]);
   const reader = new SqliteVectorReader(databasePath);
-  t.after(() => reader.close());
+  deferCleanup(t, () => reader.close());
   assert.equal(reader.count(name), 2);
   assert.deepEqual(reader.search(name, unit([0.9, 0.1, 0]), 2).map((item) => item.chunkId), ["a#0", "b#0"]);
   engine.upsert(name, [{ id: "c#0", document: "丙", metadata: { path: "c.md" }, embedding: unit([0.95, 0.05, 0]) }]);
