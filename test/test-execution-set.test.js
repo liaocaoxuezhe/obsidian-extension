@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const test = require("node:test");
+const { spawnSync } = require("node:child_process");
 const { pathToFileURL } = require("node:url");
 
 const verifierUrl = pathToFileURL(path.join(__dirname, "..", "scripts", "verify-test-execution-set.mjs")).href;
@@ -119,6 +120,21 @@ test("every test records its Task 1 conflict decision and test-name baseline", a
   assert.ok(errors.includes("TEST_NAMES_MISSING: test/kept.test.js"));
 });
 
+// Command lines of live processes containing `needle`. The needle travels through the
+// environment so the lookup command itself never matches.
+function processesMentioning(needle) {
+  const result = process.platform === "win32"
+    ? spawnSync("powershell.exe", [
+      "-NoProfile",
+      "-NonInteractive",
+      "-Command",
+      "Get-CimInstance Win32_Process | Where-Object { $_.CommandLine -and $_.CommandLine.Contains($env:ANALOGY_PROCESS_NEEDLE) } | ForEach-Object { \"$($_.ProcessId) $($_.CommandLine)\" }",
+    ], {encoding: "utf8", env: {...process.env, ANALOGY_PROCESS_NEEDLE: needle}, windowsHide: true})
+    : spawnSync("ps", ["-A", "-o", "pid=,command="], {encoding: "utf8"});
+  assert.equal(result.status, 0, result.stderr);
+  return result.stdout.split(/\r?\n/).filter((line) => line.includes(needle));
+}
+
 test("a hung test process is terminated by the per-test timeout", async (t) => {
   const runnerUrl = pathToFileURL(path.join(__dirname, "..", "scripts", "run-test-set.mjs")).href;
   const {runSingleNodeTest} = await import(runnerUrl);
@@ -127,7 +143,16 @@ test("a hung test process is terminated by the per-test timeout", async (t) => {
   const hanging = path.join(directory, "hang.js");
   fs.writeFileSync(hanging, "setInterval(() => {}, 1000);\n", "utf8");
   const startedAt = Date.now();
-  const result = runSingleNodeTest(hanging, {timeoutMs: 100});
+  const result = await runSingleNodeTest(hanging, {timeoutMs: 100});
   assert.equal(result.timedOut, true);
   assert.ok(Date.now() - startedAt < 2_000);
+  let survivors = processesMentioning(hanging);
+  for (const deadline = Date.now() + 5_000; survivors.length > 0 && Date.now() < deadline;) {
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    survivors = processesMentioning(hanging);
+  }
+  for (const line of survivors) {
+    try { process.kill(Number.parseInt(line.trim(), 10), "SIGKILL"); } catch {}
+  }
+  assert.deepEqual(survivors, [], "the timed-out test's child processes must not outlive the timeout");
 });
