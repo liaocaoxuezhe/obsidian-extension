@@ -34,20 +34,13 @@ interface ClientDefinition {
   label: string;
   configPath(platform: NodeJS.Platform, home: string, env: NodeJS.ProcessEnv): string;
   format: "json" | "jsonc" | "toml";
-  /** Applies the launch spec to the parsed document (JSON clients only). */
-  apply?(document: Record<string, unknown>, spec: McpLaunchSpec): Record<string, unknown>;
-  read?(document: Record<string, unknown>, serverName: string): unknown;
+  /** Top-level key holding the server map (JSON clients only). */
+  section?: string;
   entry?(spec: McpLaunchSpec): unknown;
 }
 
 function stdioEntry(spec: McpLaunchSpec, extra: Record<string, unknown> = {}): Record<string, unknown> {
   return { ...extra, command: spec.command, args: spec.args, env: spec.env };
-}
-
-function withServer(document: Record<string, unknown>, key: string, name: string, entry: unknown): Record<string, unknown> {
-  const section = document[key];
-  const servers = section && typeof section === "object" && !Array.isArray(section) ? section as Record<string, unknown> : {};
-  return { ...document, [key]: { ...servers, [name]: entry } };
 }
 
 function serverIn(document: Record<string, unknown>, key: string, name: string): unknown {
@@ -64,8 +57,7 @@ export const MCP_CLIENTS: readonly ClientDefinition[] = [
       ? path.join(env.APPDATA || path.join(home, "AppData", "Roaming"), "Claude", "claude_desktop_config.json")
       : path.join(home, "Library", "Application Support", "Claude", "claude_desktop_config.json"),
     entry: (spec) => stdioEntry(spec),
-    apply: (document, spec) => withServer(document, "mcpServers", spec.serverName, stdioEntry(spec)),
-    read: (document, name) => serverIn(document, "mcpServers", name),
+    section: "mcpServers",
   },
   {
     id: "claude-code",
@@ -73,8 +65,7 @@ export const MCP_CLIENTS: readonly ClientDefinition[] = [
     format: "json",
     configPath: (_platform, home) => path.join(home, ".claude.json"),
     entry: (spec) => stdioEntry(spec, { type: "stdio" }),
-    apply: (document, spec) => withServer(document, "mcpServers", spec.serverName, stdioEntry(spec, { type: "stdio" })),
-    read: (document, name) => serverIn(document, "mcpServers", name),
+    section: "mcpServers",
   },
   {
     id: "cursor",
@@ -82,8 +73,7 @@ export const MCP_CLIENTS: readonly ClientDefinition[] = [
     format: "json",
     configPath: (_platform, home) => path.join(home, ".cursor", "mcp.json"),
     entry: (spec) => stdioEntry(spec),
-    apply: (document, spec) => withServer(document, "mcpServers", spec.serverName, stdioEntry(spec)),
-    read: (document, name) => serverIn(document, "mcpServers", name),
+    section: "mcpServers",
   },
   {
     id: "opencode",
@@ -91,9 +81,7 @@ export const MCP_CLIENTS: readonly ClientDefinition[] = [
     format: "jsonc",
     configPath: (_platform, home) => path.join(home, ".config", "opencode", "opencode.jsonc"),
     entry: (spec) => ({ type: "local", command: [spec.command, ...spec.args], enabled: true, environment: spec.env }),
-    apply: (document, spec) => withServer(document, "mcp", spec.serverName,
-      { type: "local", command: [spec.command, ...spec.args], enabled: true, environment: spec.env }),
-    read: (document, name) => serverIn(document, "mcp", name),
+    section: "mcp",
   },
   {
     id: "codex",
@@ -131,6 +119,121 @@ export function stripJsonComments(source: string): string {
     output += character;
   }
   return output.replace(/,(\s*[}\]])/g, "$1");
+}
+
+interface JsonMember {
+  key: string;
+  /** Offset of the key's opening quote. */
+  keyStart: number;
+  valueStart: number;
+  valueEnd: number;
+}
+
+interface JsonObjectSpan {
+  open: number;
+  close: number;
+  members: JsonMember[];
+}
+
+/** Skips whitespace and (for JSONC) comments; returns the next significant offset. */
+function skipTrivia(source: string, index: number): number {
+  for (;;) {
+    while (index < source.length && /\s/.test(source[index])) index += 1;
+    if (source.startsWith("//", index)) {
+      while (index < source.length && source[index] !== "\n") index += 1;
+    } else if (source.startsWith("/*", index)) {
+      const end = source.indexOf("*/", index + 2);
+      index = end < 0 ? source.length : end + 2;
+    } else {
+      return index;
+    }
+  }
+}
+
+function skipString(source: string, index: number): number {
+  for (let cursor = index + 1; cursor < source.length; cursor += 1) {
+    if (source[cursor] === "\\") cursor += 1;
+    else if (source[cursor] === "\"") return cursor + 1;
+  }
+  throw new Error("unterminated string");
+}
+
+/** Returns the end offset of the JSON value starting at `index`. */
+function skipValue(source: string, index: number): number {
+  const character = source[index];
+  if (character === "\"") return skipString(source, index);
+  if (character === "{" || character === "[") {
+    const close = character === "{" ? "}" : "]";
+    let cursor = skipTrivia(source, index + 1);
+    while (source[cursor] !== close) {
+      if (cursor >= source.length) throw new Error("unterminated container");
+      if (character === "{") {
+        cursor = skipTrivia(source, skipString(source, cursor));
+        cursor = skipTrivia(source, cursor + 1);
+      }
+      cursor = skipTrivia(source, skipValue(source, cursor));
+      if (source[cursor] === ",") cursor = skipTrivia(source, cursor + 1);
+    }
+    return cursor + 1;
+  }
+  const match = /^(?:true|false|null|-?\d[\d.eE+-]*)/.exec(source.slice(index));
+  if (!match) throw new Error(`unexpected token at ${index}`);
+  return index + match[0].length;
+}
+
+/** Lists the members of the object starting at `open` with their exact text spans. */
+function objectSpan(source: string, open: number): JsonObjectSpan {
+  if (source[open] !== "{") throw new Error("expected an object");
+  const members: JsonMember[] = [];
+  let cursor = skipTrivia(source, open + 1);
+  while (source[cursor] !== "}") {
+    const keyStart = cursor;
+    const keyEnd = skipString(source, cursor);
+    const key = JSON.parse(source.slice(keyStart, keyEnd)) as string;
+    cursor = skipTrivia(source, keyEnd);
+    if (source[cursor] !== ":") throw new Error("expected ':'");
+    const valueStart = skipTrivia(source, cursor + 1);
+    const valueEnd = skipValue(source, valueStart);
+    members.push({ key, keyStart, valueStart, valueEnd });
+    cursor = skipTrivia(source, valueEnd);
+    if (source[cursor] === ",") cursor = skipTrivia(source, cursor + 1);
+  }
+  return { open, close: cursor, members };
+}
+
+function lineIndent(source: string, offset: number): string {
+  const lineStart = source.lastIndexOf("\n", offset - 1) + 1;
+  return /^[ \t]*/.exec(source.slice(lineStart))?.[0] ?? "";
+}
+
+function serializeAt(value: unknown, indentUnit: string | number, baseIndent: string): string {
+  return JSON.stringify(value, null, indentUnit).split("\n").join(`\n${baseIndent}`);
+}
+
+/**
+ * Sets `document[section][name] = value` by editing only that member's text, so the rest of the
+ * file (formatting, key order, comments) stays byte-for-byte unchanged.
+ */
+export function setJsonMember(source: string, section: string, name: string, value: unknown): string {
+  const unit = detectIndent(source);
+  const unitText = typeof unit === "number" ? " ".repeat(unit) : unit;
+  if (!source.trim()) return `${JSON.stringify({ [section]: { [name]: value } }, null, unit)}\n`;
+  const root = objectSpan(source, skipTrivia(source, 0));
+  const insertMember = (object: JsonObjectSpan, key: string, memberValue: unknown): string => {
+    const last = object.members[object.members.length - 1];
+    const closeIndent = lineIndent(source, object.close);
+    const memberIndent = last ? lineIndent(source, last.keyStart) : `${closeIndent}${unitText}`;
+    const text = `${JSON.stringify(key)}: ${serializeAt(memberValue, unit, memberIndent)}`;
+    if (last) return `${source.slice(0, last.valueEnd)},\n${memberIndent}${text}${source.slice(last.valueEnd)}`;
+    return `${source.slice(0, object.open + 1)}\n${memberIndent}${text}\n${closeIndent}${source.slice(object.close)}`;
+  };
+  const sectionMember = root.members.find((member) => member.key === section);
+  if (!sectionMember) return insertMember(root, section, { [name]: value });
+  if (source[sectionMember.valueStart] !== "{") throw new Error(`"${section}" is not an object`);
+  const servers = objectSpan(source, sectionMember.valueStart);
+  const existing = servers.members.find((member) => member.key === name);
+  if (!existing) return insertMember(servers, name, value);
+  return `${source.slice(0, existing.valueStart)}${serializeAt(value, unit, lineIndent(source, existing.keyStart))}${source.slice(existing.valueEnd)}`;
 }
 
 function detectIndent(source: string): string | number {
@@ -226,9 +329,14 @@ export function planMcpClientConfig(
       return { ...base, status: "unreadable", nextContent: null, diff: "", error: `Cannot parse ${path.basename(configPath)}: ${(error as Error).message}` };
     }
   }
-  const current = client.read!(document, spec.serverName);
+  const current = serverIn(document, client.section!, spec.serverName);
   const status: McpClientStatus = current === undefined ? "missing" : sameValue(current, client.entry!(spec)) ? "configured" : "outdated";
-  const nextContent = `${JSON.stringify(client.apply!(document, spec), null, detectIndent(original ?? ""))}\n`;
+  let nextContent: string;
+  try {
+    nextContent = setJsonMember(original ?? "", client.section!, spec.serverName, client.entry!(spec));
+  } catch (error) {
+    return { ...base, status: "unreadable", nextContent: null, diff: "", error: `Cannot edit ${path.basename(configPath)}: ${(error as Error).message}` };
+  }
   return { ...base, status, nextContent, diff: lineDiff(original ?? "", nextContent) };
 }
 

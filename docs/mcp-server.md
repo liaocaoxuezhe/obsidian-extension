@@ -11,7 +11,7 @@ Analogy 内置一个 MCP（Model Context Protocol）服务，让 Claude Desktop�
 
 1. 在 Obsidian 中完成 Analogy 初始化并建好索引。
 2. 打开 **设置 → Analogy → MCP**，在“接入 AI 客户端”里找到你的客户端，点击 **写入配置**。
-3. 插件会先展示将要写入的具体改动（diff），确认后才写入；原文件会在同目录保存为 `*.analogy-backup-<时间戳>`。
+3. 插件会先展示将要写入的具体改动（diff），确认后才写入；只新增或替换 `analogy-vault` 这一项，文件其余内容（格式、注释、其他服务）一字不改；原文件会在同目录保存为 `*.analogy-backup-<时间戳>`。
 4. 重启客户端。
 
 | 客户端 | 配置文件 |
@@ -19,7 +19,7 @@ Analogy 内置一个 MCP（Model Context Protocol）服务，让 Claude Desktop�
 | Claude Desktop | macOS `~/Library/Application Support/Claude/claude_desktop_config.json`；Windows `%APPDATA%\Claude\claude_desktop_config.json` |
 | Claude Code | `~/.claude.json`（用户级 `mcpServers`） |
 | Cursor | `~/.cursor/mcp.json` |
-| opencode | `~/.config/opencode/opencode.jsonc`（注释在重写时不会保留，diff 中可见，备份里保留原文） |
+| opencode | `~/.config/opencode/opencode.jsonc`（注释与格式原样保留） |
 | Codex | `~/.codex/config.toml`（只替换 `[mcp_servers.analogy-vault]` 段，其余内容原样保留） |
 
 状态说明：**已配置** 表示配置与当前插件一致；**需要更新** 通常出现在推理引擎升级之后（托管 Node 路径变了），再点一次写入即可。

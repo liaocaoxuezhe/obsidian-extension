@@ -96,6 +96,7 @@ test("client configuration plans add only the Analogy entry and detect configure
   assert.deepEqual(next.mcpServers.other, { command: "x" }, "other servers are untouched");
   assert.match(plan.nextContent, /\n {4}"theme"/, "indentation is preserved");
   assert.match(plan.diff, /^\+ /m);
+  assert.doesNotMatch(plan.diff, /^- /m, "adding the entry never rewrites existing lines");
 
   files.set(desktopPath, plan.nextContent);
   assert.equal(config.planMcpClientConfig(desktop, SPEC, options).status, "configured");
@@ -109,7 +110,9 @@ test("client configuration plans add only the Analogy entry and detect configure
   const opencodePath = path.join("C:\\Users\\u", ".config", "opencode", "opencode.jsonc");
   files.set(opencodePath, "{\n  // my settings\n  \"theme\": \"x\", /* keep */\n  \"url\": \"http://a//b\",\n}\n");
   const opencodePlan = config.planMcpClientConfig(opencode, SPEC, options);
-  const opencodeNext = JSON.parse(opencodePlan.nextContent);
+  assert.match(opencodePlan.nextContent, /\/\/ my settings/, "comments are kept");
+  assert.match(opencodePlan.nextContent, /\/\* keep \*\//);
+  const opencodeNext = JSON.parse(config.stripJsonComments(opencodePlan.nextContent));
   assert.equal(opencodeNext.url, "http://a//b", "// inside strings is not a comment");
   assert.deepEqual(opencodeNext.mcp["analogy-vault"], { type: "local", command: [SPEC.command, ...SPEC.args], enabled: true, environment: SPEC.env });
 
