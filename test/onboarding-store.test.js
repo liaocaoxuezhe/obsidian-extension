@@ -70,14 +70,16 @@ async function readState(filename) {
   return JSON.parse(await fs.promises.readFile(filename, "utf8"));
 }
 
-async function waitForState(filename, predicate, timeoutMs = 1_000) {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
-    const state = await readState(filename);
-    if (predicate(state)) return state;
-    await new Promise((resolve) => setTimeout(resolve, 10));
+async function within(promise, timeoutMs, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new assert.AssertionError({ message })), timeoutMs);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timer);
   }
-  assert.fail("timed out waiting for persisted onboarding state");
 }
 
 async function createPrivateVaultDirectories(paths) {
@@ -118,8 +120,12 @@ test("a not-yet-created local data root loads read-only and is created privately
   await store.reset();
   assert.equal(fs.existsSync(root), false);
   await store.save(snapshot("checking"));
-  assert.equal((await fs.promises.stat(root)).mode & 0o777, 0o700);
-  assert.equal((await fs.promises.stat(paths.vaultRoot)).mode & 0o777, 0o700);
+  assert.equal(fs.statSync(paths.vaultRoot).isDirectory(), true);
+  // Windows has no POSIX permission bits: Node reports 0o666 for every writable entry.
+  if (process.platform !== "win32") {
+    assert.equal((await fs.promises.stat(root)).mode & 0o777, 0o700);
+    assert.equal((await fs.promises.stat(paths.vaultRoot)).mode & 0o777, 0o700);
+  }
 });
 
 test("schema 1 restart states map failed, ready, and cancelled deterministically", async (t) => {
@@ -193,8 +199,10 @@ test("save uses a private regular file and never persists secrets or device-spec
 
   const body = await fs.promises.readFile(paths.onboardingState, "utf8");
   const state = JSON.parse(body);
-  const mode = (await fs.promises.stat(paths.onboardingState)).mode & 0o777;
-  assert.equal(mode, 0o600);
+  const stat = await fs.promises.lstat(paths.onboardingState);
+  assert.equal(stat.isFile(), true);
+  // Windows has no POSIX permission bits: Node reports 0o666 for every writable file.
+  if (process.platform !== "win32") assert.equal(stat.mode & 0o777, 0o600);
   assert.equal(state.currentItem, "");
   assert.equal(state.selectedIndexScope, null);
   assert.equal(state.error.technicalMessage, "EMBEDDING_MODEL_DOWNLOAD_FAILED");
@@ -244,7 +252,16 @@ test("a failed immediate stage write remains an immediate write when retried", a
 });
 
 test("progress writes are trailing-edge throttled and flush persists the last update", async (t) => {
-  const { paths, store } = await fixture(t, { progressThrottleMs: 80 });
+  let published = () => {};
+  const { paths, store } = await fixture(t, {
+    progressThrottleMs: 80,
+    // Observe the timer-driven publication rather than polling the target: on Windows a reader
+    // holding the target open makes the atomic rename over it fail with EPERM.
+    rename: async (source, target) => {
+      await fs.promises.rename(source, target);
+      published();
+    },
+  });
   await store.save(snapshot("downloading-chroma", { progress: 1, updatedAt: 1 }));
   await store.save(snapshot("downloading-chroma", { progress: 2, updatedAt: 2 }));
   await store.save(snapshot("downloading-chroma", { progress: 3, updatedAt: 3 }));
@@ -252,9 +269,11 @@ test("progress writes are trailing-edge throttled and flush persists the last up
   await store.flush();
   assert.equal((await readState(paths.onboardingState)).progress, 3);
 
+  const trailingWrite = new Promise((resolve) => { published = resolve; });
   await store.save(snapshot("downloading-chroma", { progress: 4, updatedAt: 4 }));
   assert.equal((await readState(paths.onboardingState)).progress, 3);
-  assert.equal((await waitForState(paths.onboardingState, (state) => state.progress === 4)).progress, 4);
+  await within(trailingWrite, 1_000, "timed out waiting for the throttled progress write");
+  assert.equal((await readState(paths.onboardingState)).progress, 4);
 });
 
 test("timer persistence failures remain observable and retryable without losing pending progress", async (t) => {

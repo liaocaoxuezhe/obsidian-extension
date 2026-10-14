@@ -185,6 +185,8 @@ test("build:local bundles the installed runtime binding and deploys all plugin f
 
   const result = spawnSync("npm", ["run", "build:local"], {
     cwd: projectRoot,
+    // npm is npm.cmd on Windows, and Node only spawns .cmd files through a shell.
+    shell: process.platform === "win32",
     env: {
       ...process.env,
       ANALOGY_LOCAL_DATA_ROOT: localDataRoot,

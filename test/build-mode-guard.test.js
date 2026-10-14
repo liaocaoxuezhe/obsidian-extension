@@ -9,7 +9,9 @@ const root = path.resolve(__dirname, "..");
 const guard = path.join(root, "scripts", "build-mode-guard.mjs");
 
 function run(command, args, options = {}) {
-  return spawnSync(command, args, { cwd: root, encoding: "utf8", ...options });
+  // npm is npm.cmd on Windows, and Node only spawns .cmd files through a shell.
+  const shell = command === "npm" && process.platform === "win32";
+  return spawnSync(command, args, { cwd: root, encoding: "utf8", shell, ...options });
 }
 
 test("ambiguous and unknown build modes fail before producing output", () => {

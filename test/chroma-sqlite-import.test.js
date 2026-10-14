@@ -8,6 +8,24 @@ const path = require("node:path");
 const test = require("node:test");
 const esbuild = require("esbuild");
 
+/**
+ * Cleanup in reverse order of registration (close handles and child processes before deleting
+ * their files). node:test runs t.after hooks first-registered-first, and Windows refuses to
+ * delete open files; a failing delete would also skip every later hook.
+ */
+const cleanupStacks = new WeakMap();
+function deferCleanup(t, fn) {
+  let stack = cleanupStacks.get(t);
+  if (!stack) {
+    stack = [];
+    cleanupStacks.set(t, stack);
+    t.after(async () => {
+      while (stack.length) await stack.pop()();
+    });
+  }
+  stack.push(fn);
+}
+
 async function loadModule(source) {
   const result = await esbuild.build({
     entryPoints: [path.join(__dirname, "..", "src", source)],
@@ -68,7 +86,7 @@ function hashTree(root, excluded = []) {
 
 async function fixture(t, options = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "analogy-chroma-import-"));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  deferCleanup(t, () => fs.rmSync(root, { recursive: true, force: true }));
   const legacyRoot = path.join(root, "vaults", VAULT);
   const storeRoot = path.join(legacyRoot, "vector-store");
   fs.mkdirSync(path.join(legacyRoot, "chroma_data_v2"), { recursive: true });
@@ -90,7 +108,7 @@ async function fixture(t, options = {}) {
   const worker = await loadModule("local-vector/vector-store-worker.ts");
   const databasePath = path.join(storeRoot, "vectors.sqlite");
   worker.handleVectorStoreRequest({ id: "open", op: "open", params: { databasePath } });
-  t.after(() => worker.handleVectorStoreRequest({ id: "close", op: "close", params: {} }));
+  deferCleanup(t, () => worker.handleVectorStoreRequest({ id: "close", op: "close", params: {} }));
   const destination = {
     request: async (op, params) => worker.handleVectorStoreRequest({ id: op, op, params }),
   };

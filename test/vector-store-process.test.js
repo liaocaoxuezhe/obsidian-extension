@@ -17,6 +17,24 @@ const external = [
   ...builtins,
 ];
 
+/**
+ * Cleanup in reverse order of registration (close handles and child processes before deleting
+ * their files). node:test runs t.after hooks first-registered-first, and Windows refuses to
+ * delete open files; a failing delete would also skip every later hook.
+ */
+const cleanupStacks = new WeakMap();
+function deferCleanup(t, fn) {
+  let stack = cleanupStacks.get(t);
+  if (!stack) {
+    stack = [];
+    cleanupStacks.set(t, stack);
+    t.after(async () => {
+      while (stack.length) await stack.pop()();
+    });
+  }
+  stack.push(fn);
+}
+
 async function bundleWorkerSource() {
   const result = await esbuild.build({
     entryPoints: [path.join(__dirname, "..", "src", "local-vector", "embedding-worker.ts")],
@@ -48,7 +66,7 @@ async function loadModule(source) {
 
 async function createHost(t) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "analogy-vector-process-"));
-  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  deferCleanup(t, () => fs.rmSync(root, { recursive: true, force: true }));
   const runtimeRoot = path.join(root, "runtime");
   const moduleRoot = path.join(root, "modules");
   fs.mkdirSync(runtimeRoot, { recursive: true, mode: 0o700 });
@@ -65,7 +83,7 @@ async function createHost(t) {
     workerBundleSource: await bundleWorkerSource(),
     timeoutMs: 20_000,
   });
-  t.after(() => host.dispose());
+  deferCleanup(t, () => host.dispose());
   return { host, root };
 }
 
