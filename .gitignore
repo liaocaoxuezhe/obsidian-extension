@@ -201,3 +201,8 @@ docs/commercialization.md
 docs/privacy-policy-template.md
 *-data*.json
 mcp-server/*-data*.json
+
+# Local build output and release candidates; published copies live on GitHub Releases.
+/main.js
+/styles.css
+/release/
