@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import crypto from "node:crypto";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -60,28 +60,73 @@ function configuredTestTimeoutMs() {
   return value;
 }
 
+// Kill the test process and every descendant: `node --test` runs each file in a
+// child process, so killing only the parent orphans a hung test forever.
+function killProcessTree(pid) {
+  if (process.platform === "win32") {
+    spawnSync("taskkill", ["/pid", String(pid), "/T", "/F"], { stdio: "ignore", windowsHide: true });
+    return;
+  }
+  try {
+    process.kill(-pid, "SIGKILL");
+  } catch (error) {
+    // ESRCH: the group is already gone. EPERM: macOS reports it for a group of zombies.
+    if (error.code !== "ESRCH" && error.code !== "EPERM") throw error;
+  }
+}
+
 export function runSingleNodeTest(testPath, options = {}) {
   const arguments_ = ["--test", "--test-concurrency=1", testPath];
   if (options.reporter) arguments_.splice(2, 0, `--test-reporter=${options.reporter}`);
   const childEnvironment = {...(options.env || process.env)};
   delete childEnvironment.NODE_TEST_CONTEXT;
-  const result = spawnSync(process.execPath, arguments_, {
-    cwd: options.cwd || repositoryRoot,
-    env: childEnvironment,
-    stdio: options.stdio || "inherit",
-    windowsHide: true,
-    timeout: options.timeoutMs ?? configuredTestTimeoutMs(),
-    killSignal: "SIGKILL",
+  const timeoutMs = options.timeoutMs ?? configuredTestTimeoutMs();
+  return new Promise((resolve) => {
+    // On POSIX the test gets its own process group so the whole tree can be killed at once.
+    const child = spawn(process.execPath, arguments_, {
+      cwd: options.cwd || repositoryRoot,
+      env: childEnvironment,
+      stdio: options.stdio || "inherit",
+      windowsHide: true,
+      detached: process.platform !== "win32",
+    });
+    let timedOut = false;
+    let settled = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      killProcessTree(child.pid);
+    }, timeoutMs);
+    // A detached group no longer receives the terminal's Ctrl-C, so take the tree down with the runner.
+    const onRunnerExit = () => killProcessTree(child.pid);
+    const onRunnerSignal = (signal) => {
+      cleanup();
+      killProcessTree(child.pid);
+      process.kill(process.pid, signal);
+    };
+    function cleanup() {
+      clearTimeout(timer);
+      process.removeListener("exit", onRunnerExit);
+      process.removeListener("SIGINT", onRunnerSignal);
+      process.removeListener("SIGTERM", onRunnerSignal);
+    }
+    function finish(result) {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve({...result, timedOut});
+    }
+    process.once("exit", onRunnerExit);
+    process.once("SIGINT", onRunnerSignal);
+    process.once("SIGTERM", onRunnerSignal);
+    child.once("error", (error) => {
+      if (child.pid) killProcessTree(child.pid);
+      finish({status: null, signal: null, error});
+    });
+    child.once("exit", (status, signal) => finish({status, signal, error: undefined}));
   });
-  return {
-    status: result.status,
-    signal: result.signal,
-    error: result.error,
-    timedOut: result.error?.code === "ETIMEDOUT",
-  };
 }
 
-export function runTestSet(setName) {
+export async function runTestSet(setName) {
   const runnerManifest = readJson("test/test-runner-manifest.json");
   const inventory = readJson("docs/migration/test-execution-inventory.json");
   const set = runnerManifest.sets[setName];
@@ -162,7 +207,7 @@ export function runTestSet(setName) {
     testEntry.status = "started";
     testEntry.startedAt = new Date().toISOString();
     writeManifest(output, manifest);
-    const result = runSingleNodeTest(testEntry.path, {
+    const result = await runSingleNodeTest(testEntry.path, {
       cwd: repositoryRoot,
       env: process.env,
       reporter: process.env.ANALOGY_TEST_REPORTER,
