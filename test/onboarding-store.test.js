@@ -234,6 +234,86 @@ test("atomic rename failure preserves the previous JSON and removes private temp
   assert.deepEqual((await fs.promises.readdir(first.paths.vaultRoot)).sort(), ["onboarding-state.json"]);
 });
 
+test("a save waits out a reader holding the state file open", async (t) => {
+  const { paths, store } = await fixture(t);
+  await store.save(snapshot("awaiting-consent"));
+  // On Windows this open handle makes the atomic rename over the state file fail with EPERM.
+  const reader = await fs.promises.open(paths.onboardingState, "r");
+  const released = new Promise((resolve) => setTimeout(resolve, 60)).then(() => reader.close());
+  try {
+    await store.save(snapshot("downloading-chroma"));
+  } finally {
+    await released;
+  }
+  assert.equal((await readState(paths.onboardingState)).stage, "downloading-chroma");
+  assert.deepEqual((await fs.promises.readdir(paths.vaultRoot)).sort(), ["onboarding-state.json"]);
+});
+
+test("Windows retries a transient rename failure a bounded number of times, then surfaces it", async (t) => {
+  const first = await fixture(t);
+  await first.store.save(snapshot("awaiting-consent"));
+  const previous = await fs.promises.readFile(first.paths.onboardingState, "utf8");
+  let attempts = 0;
+  const failing = new (modules().OnboardingStore)({
+    paths: first.paths,
+    platform: "win32",
+    rename: async () => {
+      attempts += 1;
+      throw Object.assign(new Error("simulated sharing violation"), { code: "EPERM" });
+    },
+  });
+  await assert.rejects(failing.save(snapshot("downloading-chroma")), /simulated sharing violation/);
+  assert.equal(attempts, 8);
+  assert.equal(await fs.promises.readFile(first.paths.onboardingState, "utf8"), previous);
+  assert.deepEqual((await fs.promises.readdir(first.paths.vaultRoot)).sort(), ["onboarding-state.json"]);
+});
+
+test("rename failures are not retried outside Windows or for non-transient codes", async (t) => {
+  const { paths } = await fixture(t);
+  const cases = [["win32", "ENOSPC"]];
+  // The POSIX ownership checks that run before the rename need a POSIX host.
+  if (process.platform !== "win32") cases.unshift([process.platform, "EPERM"]);
+  for (const [platform, code] of cases) {
+    let attempts = 0;
+    const store = new (modules().OnboardingStore)({
+      paths,
+      platform,
+      rename: async () => {
+        attempts += 1;
+        throw Object.assign(new Error(`simulated ${code}`), { code });
+      },
+    });
+    await assert.rejects(store.save(snapshot("checking")), new RegExp(`simulated ${code}`));
+    assert.equal(attempts, 1, `${platform} ${code}`);
+  }
+});
+
+test("a reset while a Windows rename waits to retry abandons the superseded write", async (t) => {
+  const { paths } = await fixture(t);
+  let attempts = 0;
+  let firstFailure = () => {};
+  const failed = new Promise((resolve) => { firstFailure = resolve; });
+  const store = new (modules().OnboardingStore)({
+    paths,
+    platform: "win32",
+    rename: async (source, target) => {
+      attempts += 1;
+      if (attempts === 1) {
+        firstFailure();
+        throw Object.assign(new Error("simulated sharing violation"), { code: "EPERM" });
+      }
+      await fs.promises.rename(source, target);
+    },
+  });
+  const cancelled = assert.rejects(store.save(snapshot("checking")), /ONBOARDING_STORE_MUTATION_CANCELLED/);
+  await failed;
+  await store.reset();
+  await cancelled;
+  assert.equal(attempts, 1, "the superseded write must not be retried");
+  assert.equal(fs.existsSync(paths.onboardingState), false);
+  assert.deepEqual(await fs.promises.readdir(paths.vaultRoot), []);
+});
+
 test("a failed immediate stage write remains an immediate write when retried", async (t) => {
   const { paths } = await fixture(t);
   let failRename = true;

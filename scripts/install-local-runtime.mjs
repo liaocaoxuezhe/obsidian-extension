@@ -9,11 +9,17 @@ const root = process.cwd();
 const MIN_PYTHON = [3, 9];
 const CHROMADB_PIP_SPEC = "chromadb>=0.5.23,<0.6";
 
+// npm is npm.cmd on Windows, and Node only spawns .cmd files through a shell.
+function needsShell(command) {
+	return process.platform === "win32" && command === "npm";
+}
+
 function run(command, args, options = {}) {
 	const result = spawnSync(command, args, {
 		cwd: options.cwd || root,
 		stdio: options.capture ? "pipe" : "inherit",
 		encoding: "utf8",
+		shell: needsShell(command),
 	});
 	if (result.error) {
 		throw result.error;
@@ -31,6 +37,7 @@ function commandExists(command) {
 	const result = spawnSync(command, ["--version"], {
 		stdio: "pipe",
 		encoding: "utf8",
+		shell: needsShell(command),
 	});
 	return result.status === 0;
 }
@@ -83,10 +90,13 @@ function main() {
 
 	console.log("\nInstalling ChromaDB for the local vector store...");
 	const chromaVenv = path.join(root, "chroma-venv");
-	if (!fs.existsSync(path.join(chromaVenv, "bin", "python"))) {
+	const venvPython = process.platform === "win32"
+		? path.join(chromaVenv, "Scripts", "python.exe")
+		: path.join(chromaVenv, "bin", "python");
+	if (!fs.existsSync(venvPython)) {
 		run(python.command, ["-m", "venv", chromaVenv]);
 	}
-	run(path.join(chromaVenv, "bin", "python"), ["-m", "pip", "install", CHROMADB_PIP_SPEC]);
+	run(venvPython, ["-m", "pip", "install", CHROMADB_PIP_SPEC]);
 
 	const modelScript = path.join(root, "scripts", "download-jina-model.py");
 	if (fs.existsSync(modelScript)) {

@@ -18,6 +18,10 @@ import {
 
 const MAX_STATE_BYTES = 1024 * 1024;
 const DEFAULT_PROGRESS_THROTTLE_MS = 1000;
+// Windows refuses to replace a file that another handle holds open (antivirus, search indexer,
+// cloud sync), so the atomic rename fails transiently until that handle closes.
+const WINDOWS_RENAME_RETRY_DELAYS_MS = [10, 25, 50, 100, 200, 400, 800];
+const WINDOWS_TRANSIENT_RENAME_CODES = new Set(["EPERM", "EACCES", "EBUSY"]);
 const RUNTIME_VAULT_ID = /^vault-v2-[0-9a-f]{16}$/;
 const SAFE_RUNTIME_ID = /^[A-Za-z0-9._-]{1,160}$/;
 
@@ -586,7 +590,7 @@ export class OnboardingStore {
       await handle.close();
       handle = null;
       if (generation !== this.generation) return;
-      await this.rename(temporary, this.paths.onboardingState);
+      if (!await this.replaceState(temporary, generation)) return;
       await this.fsyncDirectory(this.paths.vaultRoot);
     } catch (error) {
       if (handle) await handle.close().catch(() => undefined);
@@ -594,6 +598,24 @@ export class OnboardingStore {
       throw error;
     } finally {
       await fs.promises.unlink(temporary).catch(() => undefined);
+    }
+  }
+
+  /** Returns false when a reset superseded this write while it waited to retry. */
+  private async replaceState(temporary: string, generation: number): Promise<boolean> {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        await this.rename(temporary, this.paths.onboardingState);
+        return true;
+      } catch (error) {
+        const delay = WINDOWS_RENAME_RETRY_DELAYS_MS[attempt];
+        const code = (error as NodeJS.ErrnoException).code ?? "";
+        if (this.platform !== "win32" || delay === undefined || !WINDOWS_TRANSIENT_RENAME_CODES.has(code)) {
+          throw error;
+        }
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        if (generation !== this.generation) return false;
+      }
     }
   }
 
