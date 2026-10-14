@@ -130,6 +130,74 @@ export class SqliteVectorReader {
     });
   }
 
+  /** True when the plugin's keyword index exists and its one-time backfill has finished. */
+  keywordIndexReady(): boolean {
+    try {
+      if (!this.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'records_fts'").get()) return false;
+      const cursor = Number(this.db.prepare("SELECT value FROM meta WHERE key = 'fts_backfill_cursor'").get()?.value ?? -1);
+      const target = Number(this.db.prepare("SELECT value FROM meta WHERE key = 'fts_backfill_target'").get()?.value ?? 0);
+      return cursor >= target;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Keyword candidates for hybrid search: BM25-ranked FTS5 trigram hits for `match`, then
+   * LIKE hits for short terms ranked by how many terms they contain. Returns chunk ids only.
+   */
+  keywordCandidates(name: string, match: string | null, shortTerms: string[], limit: number): { fts: string[]; like: string[] } {
+    const id = this.collectionId(name);
+    if (!id || !this.keywordIndexReady()) return { fts: [], like: [] };
+    const fts = match
+      ? this.db.prepare(
+        "SELECT r.id AS id FROM records_fts JOIN records r ON r.seq = records_fts.rowid "
+          + "WHERE records_fts MATCH ? AND r.collection_id = ? ORDER BY bm25(records_fts) LIMIT ?",
+      ).all(match, id, limit).map((row) => String(row.id))
+      : [];
+    const counts = new Map<string, number>();
+    for (const term of shortTerms) {
+      const pattern = `%${term.replace(/[\\%_]/g, (character) => `\\${character}`)}%`;
+      for (const row of this.db.prepare(
+        "SELECT id FROM records WHERE collection_id = ? AND document LIKE ? ESCAPE '\\' ORDER BY seq LIMIT ?",
+      ).all(id, pattern, limit)) {
+        counts.set(String(row.id), (counts.get(String(row.id)) ?? 0) + 1);
+      }
+    }
+    return { fts, like: [...counts.entries()].sort((left, right) => right[1] - left[1]).map(([chunkId]) => chunkId) };
+  }
+
+  /** Loads chunks by id with their exact squared distance to `embedding`. */
+  chunksByIds(name: string, ids: string[], embedding: number[]): SqliteSearchResult[] {
+    const id = this.collectionId(name);
+    if (!id || ids.length === 0) return [];
+    const cache = this.loadMatrix(id);
+    const slots = new Map(cache.ids.map((chunkId, slot) => [chunkId, slot]));
+    const rows = this.db.prepare(
+      `SELECT id, document, metadata FROM records WHERE collection_id = ? AND id IN (${ids.map(() => "?").join(", ")})`,
+    ).all(id, ...ids);
+    const byId = new Map(rows.map((row) => [String(row.id), row]));
+    const results: SqliteSearchResult[] = [];
+    for (const chunkId of ids) {
+      const row = byId.get(chunkId);
+      const slot = slots.get(chunkId);
+      if (!row || slot === undefined || embedding.length !== cache.dimension) continue;
+      let distance = 0;
+      for (let index = 0; index < cache.dimension; index += 1) {
+        const delta = cache.data[slot * cache.dimension + index] - embedding[index];
+        distance += delta * delta;
+      }
+      let metadata: Record<string, unknown> = {};
+      try {
+        metadata = typeof row.metadata === "string" ? JSON.parse(row.metadata) : {};
+      } catch {
+        metadata = {};
+      }
+      results.push({ chunkId, content: typeof row.document === "string" ? row.document : "", distance, metadata });
+    }
+    return results;
+  }
+
   private collectionId(name: string): string | null {
     const row = this.db.prepare("SELECT id FROM collections WHERE name = ?").get(name);
     return row ? String(row.id) : null;

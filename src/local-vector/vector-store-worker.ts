@@ -1,7 +1,9 @@
 import { createRequire } from "module";
 import * as fs from "fs";
 import * as path from "path";
+import * as os from "os";
 import { VectorStoreEngine, type SqliteDatabase } from "./vector-store-engine";
+import { ParallelVectorScanner, parallelScanThreads } from "./parallel-scan";
 import {
   vectorStoreError,
   type VectorStoreRequest,
@@ -12,6 +14,20 @@ type DatabaseConstructor = new (filename: string) => SqliteDatabase;
 
 let engine: VectorStoreEngine | null = null;
 let openedPath = "";
+let scanner: ParallelVectorScanner | null = null;
+
+function createScanner(): ParallelVectorScanner | null {
+  // availableParallelism (Node 18.14+) respects CPU affinity; @types/node here predates it.
+  const available = (os as { availableParallelism?: () => number }).availableParallelism;
+  const cpus = typeof available === "function" ? available() : os.cpus().length;
+  const threads = parallelScanThreads(cpus);
+  if (threads < 2) return null;
+  try {
+    return new ParallelVectorScanner(threads);
+  } catch {
+    return null;
+  }
+}
 
 function loadSqlite(): DatabaseConstructor {
   // node:sqlite is resolved at runtime so bundlers never try to inline it.
@@ -31,9 +47,32 @@ function openDatabase(databasePath: string): { schemaVersion: number } {
   }
   fs.mkdirSync(path.dirname(databasePath), { recursive: true, mode: 0o700 });
   const DatabaseSync = loadSqlite();
-  engine = new VectorStoreEngine(new DatabaseSync(databasePath));
+  scanner ??= createScanner();
+  engine = new VectorStoreEngine(new DatabaseSync(databasePath), { scanner });
   openedPath = databasePath;
+  scheduleKeywordBackfill();
   return { schemaVersion: engine.schemaVersion };
+}
+
+let backfillScheduled = false;
+
+/** Backfills the keyword index in small batches between requests, never blocking search for long. */
+function scheduleKeywordBackfill(): void {
+  if (backfillScheduled) return;
+  backfillScheduled = true;
+  setImmediate(function step() {
+    backfillScheduled = false;
+    let more = false;
+    try {
+      more = engine?.keywordBackfillStep(1000) ?? false;
+    } catch {
+      more = false;
+    }
+    if (more) {
+      backfillScheduled = true;
+      setImmediate(step);
+    }
+  });
 }
 
 function requireEngine(): VectorStoreEngine {
@@ -68,7 +107,11 @@ export function handleVectorStoreRequest(request: VectorStoreRequest): unknown {
     case "get":
       return requireEngine().get(params.collection, params);
     case "query":
-      return requireEngine().query(params.collection, params.embedding, params.topK);
+      return requireEngine().queryAsync(params.collection, params.embedding, params.topK);
+    case "hybridQuery":
+      return requireEngine().hybridQueryAsync(params.collection, params.embedding, params.text, params.topK, params.keywordWeight);
+    case "keywordStatus":
+      return requireEngine().keywordStatus();
     case "documentEntries":
       return requireEngine().documentEntries(params.collection);
     case "close":
@@ -85,6 +128,12 @@ function respond(response: VectorStoreResponse): void {
   process.stdout.write(`${JSON.stringify(response)}\n`);
 }
 
+let requestQueue: Promise<void> = Promise.resolve();
+
+/**
+ * Requests run strictly one after another in arrival order (a parallel scan is awaited before
+ * the next request starts), so writes never interleave with a scan of the shared matrix.
+ */
 function processLine(line: string): void {
   const trimmed = line.trim();
   if (!trimmed) return;
@@ -94,9 +143,13 @@ function processLine(line: string): void {
   } catch {
     return;
   }
+  requestQueue = requestQueue.then(() => processRequest(request));
+}
+
+async function processRequest(request: VectorStoreRequest): Promise<void> {
   const id = typeof request?.id === "string" ? request.id : "unknown";
   try {
-    respond({ id, ok: true, result: handleVectorStoreRequest(request) });
+    respond({ id, ok: true, result: await handleVectorStoreRequest(request) });
   } catch (error) {
     const code = typeof (error as { code?: unknown })?.code === "string"
       && /^[A-Z][A-Z0-9_]{2,80}$/.test((error as { code: string }).code)
@@ -109,7 +162,7 @@ function processLine(line: string): void {
 export function runVectorStoreWorker(): void {
   let buffer = "";
   process.stdin.setEncoding("utf-8");
-  // Requests are handled synchronously in arrival order, so writes never interleave.
+  // Requests are queued in arrival order (see processLine), so writes never interleave.
   process.stdin.on("data", (chunk: string) => {
     buffer += chunk;
     const lines = buffer.split("\n");
@@ -118,8 +171,10 @@ export function runVectorStoreWorker(): void {
   });
   process.stdin.on("end", () => {
     if (buffer.trim()) processLine(buffer);
-    try { engine?.close(); } catch { /* The process is exiting. */ }
-    process.exit(0);
+    void requestQueue.finally(() => {
+      try { engine?.close(); } catch { /* The process is exiting. */ }
+      process.exit(0);
+    });
   });
   const shutdown = () => {
     try { engine?.close(); } catch { /* The process is exiting. */ }

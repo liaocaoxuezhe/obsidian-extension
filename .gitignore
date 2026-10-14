@@ -25,6 +25,7 @@ docs/*
 !docs/privacy.md
 !docs/mcp-server.md
 !docs/local-runtime.md
+!docs/install-troubleshooting.md
 !docs/local-build-testing.md
 !docs/archive/
 docs/archive/*
@@ -87,6 +88,10 @@ test/*
 !test/vc-runtime-bundle.test.js
 !test/runtime-platform-versions.test.js
 !test/runtime-upgrade.test.js
+!test/model-tiers.test.js
+!test/hybrid-search.test.js
+!test/parallel-scan.test.js
+!test/mcp-bundled-server.test.js
 !test/embedding-runtime-release-chain.test.js
 !test/embedding-service-safety.test.js
 !test/embedding-worker-environment.test.js

@@ -26,6 +26,12 @@ import type { FileIndexStatus, IndexState, RebuildProgress } from "./local-vecto
 import {normalizeExcludedIndexPaths} from "./local-vector/excluded-paths";
 import {openVaultFolderDialog} from "./local-vector/vault-folder-selection";
 import {EMBEDDING_MODELS, DEFAULT_MODEL_KEY} from "./local-vector/embedding";
+import {clampKeywordWeight, MAX_KEYWORD_WEIGHT} from "./local-vector/keyword-search";
+import {setHybridSearchOptions} from "./local-vector/search-instance";
+import {formatBytes, isLowMemoryDevice, modelTierInfo, requiresSwitchConfirmation, selectableModelKeys} from "./local-vector/model-tiers";
+import {collectEnvironmentFacts} from "./diagnostics/environment-facts";
+import type {McpClientPlan} from "./mcp/mcp-client-config";
+import type {McpLastQuery} from "./mcp/mcp-bundle";
 import {OllamaClient} from "./local-vector/ollama-client";
 import {DEFAULT_SUMMARY_PROMPT, DocumentSummarizer} from "./local-vector/document-summarizer";
 import {DEFAULT_SUMMARY_MODEL_KEY, formatModelBytes, SUMMARY_MODELS} from "./local-vector/summary-models";
@@ -77,6 +83,10 @@ export interface AnalogySettings {
   /** UI language; only affects the React views. */
   uiLanguage: Locale;
   summarizeBeforeEmbedding: boolean;
+  /** Fuse keyword (FTS5) hits with vector hits for text queries. */
+  hybridSearch: boolean;
+  /** Weight of keyword hits relative to vector hits in reciprocal rank fusion (0-3). */
+  hybridKeywordWeight: number;
   summaryModel: string;
   summaryOllamaHost: string;
   summaryAutoPullModel: boolean;
@@ -125,6 +135,8 @@ export const DEFAULT_SETTINGS: AnalogySettings = {
   manageLicenseUrl: DEFAULT_MANAGE_LICENSE_URL,
   uiLanguage: "en",
   summarizeBeforeEmbedding: false,
+  hybridSearch: true,
+  hybridKeywordWeight: 1,
   summaryModel: DEFAULT_SUMMARY_MODEL_KEY,
   summaryOllamaHost: "http://127.0.0.1:11434",
   summaryAutoPullModel: false,
@@ -329,7 +341,38 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
     });
   }, [plugin]);
 
-  const mcpConfig = plugin.getMcpServerConfig();
+  const [mcpJson, setMcpJson] = useState<string | null>(null);
+  const [mcpPlans, setMcpPlans] = useState<McpClientPlan[] | null>(null);
+  const [mcpSetupError, setMcpSetupError] = useState("");
+  const [mcpPendingPlan, setMcpPendingPlan] = useState<McpClientPlan | null>(null);
+  const [mcpLastQuery, setMcpLastQuery] = useState<McpLastQuery | null>(() => plugin.getMcpLastQuery());
+
+  const loadMcpSetup = useCallback(async () => {
+    try {
+      const [config, plans] = await Promise.all([plugin.getMcpServerConfig(), plugin.getMcpClientPlans()]);
+      setMcpJson(config.json);
+      setMcpPlans(plans);
+      setMcpSetupError("");
+    } catch (error) {
+      setMcpSetupError((error as Error).message || String(error));
+    }
+    setMcpLastQuery(plugin.getMcpLastQuery());
+  }, [plugin]);
+
+  useEffect(() => { void loadMcpSetup(); }, [loadMcpSetup]);
+
+  function confirmMcpClientWrite(plan: McpClientPlan) {
+    try {
+      const backup = plugin.writeMcpClientConfig(plan);
+      new Notice(backup
+        ? t("settings.mcp.client.writtenWithBackup", { client: plan.label, backup })
+        : t("settings.mcp.client.written", { client: plan.label }));
+    } catch (error) {
+      new Notice(t("settings.mcp.client.writeFailed", { client: plan.label, message: (error as Error).message }));
+    }
+    setMcpPendingPlan(null);
+    void loadMcpSetup();
+  }
 
   useEffect(() => {
     setLocale(plugin.settings.uiLanguage || "en");
@@ -338,6 +381,18 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
   }, []);
 
   const activeModelConfig = EMBEDDING_MODELS[selectedModel] || EMBEDDING_MODELS[DEFAULT_MODEL_KEY];
+  const totalMemoryGb = useMemo(() => collectEnvironmentFacts().totalMemoryGb, []);
+  const installedModelKey = plugin.settings.embeddingModel || DEFAULT_MODEL_KEY;
+  const modelKeys = selectableModelKeys(totalMemoryGb, installedModelKey);
+  const hiddenHeavyModels = Object.keys(EMBEDDING_MODELS).length - modelKeys.length;
+  const selectedTier = modelTierInfo(selectedModel);
+  const modelFootprint = (key: string) => {
+    const tier = modelTierInfo(key);
+    return t("settings.embedding.footprint", {
+      download: formatBytes(tier.downloadBytes, language === "zh" ? "zh" : "en"),
+      memory: formatBytes(tier.estimatedMemoryBytes, language === "zh" ? "zh" : "en"),
+    });
+  };
   const activeSummaryConfig = SUMMARY_MODELS[selectedSummaryModel] || SUMMARY_MODELS[DEFAULT_SUMMARY_MODEL_KEY];
   const modelDescription = language === "zh"
     ? activeModelConfig.descriptionZh
@@ -887,7 +942,8 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
 
   async function copyMcpJson() {
     try {
-      await navigator.clipboard.writeText(mcpConfig.json);
+      if (!mcpJson) throw new Error(mcpSetupError || "MCP configuration unavailable");
+      await navigator.clipboard.writeText(mcpJson);
       new Notice(t("settings.mcp.copied"));
     } catch (error) {
       console.error("[Analogy] Failed to copy MCP JSON:", error);
@@ -1276,12 +1332,16 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
                 value={selectedModel}
                 onChange={(e) => setSelectedModel(e.target.value)}
               >
-                {Object.entries(EMBEDDING_MODELS).map(([key, config]) => (
-                  <option key={key} value={key}>{config.displayName}</option>
+                {modelKeys.map((key) => (
+                  <option key={key} value={key}>{`${EMBEDDING_MODELS[key].displayName} · ${modelFootprint(key)}`}</option>
                 ))}
               </select>
               {selectedModel !== (plugin.settings.embeddingModel || DEFAULT_MODEL_KEY) && (
                 <Button size="sm" onClick={async () => {
+                  if (requiresSwitchConfirmation(selectedModel) && !window.confirm(t("settings.embedding.switchConfirm", {
+                    model: EMBEDDING_MODELS[selectedModel].displayName,
+                    footprint: modelFootprint(selectedModel),
+                  }))) return;
                   await searchInstance.documentIndexer?.stop();
                   await plugin.documentIndexer?.stop();
                   updateServiceState({ rebuildProgress: null });
@@ -1298,7 +1358,18 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
 
           <div className="text-sm text-[#444444] mt-2 leading-relaxed bg-[#fafafa] border border-[#f0f0f0] rounded-md px-3 py-2">
             {modelDescription}
+            <div className="text-xs text-[#888888] mt-1">{modelFootprint(selectedModel)}</div>
           </div>
+          {selectedTier.heavy && isLowMemoryDevice(totalMemoryGb) && (
+            <div className="text-sm text-[#f59e0b] mt-2">
+              {t("settings.embedding.lowMemoryWarning", { memory: String(totalMemoryGb) })}
+            </div>
+          )}
+          {hiddenHeavyModels > 0 && (
+            <div className="text-xs text-[#888888] mt-2">
+              {t("settings.embedding.lowMemoryHidden", { count: String(hiddenHeavyModels), memory: String(totalMemoryGb) })}
+            </div>
+          )}
 
           <details className="mt-2">
             <summary className="text-xs text-[#888888] cursor-pointer hover:text-[#444444]">
@@ -1341,6 +1412,51 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
               {t("settings.embedding.emptyIndexWarning")}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="analogy-settings-card">
+        <CardHeader>
+          <CardTitle className="text-base">{t("settings.hybrid.title")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <label className="analogy-settings-row flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <span className="text-sm text-[#444444]">{t("settings.hybrid.enable")}</span>
+              <div className="text-xs text-[#888888] mt-0.5">{t("settings.hybrid.hint")}</div>
+            </div>
+            <input
+              type="checkbox"
+              checked={plugin.settings.hybridSearch !== false}
+              onChange={async (e) => {
+                plugin.settings.hybridSearch = e.target.checked;
+                await plugin.saveSettings();
+                setHybridSearchOptions({ enabled: e.target.checked, keywordWeight: clampKeywordWeight(plugin.settings.hybridKeywordWeight) });
+              }}
+            />
+          </label>
+          <label className="analogy-settings-row flex items-center justify-between gap-3 mt-3">
+            <div className="flex-1 min-w-0">
+              <span className="text-sm text-[#444444]">{t("settings.hybrid.weight")}</span>
+              <div className="text-xs text-[#888888] mt-0.5">{t("settings.hybrid.weightHint")}</div>
+            </div>
+            <input
+              type="number"
+              min={0}
+              max={MAX_KEYWORD_WEIGHT}
+              step={0.1}
+              className="text-sm border border-[#e5e5e5] rounded-md px-2 py-1 w-20"
+              disabled={plugin.settings.hybridSearch === false}
+              defaultValue={clampKeywordWeight(plugin.settings.hybridKeywordWeight)}
+              onBlur={async (e) => {
+                const weight = clampKeywordWeight(e.target.value);
+                e.target.value = String(weight);
+                plugin.settings.hybridKeywordWeight = weight;
+                await plugin.saveSettings();
+                setHybridSearchOptions({ enabled: plugin.settings.hybridSearch !== false, keywordWeight: weight });
+              }}
+            />
+          </label>
         </CardContent>
       </Card>
 
@@ -1826,20 +1942,10 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
             {t("settings.mcp.description")}
           </div>
 
-          {mcpServiceState.status === "running" ? (
-            <>
-              <pre className="whitespace-pre-wrap text-xs text-[#666666] mt-3 bg-[#fafafa] border border-[#f0f0f0] rounded-md px-3 py-2 font-mono">
-{mcpConfig.json}
-              </pre>
-              <div className="analogy-settings-actions mt-3">
-                <Button size="sm" onClick={copyMcpJson}>{t("settings.mcp.copy")}</Button>
-                <Button size="sm" variant="secondary" onClick={stopMcpService}>
-                  {t("settings.mcp.stop")}
-                </Button>
-              </div>
-            </>
-          ) : (
-            <div className="analogy-settings-actions mt-3">
+          <div className="analogy-settings-actions mt-3">
+            {mcpServiceState.status === "running" ? (
+              <Button size="sm" variant="secondary" onClick={stopMcpService}>{t("settings.mcp.stop")}</Button>
+            ) : (
               <Button
                 size="sm"
                 onClick={startMcpService}
@@ -1851,13 +1957,65 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
                     ? t("settings.mcp.starting")
                     : t("settings.mcp.start")}
               </Button>
-              {mcpServiceState.status === "error" && (
-                <span className="text-xs text-[#e74c3c] max-w-[340px] break-words" title={mcpServiceState.message}>
-                  {mcpServiceState.message}
-                </span>
-              )}
-            </div>
-          )}
+            )}
+            <Button size="sm" variant="secondary" onClick={copyMcpJson} disabled={!mcpJson}>{t("settings.mcp.copy")}</Button>
+            {mcpServiceState.status === "error" && (
+              <span className="text-xs text-[#e74c3c] max-w-[340px] break-words" title={mcpServiceState.message}>
+                {mcpServiceState.message}
+              </span>
+            )}
+          </div>
+          <div className="text-xs text-[#888888] mt-2">
+            {mcpLastQuery
+              ? t("settings.mcp.lastQuery", {
+                time: new Date(mcpLastQuery.at).toLocaleString(),
+                tool: mcpLastQuery.tool,
+                results: mcpLastQuery.results === undefined ? "-" : String(mcpLastQuery.results),
+              })
+              : t("settings.mcp.noQueryYet")}
+          </div>
+
+          <div className="mt-3">
+            <div className="text-sm text-[#444444]">{t("settings.mcp.clients.title")}</div>
+            <div className="text-xs text-[#888888] mt-0.5">{t("settings.mcp.clients.hint")}</div>
+            {mcpSetupError && (
+              <div className="text-xs text-[#e74c3c] mt-2 break-words">{t("settings.mcp.clients.unavailable", { message: mcpSetupError })}</div>
+            )}
+            {(mcpPlans ?? []).map((plan) => (
+              <div key={plan.client} className="analogy-settings-row flex items-center justify-between gap-3 mt-2">
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm text-[#444444]">{plan.label}</span>
+                  <div className="text-xs text-[#888888] truncate" title={plan.configPath}>
+                    {t(`settings.mcp.client.status.${plan.status}`)} · {plan.configPath}
+                  </div>
+                  {plan.error && <div className="text-xs text-[#e74c3c] break-words">{plan.error}</div>}
+                </div>
+                <Button
+                  size="sm"
+                  variant={plan.status === "configured" ? "secondary" : "default"}
+                  disabled={plan.nextContent === null || !plan.diff}
+                  onClick={() => setMcpPendingPlan(plan)}
+                >
+                  {plan.status === "outdated" ? t("settings.mcp.client.update")
+                    : plan.status === "configured" ? t("settings.mcp.client.configured")
+                      : t("settings.mcp.client.write")}
+                </Button>
+              </div>
+            ))}
+            {mcpPendingPlan && (
+              <div className="mt-3 border border-[#e5e5e5] rounded-md px-3 py-2" role="dialog" aria-label={t("settings.mcp.client.confirmTitle", { client: mcpPendingPlan.label })}>
+                <div className="text-sm text-[#444444]">{t("settings.mcp.client.confirmTitle", { client: mcpPendingPlan.label })}</div>
+                <div className="text-xs text-[#888888] mt-1 break-all">{t("settings.mcp.client.confirmHint", { path: mcpPendingPlan.configPath })}</div>
+                <pre className="whitespace-pre-wrap text-xs text-[#666666] mt-2 bg-[#fafafa] border border-[#f0f0f0] rounded-md px-3 py-2 font-mono max-h-64 overflow-auto">
+{mcpPendingPlan.diff}
+                </pre>
+                <div className="analogy-settings-actions mt-2">
+                  <Button size="sm" onClick={() => confirmMcpClientWrite(mcpPendingPlan)}>{t("settings.mcp.client.confirm")}</Button>
+                  <Button size="sm" variant="secondary" onClick={() => setMcpPendingPlan(null)}>{t("common.cancel")}</Button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {mcpServiceState.status === "stopped" && (
             <div className="text-xs text-[#888888] mt-2 leading-relaxed">

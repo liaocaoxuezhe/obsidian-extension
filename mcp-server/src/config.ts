@@ -7,6 +7,8 @@ export interface McpConfig {
   /** Retained for the Chroma compatibility tests; search reads SQLite. */
   chromaPort: number;
   databasePath: string;
+  /** Per-user Analogy data root (runtime, models, vaults). */
+  localDataRoot: string;
   vaultPath: string;
   vaultId: string;
   runtimeVaultId: string;
@@ -271,6 +273,7 @@ export function loadConfig(
   return {
     chromaPort,
     databasePath: path.join(vectorStoreRoot, "vectors.sqlite"),
+    localDataRoot,
     vaultPath,
     vaultId,
     runtimeVaultId,

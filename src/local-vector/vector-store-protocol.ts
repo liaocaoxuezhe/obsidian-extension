@@ -15,6 +15,18 @@ export interface VectorStoreQueryMatch {
   distance: number;
 }
 
+export interface VectorStoreHybridMatch extends VectorStoreQueryMatch {
+  /** Reciprocal rank fusion score; present when keyword search took part. */
+  fusedScore?: number;
+  matchedBy: Array<"vector" | "keyword">;
+}
+
+export interface VectorStoreFtsStatus {
+  state: "ready" | "backfilling" | "unavailable";
+  indexed: number;
+  total: number;
+}
+
 export interface VectorStoreGetResult {
   ids: string[];
   documents?: (string | null)[];
@@ -56,6 +68,11 @@ export interface VectorStoreOperations {
     params: { collection: string; embedding: number[]; topK: number };
     result: VectorStoreQueryMatch[];
   };
+  hybridQuery: {
+    params: { collection: string; embedding: number[]; text: string; topK: number; keywordWeight?: number };
+    result: VectorStoreHybridMatch[];
+  };
+  keywordStatus: { params: Record<string, never>; result: VectorStoreFtsStatus };
   documentEntries: { params: { collection: string }; result: VectorStoreDocumentEntry[] };
   close: { params: Record<string, never>; result: { closed: true } };
 }

@@ -6,6 +6,8 @@ import { IndexView, VIEW_TYPE_INDEX } from './src/IndexView';
 import {AnalogySettings, DEFAULT_SETTINGS, AnalogySettingTab} from "./src/SettingView";
 import {icon} from "./src/model/Consts";
 import {EMBEDDING_MODELS, DEFAULT_MODEL_KEY} from "./src/local-vector/embedding";
+import {cjkRatio, recommendDefaultModel} from "./src/local-vector/model-tiers";
+import {clampKeywordWeight} from "./src/local-vector/keyword-search";
 import {EmbeddingService} from "./src/local-vector/embedding-service";
 import {SafeModeManager, type SafeModeState} from "./src/local-vector/safe-mode";
 import {LocalVectorStore, type VectorStore} from "./src/local-vector/vector-store";
@@ -26,6 +28,7 @@ import {OllamaClient} from "./src/local-vector/ollama-client";
 import {DEFAULT_SUMMARY_MODEL_KEY, SUMMARY_MODELS} from "./src/local-vector/summary-models";
 import {
 	initLocalVectorServices,
+	setHybridSearchOptions,
 	updateOnboardingState,
 	updateServiceState,
 } from "./src/local-vector/search-instance";
@@ -55,6 +58,8 @@ import {
 	resolveVerifiedChromaRuntime,
 } from "./src/runtime/environment-detector";
 import {EmbeddingRuntimeManager} from "./src/runtime/embedding-runtime-manager";
+import {materializeMcpServer, readMcpLastQuery, type McpLastQuery} from "./src/mcp/mcp-bundle";
+import {applyMcpClientPlan, planAllMcpClients, type McpClientPlan, type McpLaunchSpec} from "./src/mcp/mcp-client-config";
 import {ChromaRuntimeManager} from "./src/runtime/chroma-runtime-manager";
 import {ChromaProcessLeaseStore} from "./src/runtime/chroma-process-lease";
 import {OnboardingStore, type OnboardingLoadResult} from "./src/onboarding/onboarding-store";
@@ -102,6 +107,7 @@ import * as path from "path";
 
 declare const __ANALOGY_BUILD_ID__: string | undefined;
 declare const __ANALOGY_EMBEDDING_WORKER_SOURCE__: string | undefined;
+declare const __ANALOGY_MCP_SERVER_SOURCE__: string | undefined;
 
 interface RuntimeLifecycle {
 	coordinator: OnboardingCoordinator;
@@ -150,6 +156,8 @@ export default class Analogy extends Plugin {
 	private initLocalServicesPromise: Promise<void> | null = null;
 	private localServiceBootstrap: LocalServiceBootstrap | null = null;
 	private runtimeLifecycle: RuntimeLifecycle | null = null;
+	/** The saved settings already named an embedding model (explicit user or earlier-version choice). */
+	private embeddingModelExplicit = true;
 	private runtimeControlSurface: RuntimeControlSurface | null = null;
 	private activeEmbeddingRuntimeId: string | null = null;
 	private runtimePort = 8000;
@@ -175,6 +183,7 @@ export default class Analogy extends Plugin {
 	} | null = null;
 	private vectorStoreImportPromise: Promise<ChromaImportMarker> | null = null;
 	private managedNodePath: string | null = null;
+	private managedModuleRoot: string | null = null;
 
 	getSafeModeState(): SafeModeState {
 		return this.safeModeManager?.getState() ?? {
@@ -393,7 +402,41 @@ export default class Analogy extends Plugin {
 		return this.initLocalServicesPromise;
 	}
 
+	/**
+	 * First install only: pick the default embedding model from a sample of the vault's notes
+	 * (Chinese-first vaults get a multilingual model) and the device memory. Never overrides a
+	 * saved choice or a vault that already has device-local setup state.
+	 */
+	private async applyFirstInstallModelRecommendation(): Promise<void> {
+		if (this.embeddingModelExplicit || !this.runtimePaths) return;
+		this.embeddingModelExplicit = true;
+		if (fs.existsSync(this.runtimePaths.onboardingState)) return;
+		const files = this.app.vault.getMarkdownFiles()
+			.sort((left, right) => right.stat.mtime - left.stat.mtime)
+			.slice(0, 40);
+		const samples: string[] = [];
+		for (const file of files) {
+			try {
+				samples.push((await this.app.vault.cachedRead(file)).slice(0, 20_000));
+			} catch {
+				// An unreadable note only shrinks the sample.
+			}
+		}
+		const ratio = cjkRatio(samples);
+		const totalMemoryGb = collectEnvironmentFacts().totalMemoryGb;
+		const recommended = recommendDefaultModel(ratio, totalMemoryGb);
+		this.settings.embeddingModel = recommended;
+		await this.saveSettings();
+		this.diagnosticRecorder?.info("onboarding.setup", "onboarding.model.recommended", "Default embedding model chosen from vault content", {
+			model: recommended,
+			cjkRatio: ratio === null ? -1 : Math.round(ratio * 100) / 100,
+			sampledNotes: samples.length,
+			totalMemoryGb: totalMemoryGb ?? -1,
+		});
+	}
+
 	private async runLayoutReadyLifecycle(generation: number, controller: AbortController): Promise<void> {
+		if (!this.runtimeLifecycle) await this.applyFirstInstallModelRecommendation().catch(() => undefined);
 		const lifecycle = this.runtimeLifecycle ?? this.createRuntimeLifecycle();
 		this.runtimeLifecycle = lifecycle;
 		const loaded = await lifecycle.loadOnboarding();
@@ -1357,6 +1400,7 @@ export default class Analogy extends Plugin {
 			}
 			this.vectorStoreHost = host;
 			this.managedNodePath = runtime.nodeExecutable;
+			this.managedModuleRoot = runtime.moduleRoot;
 			return host;
 		})();
 		this.vectorStoreHostPromise = operation;
@@ -1843,29 +1887,63 @@ export default class Analogy extends Plugin {
 		};
 	}
 
-	getMcpServerConfig(): { json: string; serverPath: string; serverReady: boolean } {
+	/**
+	 * Launch spec for MCP clients: the managed runtime's Node running the server bundled in
+	 * main.js, materialized to a stable per-user path. Models load offline from the plugin cache.
+	 */
+	async getMcpLaunchSpec(): Promise<McpLaunchSpec> {
+		const paths = this.runtimePaths;
+		if (!paths) throw new Error("The Analogy runtime is not ready yet.");
+		if (!this.managedNodePath || !this.managedModuleRoot) {
+			const runtime = await new EmbeddingRuntimeManager({paths, platform: detectSupportedPlatform()}).resolve();
+			this.managedNodePath = runtime.nodeExecutable;
+			this.managedModuleRoot = runtime.moduleRoot;
+		}
+		const source = typeof __ANALOGY_MCP_SERVER_SOURCE__ === "string" ? __ANALOGY_MCP_SERVER_SOURCE__ : "";
+		const {entry} = materializeMcpServer(paths.root, source);
 		const vaultPath = ((this.app.vault.adapter as any)?.basePath as string | undefined) ?? "";
-		const pluginDir = this.getPluginDir();
-		const serverPath = path.join(pluginDir, "mcp-server", "dist", "index.js");
-		const config = {
-			mcpServers: {
-				"analogy-vault": {
-					// The MCP server reads SQLite through node:sqlite, which needs Node >= 22.13.
-					command: this.managedNodePath ?? "node",
-					args: [serverPath],
-					env: {
-						ANALOGY_VAULT_PATH: vaultPath,
-						ANALOGY_PLUGIN_DIR: pluginDir,
-						ANALOGY_MODEL: this.settings.embeddingModel || DEFAULT_MODEL_KEY,
-					},
-				},
+		return {
+			serverName: "analogy-vault",
+			command: this.managedNodePath,
+			args: [entry],
+			env: {
+				ANALOGY_VAULT_PATH: vaultPath,
+				ANALOGY_PLUGIN_DIR: this.getPluginDir(),
+				ANALOGY_MODEL: this.settings.embeddingModel || DEFAULT_MODEL_KEY,
+				ANALOGY_RUNTIME_MODULE_ROOT: this.managedModuleRoot,
 			},
 		};
+	}
+
+	async getMcpServerConfig(): Promise<{ json: string }> {
+		const spec = await this.getMcpLaunchSpec();
 		return {
-			json: JSON.stringify(config, null, 2),
-			serverPath,
-			serverReady: fs.existsSync(serverPath),
+			json: JSON.stringify({
+				mcpServers: {[spec.serverName]: {command: spec.command, args: spec.args, env: spec.env}},
+			}, null, 2),
 		};
+	}
+
+	/** Per-client status and the exact file change a one-click write would make. */
+	async getMcpClientPlans(): Promise<McpClientPlan[]> {
+		return planAllMcpClients(await this.getMcpLaunchSpec());
+	}
+
+	/** Writes a plan the user confirmed after seeing its diff; returns the backup path. */
+	writeMcpClientConfig(plan: McpClientPlan): string | null {
+		const backup = applyMcpClientPlan(plan);
+		this.diagnosticRecorder?.info("plugin.layout-ready", "mcp.client-config.written", "MCP client configuration written", {
+			client: plan.client,
+			previousStatus: plan.status,
+			backedUp: backup !== null,
+		});
+		return backup;
+	}
+
+	getMcpLastQuery(): McpLastQuery | null {
+		return this.runtimePaths && this.runtimeVaultId
+			? readMcpLastQuery(this.runtimePaths.root, this.runtimeVaultId)
+			: null;
 	}
 
 	getMcpServiceState(): McpServiceState {
@@ -1886,15 +1964,10 @@ export default class Analogy extends Plugin {
 
 	private getOrCreateMcpServerManager(): McpServerManager {
 		if (!this.mcpServerManager) {
-			const pluginDir = this.getPluginDir();
-			const vaultPath = ((this.app.vault.adapter as any)?.basePath as string | undefined) ?? "";
 			this.mcpServerManager = new McpServerManager({
-				serverDir: path.join(pluginDir, "mcp-server"),
-				env: {
-					ANALOGY_VAULT_PATH: vaultPath,
-					ANALOGY_PLUGIN_DIR: pluginDir,
-					ANALOGY_MODEL: this.settings.embeddingModel || DEFAULT_MODEL_KEY,
-					...(this.managedNodePath ? {ANALOGY_NODE_PATH: this.managedNodePath} : {}),
+				prepare: async () => {
+					const spec = await this.getMcpLaunchSpec();
+					return {nodeExecutable: spec.command, entry: spec.args[0], env: spec.env};
 				},
 			});
 		}
@@ -1981,7 +2054,12 @@ export default class Analogy extends Plugin {
 	async loadSettings() {
 		const loaded = (await this.loadData() ?? {}) as Record<string, unknown>;
 		const migrated = extractDeviceLocalSettings(loaded);
+		this.embeddingModelExplicit = typeof migrated.synchronizedSettings.embeddingModel === "string";
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, migrated.synchronizedSettings) as AnalogySettings;
+		setHybridSearchOptions({
+			enabled: this.settings.hybridSearch !== false,
+			keywordWeight: clampKeywordWeight(this.settings.hybridKeywordWeight),
+		});
 		this.settings.excludedIndexPaths = Array.isArray(this.settings.excludedIndexPaths)
 			? this.settings.excludedIndexPaths
 			: [];

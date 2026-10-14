@@ -108,6 +108,24 @@ export class SqliteVectorStore implements VectorStore {
     }));
   }
 
+  async hybridSearch(queryEmbedding: number[], queryText: string, topK: number, keywordWeight: number): Promise<SearchResult[]> {
+    const matches = await this.host.request("hybridQuery", {
+      collection: this.requireCollection(),
+      embedding: queryEmbedding,
+      text: queryText,
+      topK,
+      keywordWeight,
+    });
+    return matches.map((match) => ({
+      chunkId: match.id,
+      content: match.document || "",
+      distance: match.distance,
+      score: match.distance,
+      metadata: match.metadata || {},
+      matchedBy: match.matchedBy,
+    }));
+  }
+
   async count(): Promise<number> {
     return await this.host.request("count", { collection: this.requireCollection() });
   }

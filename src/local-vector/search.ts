@@ -23,6 +23,12 @@ export interface ChunkSearchResult {
 export interface LocalSearchResult extends ChunkSearchResult {
   source: "local";
   score: number;
+  matchedBy?: Array<"vector" | "keyword">;
+}
+
+export interface HybridSearchOptions {
+  enabled: boolean;
+  keywordWeight: number;
 }
 
 export interface LocalDocumentSearchResponse {
@@ -52,6 +58,7 @@ export class LocalSemanticSearch {
   private maxInputChars: number;
   private documentIndexer: DocumentIndexer | null = null;
   private summarizer?: DocumentSummarizer;
+  private hybrid: HybridSearchOptions = { enabled: true, keywordWeight: 1 };
 
   constructor(
     embedding: EmbeddingService,
@@ -73,9 +80,18 @@ export class LocalSemanticSearch {
     this.summarizer = summarizer;
   }
 
+  setHybridOptions(options: HybridSearchOptions): void {
+    this.hybrid = { ...options };
+  }
+
+  /** Text queries use hybrid (vector + keyword) retrieval when enabled; note-to-note search stays vector-only. */
   async searchByQuery(query: string, topK: number = 5, options: LocalSearchOptions = {}): Promise<LocalSearchResult[]> {
     const queryEmbedding = await this.embedding.embedQuery(query);
-    return this.searchWithBackfill(queryEmbedding, topK, options.excludePaths, options.excludeChunkIds);
+    const store = this.vectorStore;
+    const hybridSearch = this.hybrid.enabled && typeof store.hybridSearch === "function"
+      ? (embedding: number[], count: number) => store.hybridSearch!(embedding, query, count, this.hybrid.keywordWeight)
+      : undefined;
+    return this.searchWithBackfill(queryEmbedding, topK, options.excludePaths, options.excludeChunkIds, hybridSearch);
   }
 
   async searchByEmbedding(
@@ -125,7 +141,9 @@ export class LocalSemanticSearch {
     embedding: number[],
     topK: number,
     excludePaths: string[] = [],
-    excludeChunkIds: string[] = []
+    excludeChunkIds: string[] = [],
+    retrieve: (embedding: number[], count: number) => Promise<SearchResult[]> =
+      (vector, count) => this.vectorStore.search(vector, count),
   ): Promise<LocalSearchResult[]> {
     const targetCount = Math.max(1, topK);
     const batchSize = Math.max(targetCount, 10);
@@ -136,7 +154,7 @@ export class LocalSemanticSearch {
     let lastRawCount = -1;
 
     while (requestedCount <= SEARCH_RESULT_EXPANSION_LIMIT) {
-      const rawResults = await this.vectorStore.search(embedding, requestedCount);
+      const rawResults = await retrieve(embedding, requestedCount);
       const filteredResults = this.filterAndFormat(rawResults, targetCount, excludePaths, excludeChunkIds);
       if (filteredResults.length >= targetCount) {
         return filteredResults;
@@ -154,7 +172,7 @@ export class LocalSemanticSearch {
       requestedCount = nextRequestedCount;
     }
 
-    const rawResults = await this.vectorStore.search(embedding, SEARCH_RESULT_EXPANSION_LIMIT);
+    const rawResults = await retrieve(embedding, SEARCH_RESULT_EXPANSION_LIMIT);
     return this.filterAndFormat(rawResults, targetCount, excludePaths, excludeChunkIds);
   }
 
@@ -184,6 +202,7 @@ export class LocalSemanticSearch {
       distance: r.distance ?? r.score,
       source: "local",
       score: r.score,
+      ...(r.matchedBy ? { matchedBy: r.matchedBy } : {}),
     }));
   }
 }

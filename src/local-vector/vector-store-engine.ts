@@ -11,7 +11,41 @@ import {
   type VectorStoreGetResult,
   type VectorStoreQueryMatch,
   type VectorStoreRecord,
+  type VectorStoreFtsStatus,
+  type VectorStoreHybridMatch,
 } from "./vector-store-protocol";
+import { buildKeywordQuery, clampKeywordWeight, likePattern, reciprocalRankFusion } from "./keyword-search";
+import type { ParallelVectorScanner } from "./parallel-scan";
+
+/** Below this many rows a single-threaded scan is already a few milliseconds. */
+export const DEFAULT_PARALLEL_SCAN_THRESHOLD = 20_000;
+
+export interface VectorStoreEngineOptions {
+  /** Shards exact scans across worker threads for large collections. */
+  scanner?: ParallelVectorScanner | null;
+  parallelThreshold?: number;
+}
+
+interface PreparedQuery {
+  collection: CollectionRow;
+  cache: MatrixCache;
+  query: Float32Array;
+  queryNorm: number;
+  limit: number;
+}
+
+/** Matrix storage is shared memory when available so scan threads can read it without copies. */
+function allocateFloat32(length: number): Float32Array {
+  return typeof SharedArrayBuffer === "function"
+    ? new Float32Array(new SharedArrayBuffer(length * 4))
+    : new Float32Array(length);
+}
+
+function allocateFloat64(length: number): Float64Array {
+  return typeof SharedArrayBuffer === "function"
+    ? new Float64Array(new SharedArrayBuffer(length * 8))
+    : new Float64Array(length);
+}
 
 /** Structural subset of node:sqlite's DatabaseSync used by the engine. */
 export interface SqliteStatement {
@@ -115,6 +149,13 @@ function normalizeMtime(value: unknown): number {
   return 0;
 }
 
+function hybridCandidateCount(topK: number): number {
+  if (!Number.isSafeInteger(topK) || topK < 1 || topK > MAX_VECTOR_STORE_TOP_K) {
+    throw vectorStoreError("VECTOR_STORE_TOP_K_INVALID");
+  }
+  return Math.min(MAX_VECTOR_STORE_TOP_K, Math.max(topK * 3, 50));
+}
+
 function whereValue(value: unknown): VectorMetadataValue {
   if (value && typeof value === "object" && !Array.isArray(value)
     && Object.keys(value).length === 1 && "$eq" in (value as Record<string, unknown>)) {
@@ -188,8 +229,14 @@ class NearestSelector {
  */
 export class VectorStoreEngine {
   private readonly caches = new Map<string, MatrixCache>();
+  /** False when this SQLite build lacks FTS5 trigram / contentless-delete; hybrid search then degrades to vectors. */
+  private readonly ftsAvailable: boolean;
+  private readonly scanner: ParallelVectorScanner | null;
+  private readonly parallelThreshold: number;
 
-  constructor(private readonly db: SqliteDatabase) {
+  constructor(private readonly db: SqliteDatabase, options: VectorStoreEngineOptions = {}) {
+    this.scanner = options.scanner ?? null;
+    this.parallelThreshold = options.parallelThreshold ?? DEFAULT_PARALLEL_SCAN_THRESHOLD;
     db.exec("PRAGMA journal_mode = WAL");
     db.exec("PRAGMA synchronous = NORMAL");
     db.exec("PRAGMA busy_timeout = 5000");
@@ -223,6 +270,179 @@ export class VectorStoreEngine {
     } else if (Number(version.value) !== VECTOR_STORE_SCHEMA_VERSION) {
       throw vectorStoreError("VECTOR_STORE_SCHEMA_UNSUPPORTED");
     }
+    this.ftsAvailable = this.ensureKeywordIndex();
+  }
+
+  /**
+   * Creates the keyword index: a contentless (no duplicated text) FTS5 trigram table kept in
+   * sync by triggers, so every writer — including an older plugin version after a rollback —
+   * maintains it. Rows that existed before the index are backfilled in batches by
+   * `keywordBackfillStep`; the schema version stays 1 so older versions still open the file.
+   */
+  private ensureKeywordIndex(): boolean {
+    try {
+      if (this.db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'records_fts'").get()) return true;
+      this.transaction(() => {
+        this.db.exec(`
+          CREATE VIRTUAL TABLE records_fts USING fts5(
+            document, content='', contentless_delete=1, tokenize='trigram'
+          );
+          CREATE TRIGGER records_fts_insert AFTER INSERT ON records BEGIN
+            INSERT INTO records_fts (rowid, document) VALUES (new.seq, coalesce(new.document, ''));
+          END;
+          CREATE TRIGGER records_fts_update AFTER UPDATE OF document ON records BEGIN
+            DELETE FROM records_fts WHERE rowid = old.seq;
+            INSERT INTO records_fts (rowid, document) VALUES (new.seq, coalesce(new.document, ''));
+          END;
+          CREATE TRIGGER records_fts_delete AFTER DELETE ON records BEGIN
+            DELETE FROM records_fts WHERE rowid = old.seq;
+          END;
+        `);
+        const target = Number(this.db.prepare("SELECT coalesce(max(seq), 0) AS target FROM records").get()?.target ?? 0);
+        this.setMeta("fts_backfill_cursor", "0");
+        this.setMeta("fts_backfill_target", String(target));
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private getMeta(key: string): string | null {
+    const row = this.db.prepare("SELECT value FROM meta WHERE key = ?").get(key);
+    return row ? String(row.value) : null;
+  }
+
+  private setMeta(key: string, value: string): void {
+    this.db.prepare("INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value")
+      .run(key, value);
+  }
+
+  keywordStatus(): VectorStoreFtsStatus {
+    if (!this.ftsAvailable) return { state: "unavailable", indexed: 0, total: 0 };
+    const cursor = Number(this.getMeta("fts_backfill_cursor") ?? 0);
+    const target = Number(this.getMeta("fts_backfill_target") ?? 0);
+    return { state: cursor >= target ? "ready" : "backfilling", indexed: Math.min(cursor, target), total: target };
+  }
+
+  /** Indexes up to `limit` pre-existing rows; returns true while more remain. Idempotent per row. */
+  keywordBackfillStep(limit = 1000): boolean {
+    if (!this.ftsAvailable) return false;
+    const cursor = Number(this.getMeta("fts_backfill_cursor") ?? 0);
+    const target = Number(this.getMeta("fts_backfill_target") ?? 0);
+    if (cursor >= target) return false;
+    const rows = this.db.prepare("SELECT seq, document FROM records WHERE seq > ? AND seq <= ? ORDER BY seq LIMIT ?")
+      .all(cursor, target, limit);
+    const remove = this.db.prepare("DELETE FROM records_fts WHERE rowid = ?");
+    const insert = this.db.prepare("INSERT INTO records_fts (rowid, document) VALUES (?, ?)");
+    const next = rows.length ? Number(rows[rows.length - 1].seq) : target;
+    this.transaction(() => {
+      for (const row of rows) {
+        remove.run(row.seq);
+        insert.run(row.seq, typeof row.document === "string" ? row.document : "");
+      }
+      this.setMeta("fts_backfill_cursor", String(rows.length < limit ? target : next));
+    });
+    return rows.length >= limit && next < target;
+  }
+
+  /**
+   * Hybrid retrieval: vector top-K fused with keyword hits (FTS5 BM25 for 3+ character terms,
+   * LIKE for two-character CJK names) by reciprocal rank fusion. While the keyword index is
+   * unavailable or still backfilling, this returns the plain vector ranking.
+   */
+  hybridQuery(
+    name: string,
+    embedding: readonly number[],
+    text: string,
+    topK: number,
+    keywordWeight: number = 1,
+  ): VectorStoreHybridMatch[] {
+    const vector = this.query(name, embedding, hybridCandidateCount(topK));
+    return this.fuseHybrid(name, embedding, text, topK, keywordWeight, vector);
+  }
+
+  async hybridQueryAsync(
+    name: string,
+    embedding: readonly number[],
+    text: string,
+    topK: number,
+    keywordWeight: number = 1,
+  ): Promise<VectorStoreHybridMatch[]> {
+    const vector = await this.queryAsync(name, embedding, hybridCandidateCount(topK));
+    return this.fuseHybrid(name, embedding, text, topK, keywordWeight, vector);
+  }
+
+  private fuseHybrid(
+    name: string,
+    embedding: readonly number[],
+    text: string,
+    topK: number,
+    keywordWeight: number,
+    vector: VectorStoreQueryMatch[],
+  ): VectorStoreHybridMatch[] {
+    const collection = this.requireCollection(name);
+    const candidateCount = hybridCandidateCount(topK);
+    const weight = clampKeywordWeight(keywordWeight);
+    const keyword = buildKeywordQuery(text);
+    if (this.keywordStatus().state !== "ready" || weight === 0 || (!keyword.match && keyword.shortTerms.length === 0)) {
+      return vector.slice(0, topK).map((match) => ({ ...match, matchedBy: ["vector"] }));
+    }
+    const ftsIds = keyword.match
+      ? this.db.prepare(`
+          SELECT r.id AS id FROM records_fts JOIN records r ON r.seq = records_fts.rowid
+          WHERE records_fts MATCH ? AND r.collection_id = ?
+          ORDER BY bm25(records_fts) LIMIT ?
+        `).all(keyword.match, collection.id, candidateCount).map((row) => String(row.id))
+      : [];
+    const likeCounts = new Map<string, number>();
+    for (const term of keyword.shortTerms) {
+      const rows = this.db.prepare(
+        "SELECT id FROM records WHERE collection_id = ? AND document LIKE ? ESCAPE '\\' ORDER BY seq LIMIT ?",
+      ).all(collection.id, likePattern(term), candidateCount);
+      for (const row of rows) likeCounts.set(String(row.id), (likeCounts.get(String(row.id)) ?? 0) + 1);
+    }
+    const likeIds = [...likeCounts.entries()].sort((left, right) => right[1] - left[1]).map(([id]) => id);
+    const fused = reciprocalRankFusion([
+      { ids: vector.map((match) => match.id), weight: 1 },
+      { ids: ftsIds, weight },
+      { ids: likeIds, weight },
+    ]).slice(0, topK);
+    const vectorById = new Map(vector.map((match) => [match.id, match]));
+    const keywordHits = new Set([...ftsIds, ...likeIds]);
+    const missing = fused.map(({ id }) => id).filter((id) => !vectorById.has(id));
+    const missingRows = missing.length
+      ? this.db.prepare(
+        `SELECT id, document, metadata FROM records WHERE collection_id = ? AND id IN (${missing.map(() => "?").join(", ")})`,
+      ).all(collection.id, ...missing)
+      : [];
+    const rowsById = new Map(missingRows.map((row) => [String(row.id), row]));
+    const cache = this.loadCache(collection);
+    const query = Float32Array.from(embedding);
+    const results: VectorStoreHybridMatch[] = [];
+    for (const { id, score } of fused) {
+      const fromVector = vectorById.get(id);
+      const matchedBy: Array<"vector" | "keyword"> = [];
+      if (fromVector) matchedBy.push("vector");
+      if (keywordHits.has(id)) matchedBy.push("keyword");
+      if (fromVector) {
+        results.push({ ...fromVector, fusedScore: score, matchedBy });
+        continue;
+      }
+      const row = rowsById.get(id);
+      const slot = cache.slots.get(id);
+      if (!row || slot === undefined) continue;
+      results.push({
+        id,
+        document: typeof row.document === "string" ? row.document : null,
+        metadata: parseMetadata(row.metadata),
+        // Keep distance meaningful for keyword-only hits: exact squared L2, like vector hits.
+        distance: squaredDistanceAt(cache.data, slot * cache.dimension, query, cache.dimension),
+        fusedScore: score,
+        matchedBy,
+      });
+    }
+    return results;
   }
 
   get schemaVersion(): number {
@@ -421,6 +641,22 @@ export class VectorStoreEngine {
   }
 
   query(name: string, embedding: readonly number[], topK: number): VectorStoreQueryMatch[] {
+    const prepared = this.prepareQuery(name, embedding, topK);
+    return prepared ? this.finishQuery(prepared, this.nearestInline(prepared)) : [];
+  }
+
+  /** Same results as `query`; large collections are scanned on worker threads. */
+  async queryAsync(name: string, embedding: readonly number[], topK: number): Promise<VectorStoreQueryMatch[]> {
+    const prepared = this.prepareQuery(name, embedding, topK);
+    if (!prepared) return [];
+    const { cache } = prepared;
+    const candidates = this.scanner && cache.size >= this.parallelThreshold
+      ? await this.scanner.scan(cache.data, cache.norms, cache.size, cache.dimension, prepared.query, prepared.queryNorm, prepared.limit)
+      : this.nearestInline(prepared);
+    return this.finishQuery(prepared, candidates);
+  }
+
+  private prepareQuery(name: string, embedding: readonly number[], topK: number): PreparedQuery | null {
     const collection = this.requireCollection(name);
     if (!Number.isSafeInteger(topK) || topK < 1 || topK > MAX_VECTOR_STORE_TOP_K) {
       throw vectorStoreError("VECTOR_STORE_TOP_K_INVALID");
@@ -430,20 +666,35 @@ export class VectorStoreEngine {
       throw vectorStoreError("VECTOR_STORE_QUERY_INVALID");
     }
     const cache = this.loadCache(collection);
-    if (cache.size === 0) return [];
+    if (cache.size === 0) return null;
     if (embedding.length !== cache.dimension) throw vectorStoreError("CHROMA_VECTOR_DIMENSION_MISMATCH");
     const query = Float32Array.from(embedding);
-    const dimension = cache.dimension;
-    const data = cache.data;
-    const norms = cache.norms;
-    const queryNorm = dotAt(query, 0, query, dimension);
-    const selector = new NearestSelector(Math.min(topK, cache.size));
+    return {
+      collection,
+      cache,
+      query,
+      queryNorm: dotAt(query, 0, query, cache.dimension),
+      limit: Math.min(topK, cache.size),
+    };
+  }
+
+  private nearestInline({ cache, query, queryNorm, limit }: PreparedQuery): Array<{ slot: number; distance: number }> {
+    const { dimension, data, norms } = cache;
+    const selector = new NearestSelector(limit);
     // ||a - b||^2 = ||a||^2 + ||b||^2 - 2a.b ranks rows with a single dot product each.
     for (let slot = 0; slot < cache.size; slot += 1) {
       selector.offer(slot, norms[slot] + queryNorm - 2 * dotAt(data, slot * dimension, query, dimension));
     }
+    return selector.sorted();
+  }
+
+  private finishQuery(
+    { collection, cache, query }: PreparedQuery,
+    candidates: ReadonlyArray<{ slot: number }>,
+  ): VectorStoreQueryMatch[] {
+    const { dimension, data } = cache;
     // Report exact squared-L2 distances (Chroma's default space) for the winners.
-    const nearest = selector.sorted()
+    const nearest = candidates
       .map(({ slot }) => ({ slot, distance: squaredDistanceAt(data, slot * dimension, query, dimension) }))
       .sort((left, right) => left.distance - right.distance || left.slot - right.slot);
     const ids = nearest.map(({ slot }) => cache.ids[slot]);
@@ -535,8 +786,8 @@ export class VectorStoreEngine {
       dimension,
       ids: [],
       slots: new Map(),
-      data: new Float32Array(Math.max(1, rows.length) * Math.max(1, dimension)),
-      norms: new Float64Array(Math.max(1, rows.length)),
+      data: allocateFloat32(Math.max(1, rows.length) * Math.max(1, dimension)),
+      norms: allocateFloat64(Math.max(1, rows.length)),
       size: 0,
     };
     for (const row of rows) {
@@ -565,12 +816,12 @@ export class VectorStoreEngine {
     }
     const required = (cache.size + 1) * cache.dimension;
     if (required > cache.data.length) {
-      const grown = new Float32Array(Math.max(required, cache.data.length * 2));
+      const grown = allocateFloat32(Math.max(required, cache.data.length * 2));
       grown.set(cache.data.subarray(0, cache.size * cache.dimension));
       cache.data = grown;
     }
     if (cache.size + 1 > cache.norms.length) {
-      const grownNorms = new Float64Array(Math.max(cache.size + 1, cache.norms.length * 2));
+      const grownNorms = allocateFloat64(Math.max(cache.size + 1, cache.norms.length * 2));
       grownNorms.set(cache.norms.subarray(0, cache.size));
       cache.norms = grownNorms;
     }

@@ -1,6 +1,6 @@
 import { EmbeddingService } from "./embedding-service";
 import type { VectorStore } from "./vector-store";
-import { LocalSemanticSearch } from "./search";
+import { LocalSemanticSearch, type HybridSearchOptions } from "./search";
 import { DocumentIndexer } from "./document-indexer";
 import type { ChromaProcessManager } from "./chroma-process";
 import type { DocumentSummarizer } from "./document-summarizer";
@@ -102,6 +102,15 @@ export function updateOnboardingState(updates: Partial<OnboardingState>): void {
   }
 }
 
+let hybridSearchOptions: HybridSearchOptions = { enabled: true, keywordWeight: 1 };
+
+/** Applies the hybrid-search settings to the current and every future local search. */
+export function setHybridSearchOptions(options: HybridSearchOptions): void {
+  hybridSearchOptions = { ...options };
+  searchResultCache.clear();
+  searchInstance.localSearch?.setHybridOptions(hybridSearchOptions);
+}
+
 export function initLocalVectorServices(
   embedding: EmbeddingService | null,
   store: VectorStore | null,
@@ -121,6 +130,7 @@ export function initLocalVectorServices(
   if (embedding && store && embedding.isReady() && store) {
     const search = new LocalSemanticSearch(embedding, store, maxInputChars, summarizer ?? undefined);
     if (indexer) search.setDocumentIndexer(indexer);
+    search.setHybridOptions(hybridSearchOptions);
     searchInstance.localSearch = search;
   } else {
     searchInstance.localSearch = null;
