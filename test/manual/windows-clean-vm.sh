@@ -37,9 +37,24 @@ log() { printf '[windows-clean-vm] %s\n' "$*" >&2; }
 fail() { log "ERROR: $*"; exit 1; }
 
 # The Alibaba Cloud API must bypass the local proxy (it breaks request signing and Cloud Assistant polling).
+# Connections to the Hong Kong endpoints drop now and then (EOF / reset); those are retried. Every create
+# call carries a ClientToken, so a retried create returns the same resource instead of a duplicate.
 ali() {
-  env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
-    aliyun "$@"
+  local attempt status output errors
+  errors=$(mktemp)
+  for attempt in 1 2 3 4 5; do
+    status=0
+    output=$(env -u HTTP_PROXY -u HTTPS_PROXY -u ALL_PROXY -u http_proxy -u https_proxy -u all_proxy \
+      aliyun "$@" 2>"$errors") || status=$?
+    if (( status == 0 )) || ! grep -qiE "EOF|timeout|connection reset|TLS handshake|no such host|broken pipe" <<<"$output$(cat "$errors")"; then
+      break
+    fi
+    sleep $(( attempt * 5 ))
+  done
+  cat "$errors" >&2
+  rm -f "$errors"
+  printf '%s\n' "$output"
+  return "$status"
 }
 
 retry() {
@@ -68,18 +83,20 @@ cleanup() {
   [[ -n "$VSWITCH_ID" ]] && retry 30 10 ali vpc DeleteVSwitch --RegionId "$REGION" --VSwitchId "$VSWITCH_ID" >/dev/null
   [[ -n "$VPC_ID" ]] && retry 30 10 ali vpc DeleteVpc --RegionId "$REGION" --VpcId "$VPC_ID" >/dev/null
   if [[ -n "$BUCKET" ]]; then
-    ali oss rm "oss://$BUCKET" -r -f -e "$OSS_ENDPOINT" >/dev/null
+    # -a also aborts unfinished multipart uploads, which otherwise block bucket deletion.
+    ali oss rm "oss://$BUCKET" -a -r -f -e "$OSS_ENDPOINT" >/dev/null
     ali oss rm "oss://$BUCKET" -b -f -e "$OSS_ENDPOINT" >/dev/null
   fi
   # Re-check that nothing tagged with this run survives.
   local leftovers
   leftovers=$(ali ecs DescribeInstances --RegionId "$REGION" --Tag.1.Key analogy-w4 --Tag.1.Value "$RUN_ID" | jq '.TotalCount')
-  local vpcs=0
+  local vpcs=0 buckets=0
   [[ -n "$VPC_ID" ]] && vpcs=$(ali vpc DescribeVpcs --RegionId "$REGION" --VpcId "$VPC_ID" | jq '.TotalCount')
-  if [[ "$leftovers" == "0" && "$vpcs" == "0" ]]; then
-    log "cleanup verified: 0 instances and 0 VPCs left for $RUN_ID"
+  [[ -n "$BUCKET" ]] && buckets=$(ali oss ls -e "$OSS_ENDPOINT" 2>/dev/null | grep -c "oss://$BUCKET" || true)
+  if [[ "$leftovers" == "0" && "$vpcs" == "0" && "$buckets" == "0" ]]; then
+    log "cleanup verified: 0 instances, 0 VPCs and 0 buckets left for $RUN_ID"
   else
-    log "WARNING: leftovers for $RUN_ID (instances=$leftovers vpcs=$vpcs); the instance auto-releases after ${AUTO_RELEASE_HOURS}h"
+    log "WARNING: leftovers for $RUN_ID (instances=$leftovers vpcs=$vpcs buckets=$buckets); the instance auto-releases after ${AUTO_RELEASE_HOURS}h"
     status=1
   fi
   exit "$status"
@@ -96,7 +113,6 @@ node "$REPO_ROOT/test/manual/build-windows-harness.mjs" --output "$WORK_DIR/harn
   --runtime-staging "$RUNTIME_STAGING" --from-ref "$FROM_REF" >/dev/null
 FROM_ARCHIVE_NAME=$(jq -r '.from.fileName' "$WORK_DIR/harness/assets.json")
 FROM_URL=$(jq -r '.from.url' "$WORK_DIR/harness/assets.json")
-FROM_ARCHIVE="$WORK_DIR/$FROM_ARCHIVE_NAME"
 log "run $RUN_ID: $REGION $INSTANCE_TYPE, candidate $TO_ARCHIVE, upgrade from $FROM_ARCHIVE_NAME"
 
 if (( DRY_RUN )); then
@@ -109,9 +125,6 @@ BALANCE=$(ali bssopenapi QueryAccountBalance | jq -r '.Data.AvailableAmount' | t
 node -e "process.exit(Number(process.argv[1]) >= 100 ? 0 : 1)" "$BALANCE" \
   || fail "account balance ${BALANCE} is below CNY 100; pay-as-you-go instances cannot be created"
 
-[[ -f "$FROM_ARCHIVE" ]] || curl -fL --retry 3 -o "$FROM_ARCHIVE" "$FROM_URL"
-FROM_SHA=$(jq -r '.from.sha256' "$WORK_DIR/harness/assets.json")
-[[ "$(shasum -a 256 "$FROM_ARCHIVE" | cut -d' ' -f1)" == "$FROM_SHA" ]] || fail "superseded runtime hash mismatch"
 
 trap cleanup EXIT
 
@@ -120,24 +133,27 @@ ZONE="${ALIYUN_ZONE:-$(ali ecs DescribeAvailableResource --RegionId "$REGION" --
   --InstanceType "$INSTANCE_TYPE" --InstanceChargeType PostPaid \
   | jq -r '[.AvailableZones.AvailableZone[] | select(.Status == "Available")][0].ZoneId')}"
 [[ -n "$ZONE" && "$ZONE" != "null" ]] || fail "no zone in $REGION offers $INSTANCE_TYPE"
-VPC_ID=$(ali vpc CreateVpc --RegionId "$REGION" --CidrBlock 172.16.0.0/16 --VpcName "analogy-$RUN_ID" | jq -r '.VpcId')
+VPC_ID=$(ali vpc CreateVpc --RegionId "$REGION" --CidrBlock 172.16.0.0/16 --VpcName "analogy-$RUN_ID" --ClientToken "$RUN_ID-vpc" | jq -r '.VpcId')
 retry 30 5 bash -c "[[ \$(env -u HTTPS_PROXY -u https_proxy -u HTTP_PROXY -u http_proxy -u ALL_PROXY -u all_proxy aliyun vpc DescribeVpcAttribute --RegionId $REGION --VpcId $VPC_ID | jq -r .Status) == Available ]]"
 VSWITCH_ID=$(ali vpc CreateVSwitch --RegionId "$REGION" --ZoneId "$ZONE" --VpcId "$VPC_ID" \
-  --CidrBlock 172.16.1.0/24 --VSwitchName "analogy-$RUN_ID" | jq -r '.VSwitchId')
+  --CidrBlock 172.16.1.0/24 --VSwitchName "analogy-$RUN_ID" --ClientToken "$RUN_ID-vsw" | jq -r '.VSwitchId')
 retry 30 5 bash -c "[[ \$(env -u HTTPS_PROXY -u https_proxy -u HTTP_PROXY -u http_proxy -u ALL_PROXY -u all_proxy aliyun vpc DescribeVSwitchAttributes --RegionId $REGION --VSwitchId $VSWITCH_ID | jq -r .Status) == Available ]]"
 # Cloud Assistant only needs outbound access; no inbound rule is opened.
 SG_ID=$(ali ecs CreateSecurityGroup --RegionId "$REGION" --VpcId "$VPC_ID" --SecurityGroupName "analogy-$RUN_ID" \
-  --Tag.1.Key analogy-w4 --Tag.1.Value "$RUN_ID" | jq -r '.SecurityGroupId')
+  --Tag.1.Key analogy-w4 --Tag.1.Value "$RUN_ID" --ClientToken "$RUN_ID-sg" | jq -r '.SecurityGroupId')
 
 # ---------- private file transfer ----------
 BUCKET="analogy-$(echo "$RUN_ID" | tr '[:upper:]' '[:lower:]')"
 ali oss mb "oss://$BUCKET" --acl private -e "$OSS_ENDPOINT" >/dev/null
-for file in "$WORK_DIR/harness/harness.cjs" "$WORK_DIR/harness/assets.json" "$RUNTIME_STAGING/$TO_ARCHIVE" "$FROM_ARCHIVE"; do
-  ali oss cp "$file" "oss://$BUCKET/$(basename "$file")" -e "$OSS_ENDPOINT" >/dev/null
+# Only unpublished files go through OSS; the published v1 runtime is downloaded on the VM from GitHub
+# and verified there by the plugin's own installer (pinned size and SHA-256).
+for file in "$WORK_DIR/harness/harness.cjs" "$WORK_DIR/harness/assets.json" "$RUNTIME_STAGING/$TO_ARCHIVE"; do
+  retry 3 10 ali oss cp "$file" "oss://$BUCKET/$(basename "$file")" -e "$OSS_ENDPOINT" -f >/dev/null \
+    || fail "upload of $(basename "$file") to OSS failed"
 done
 sign() { ali oss sign "oss://$BUCKET/$1" --timeout 10800 -e "$OSS_ENDPOINT" | head -n 1; }
 URL_HARNESS=$(sign harness.cjs); URL_ASSETS=$(sign assets.json)
-URL_TO=$(sign "$TO_ARCHIVE"); URL_FROM=$(sign "$FROM_ARCHIVE_NAME")
+URL_TO=$(sign "$TO_ARCHIVE"); URL_FROM="$FROM_URL"
 
 # ---------- instance ----------
 IMAGE_ID="${ALIYUN_IMAGE_ID:-$(ali ecs DescribeImages --RegionId "$REGION" --ImageOwnerAlias system --OSType windows \
@@ -149,7 +165,7 @@ INSTANCE_ID=$(ali ecs RunInstances --RegionId "$REGION" --ZoneId "$ZONE" --Image
   --InstanceType "$INSTANCE_TYPE" --SecurityGroupId "$SG_ID" --VSwitchId "$VSWITCH_ID" \
   --InstanceChargeType PostPaid --InternetChargeType PayByTraffic --InternetMaxBandwidthOut 100 \
   --SystemDisk.Category cloud_essd --SystemDisk.Size 60 --AutoReleaseTime "$AUTO_RELEASE" \
-  --InstanceName "analogy-$RUN_ID" --Tag.1.Key analogy-w4 --Tag.1.Value "$RUN_ID" --Amount 1 \
+  --InstanceName "analogy-$RUN_ID" --Tag.1.Key analogy-w4 --Tag.1.Value "$RUN_ID" --Amount 1 --ClientToken "$RUN_ID-ecs" \
   | jq -r '.InstanceIdSets.InstanceIdSet[0]')
 [[ -n "$INSTANCE_ID" && "$INSTANCE_ID" != "null" ]] || fail "instance creation failed"
 log "instance $INSTANCE_ID ($ZONE, image $IMAGE_ID) auto-releases at $AUTO_RELEASE"
@@ -195,7 +211,7 @@ Run "S3" @("upgrade", (Join-Path \$root "upgrade"), (Join-Path \$dl "assets.json
 PWSH
 ENCODED=$(printf '%s' "$SCRIPT" | base64 | tr -d '\n')
 INVOKE_ID=$(ali ecs RunCommand --RegionId "$REGION" --Type RunPowerShellScript --CommandContent "$ENCODED" \
-  --ContentEncoding Base64 --Timeout 5400 --Name "analogy-$RUN_ID" --InstanceId.1 "$INSTANCE_ID" | jq -r '.InvokeId')
+  --ContentEncoding Base64 --Timeout 5400 --Name "analogy-$RUN_ID" --InstanceId.1 "$INSTANCE_ID" --ClientToken "$RUN_ID-cmd" | jq -r '.InvokeId')
 log "Cloud Assistant invocation $INVOKE_ID started; polling"
 STATUS=""
 for _ in $(seq 1 360); do
