@@ -18,7 +18,12 @@ const runtimePackageRoot = path.join(extensionRoot, "runtime-package");
 const runtimeOutputRoot = path.join(extensionRoot, "dist", "runtime");
 const supportedHost = ["darwin-arm64", "darwin-x64", "win32-x64"].includes(`${process.platform}-${process.arch}`);
 const hostPlatformKey = `${process.platform}-${process.arch}`;
-const hostArchiveName = `analogy-embedding-runtime-node22-v1-${hostPlatformKey}${process.platform === "win32" ? ".zip" : ".tar.gz"}`;
+// Runtime versions are per platform; darwin-x64 builds under the darwin-arm64 version.
+const platformVersionTable = JSON.parse(fs.readFileSync(path.join(runtimePackageRoot, "platform-versions.json"), "utf8"));
+const versionFor = (platform) => (platformVersionTable.platforms[platform] ?? platformVersionTable.platforms["darwin-arm64"]).version;
+const hostRuntimeVersion = versionFor(hostPlatformKey);
+const hostPackRootName = `analogy-embedding-runtime-${hostRuntimeVersion}`;
+const hostArchiveName = `${hostPackRootName}-${hostPlatformKey}${process.platform === "win32" ? ".zip" : ".tar.gz"}`;
 const hostArchivePath = path.join(runtimeOutputRoot, hostArchiveName);
 const loadedTypeScriptModules = new Map();
 let extractedPackRoot = "";
@@ -251,7 +256,7 @@ async function extractBuiltPack() {
     archive: process.platform === "win32" ? "zip" : "tar.gz",
     stagingRoot: extractionRoot,
   });
-  extractedPackRoot = path.join(extractionRoot, "analogy-embedding-runtime-node22-v1");
+  extractedPackRoot = path.join(extractionRoot, hostPackRootName);
   return extractedPackRoot;
 }
 
@@ -577,7 +582,7 @@ test("runtime builder creates the fixed native platform archive", { skip: !suppo
   const archiveList = spawnSync("tar", ["-tf", hostArchivePath], { encoding: "utf8", maxBuffer: 32 * 1024 * 1024 });
   assert.equal(archiveList.status, 0, archiveList.stderr);
   const entries = archiveList.stdout.split(/\r?\n/).filter(Boolean).map((entry) => entry.replace(/\/$/, ""));
-  const root = "analogy-embedding-runtime-node22-v1";
+  const root = hostPackRootName;
   const nativeRoot = `${root}/node_modules/onnxruntime-node/bin/napi-v6/${process.platform}/${process.arch}`;
   assert.ok(entries.includes(`${root}/manifest.json`));
   assert.ok(entries.includes(`${root}/THIRD_PARTY_NOTICES.txt`));
@@ -659,7 +664,7 @@ test("native pack is installer-compatible, fully hashed, production-only, and co
 
   assert.equal(manifest.schemaVersion, 1);
   assert.equal(manifest.platform, hostPlatformKey);
-  assert.equal(manifest.version, "node22-v1");
+  assert.equal(manifest.version, hostRuntimeVersion);
   assert.deepEqual(manifest.runtimeVersions, {
     node: "22.23.2",
     transformers: "4.2.0",
@@ -932,16 +937,16 @@ test("runtime manifest generation fails closed until every supported native pack
     script,
     "--input", fixtureRoot,
     "--output", generatedPath,
-    "--base-url", "https://github.com/liaocaoxuezhe/obsidian-extension/releases/download/runtime-node22-v1",
+    "--release-root", "https://github.com/liaocaoxuezhe/obsidian-extension/releases/download",
   ], {
     cwd: extensionRoot,
     encoding: "utf8",
   });
 
   assert.notEqual(result.status, 0);
-  assert.match(
+  assert.ok(
+    `${result.stdout}${result.stderr}`.includes(`Missing runtime packs: analogy-embedding-runtime-${versionFor("darwin-arm64")}-darwin-arm64.tar.gz, analogy-embedding-runtime-${versionFor("win32-x64")}-win32-x64.zip`),
     `${result.stdout}${result.stderr}`,
-    /Missing runtime packs: analogy-embedding-runtime-node22-v1-darwin-arm64\.tar\.gz, analogy-embedding-runtime-node22-v1-win32-x64\.zip/,
   );
   assert.equal(fs.existsSync(generatedPath), false, "a partial matrix must never replace the development fixture");
 });
@@ -1037,13 +1042,13 @@ test("Node runtime archive writer is byte-stable and parser rejects traversal fo
 test("runtime manifest generation rejects text files dressed up as a complete native matrix", () => {
   const fixtureRoot = path.join(runtimeOutputRoot, ".cache", "manifest-complete-matrix");
   const generatedPath = path.join(fixtureRoot, "generated-embedding-runtime-manifest.ts");
-  const baseUrl = "https://github.com/liaocaoxuezhe/obsidian-extension/releases/download/runtime-node22-v1";
+  const releaseRoot = "https://github.com/liaocaoxuezhe/obsidian-extension/releases/download";
   fs.rmSync(fixtureRoot, { recursive: true, force: true });
   fs.mkdirSync(fixtureRoot, { recursive: true });
   const fixtures = [
     { platform: "darwin-arm64", filename: "analogy-embedding-runtime-node22-v1-darwin-arm64.tar.gz", archive: "tar.gz", size: 18, sha256: "8e07e71a2fec20c5eaf51ca86a4050512330b11de58bc06a81c9a7dd049dc83f", noticeSize: 21, noticeSha256: "3548052a22d6741fa71851b65401a8213063f93f2155a958e36b91be89311808", internalExecutable: "node/bin/node" },
     { platform: "darwin-x64", filename: "analogy-embedding-runtime-node22-v1-darwin-x64.tar.gz", archive: "tar.gz", size: 16, sha256: "e53edf079313220605575af451778651edec3041ba848eb31152e72e871ee6cf", noticeSize: 19, noticeSha256: "982a3f36e6aea1e67e3be99af512bcf5083ef2422d1fcc31534989789f98185a", internalExecutable: "node/bin/node" },
-    { platform: "win32-x64", filename: "analogy-embedding-runtime-node22-v1-win32-x64.zip", archive: "zip", size: 15, sha256: "25fece180d3e3f4536c125bde273be594aed48a0300300f62897fe8c6287b7aa", noticeSize: 18, noticeSha256: "c6721838128ebf7ec1b8bf4bbcd9798d9cabb59124bb9458770f3dd4571f1aa3", internalExecutable: "node/bin/node.exe" },
+    { platform: "win32-x64", filename: `analogy-embedding-runtime-${versionFor("win32-x64")}-win32-x64.zip`, archive: "zip", size: 15, sha256: "25fece180d3e3f4536c125bde273be594aed48a0300300f62897fe8c6287b7aa", noticeSize: 18, noticeSha256: "c6721838128ebf7ec1b8bf4bbcd9798d9cabb59124bb9458770f3dd4571f1aa3", internalExecutable: "node/bin/node.exe" },
   ];
   const ortOverlayFiles = [
     "libonnxruntime.1.26.0.dylib",
@@ -1061,10 +1066,10 @@ test("runtime manifest generation rejects text files dressed up as a complete na
     fs.writeFileSync(path.join(fixtureRoot, noticesFile), `notices:${fixture.platform}\n`, "utf8");
     fs.writeFileSync(path.join(fixtureRoot, `${fixture.filename}.manifest.json`), `${JSON.stringify({
       schemaVersion: 1,
-      id: `embedding-runtime-node22-v1-${fixture.platform}`,
+      id: `embedding-runtime-${versionFor(fixture.platform)}-${fixture.platform}`,
       kind: "embedding-runtime",
       platform: fixture.platform,
-      version: "node22-v1",
+      version: versionFor(fixture.platform),
       runtimeVersions: { node: "22.23.2", transformers: "4.2.0", onnxruntime: "1.26.0" },
       executableRelativePath: fixture.internalExecutable,
       moduleRootRelativePath: "node_modules",
@@ -1099,7 +1104,7 @@ test("runtime manifest generation rejects text files dressed up as a complete na
     script,
     "--input", fixtureRoot,
     "--output", generatedPath,
-    "--base-url", baseUrl,
+    "--release-root", releaseRoot,
   ], { cwd: extensionRoot, encoding: "utf8" });
   assert.notEqual(result.status, 0);
   assert.match(`${result.stdout}${result.stderr}`, /Invalid runtime archive/);

@@ -82,6 +82,19 @@ export type QuickIndexScope =
 
 export type LegacyIndexChoice = "reuse" | "rebuild" | "later";
 
+/**
+ * A pending replacement of an installed, still-trusted runtime by a newer
+ * per-platform version (for example the Windows runtime moving to node22-v2).
+ */
+export interface OnboardingRuntimeUpgrade {
+  kind: "embedding-runtime";
+  fromRuntimeId: string;
+  toRuntimeId: string;
+  downloadBytes: number;
+  /** Set once the user agrees to download the upgrade; null while consent is pending. */
+  acceptedAt: number | null;
+}
+
 export interface OnboardingSnapshot {
   schemaVersion: 1;
   stage: OnboardingStage;
@@ -102,14 +115,22 @@ export interface OnboardingSnapshot {
   completedAt: number | null;
   dismissedAt: number | null;
   error: OnboardingError | null;
+  /** Present only while an installed runtime is being upgraded to a newer version. */
+  runtimeUpgrade?: OnboardingRuntimeUpgrade | null;
 }
 
-export type RecommendedAction = "setup" | "repair" | "resume" | "start-services" | "none";
+export type RecommendedAction = "setup" | "repair" | "upgrade" | "resume" | "start-services" | "none";
 
 export interface EnvironmentReport {
   platform: SupportedPlatformKey;
   chroma: "missing" | "installed" | "running" | "incompatible" | "corrupt" | "not-required";
-  embeddingRuntime: "missing" | "installed" | "ready" | "corrupt";
+  embeddingRuntime: "missing" | "installed" | "ready" | "upgradable" | "corrupt";
+  /** Set when embeddingRuntime is "upgradable": a trusted older version is installed. */
+  embeddingRuntimeUpgrade?: {
+    fromRuntimeId: string;
+    toRuntimeId: string;
+    downloadBytes: number;
+  } | null;
   embeddingModel: "missing" | "cached" | "ready" | "corrupt";
   index: "empty" | "partial" | "ready" | "legacy";
   recommendedAction: RecommendedAction;

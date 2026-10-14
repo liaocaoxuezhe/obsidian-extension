@@ -140,7 +140,7 @@ jq -r '.runtimeId, .assetSha256' "$HOME/Library/Application Support/Analogy/runt
 然后确认这两个值均已嵌入真实插件 bundle：
 
 ```bash
-rg -n "embedding-runtime-node22-v1-darwin-arm64" /path/to/vault/.obsidian/plugins/analogy/main.js
+rg -n "<本机指针中的 runtimeId，例如 embedding-runtime-node22-v1-darwin-arm64>" /path/to/vault/.obsidian/plugins/analogy/main.js
 rg -n "<本机指针中的 SHA-256>" /path/to/vault/.obsidian/plugins/analogy/main.js
 ```
 

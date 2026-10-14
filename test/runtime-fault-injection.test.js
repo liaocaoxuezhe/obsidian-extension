@@ -2,6 +2,7 @@
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const { execFileSync } = require("node:child_process");
 const path = require("node:path");
 const test = require("node:test");
 const ts = require("typescript");
@@ -97,13 +98,24 @@ test("release workflow gates publication on every supported native runner and pu
     process.cwd(), ".github/workflows/obsidian-runtime-matrix.yml",
   ), "utf8");
   for (const required of [
-    "macos-14", "windows-2025", "node-version: 22.23.2", "run-native-runtime-smoke.mjs",
-    "cosign attest-blob", "id-token: write", "needs: [native-runtime]",
+    "node-version: 22.23.2", "run-native-runtime-smoke.mjs",
+    "cosign attest-blob", "id-token: write", "needs: [plan, native-runtime]",
     "gh release download", "prepare-release.mjs --runtime-only --runtime-staging redownload",
-    "npm run test:runtime", "platform: darwin", "arch: arm64", "platform: win32", "arch: x64",
+    "npm run test:runtime", "fromJSON(needs.plan.outputs.matrix)",
+    "runtime-platform-versions.mjs plan --platforms", "--tag \"$RUNTIME_TAG\"",
   ]) assert.ok(workflow.includes(required), required);
   assert.doesNotMatch(workflow, /darwin-x64|ANALOGY_ORT_NATIVE_OVERLAY|ort-overlay/,
     "deferred Intel artifacts must not enter the supported release matrix");
+  assert.doesNotMatch(workflow, /--clobber/, "published runtime assets are immutable");
+  assert.doesNotMatch(workflow, /node22-v\d/, "runtime versions come only from runtime-package/platform-versions.json");
+  // The native matrix comes from the reviewed table: every supported platform on its own runner.
+  const matrix = JSON.parse(execFileSync(process.execPath, [
+    path.join(extensionRoot, "scripts", "runtime-platform-versions.mjs"), "matrix", "--platforms", "darwin-arm64,win32-x64",
+  ], { encoding: "utf8" }));
+  assert.deepEqual(matrix.include, [
+    { os: "macos-14", platform: "darwin", arch: "arm64", key: "darwin-arm64" },
+    { os: "windows-2025", platform: "win32", arch: "x64", key: "win32-x64" },
+  ]);
   assert.doesNotMatch(workflow, /continue-on-error:\s*true/);
 
   const pkg = JSON.parse(fs.readFileSync(path.join(extensionRoot, "package.json"), "utf8"));

@@ -24,6 +24,9 @@
         "test/fixtures/public-boundary/workspace/test/commercial-leak.test.js",
         "test/helpers/create-semantic-walk-vault.js",
         "test/legacy-vector-migration.test.js",
+        "test/manual/build-windows-harness.mjs",
+        "test/manual/windows-clean-vm.sh",
+        "test/manual/windows-runtime-harness.ts",
         "test/license-api.test.js",
         "test/license-limits.test.js",
         "test/local-development-plugin-build.test.js",
@@ -83,7 +86,9 @@
         "test/sqlite-backend-lifecycle.test.js",
         "test/embedding-failure-classification.test.js",
         "test/download-resilience.test.js",
-        "test/vc-runtime-bundle.test.js"
+        "test/vc-runtime-bundle.test.js",
+        "test/runtime-platform-versions.test.js",
+        "test/runtime-upgrade.test.js"
       ]
     },
     "runtime": {

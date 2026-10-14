@@ -12,8 +12,9 @@ const extensionRoot = repositoryRoot;
 const scriptsRoot = path.join(extensionRoot, "scripts");
 const runtimePackageRoot = path.join(extensionRoot, "runtime-package");
 const fixtureRoot = path.join(repositoryRoot, "test", ".runtime", "signed-release-chain");
-const packRootName = "analogy-embedding-runtime-node22-v1";
-const baseUrl = "https://github.com/liaocaoxuezhe/obsidian-extension/releases/download/runtime-node22-v1";
+const releaseRoot = "https://github.com/liaocaoxuezhe/obsidian-extension/releases/download";
+const VC_RUNTIME_DLLS = ["msvcp140.dll", "msvcp140_1.dll", "msvcp140_atomic_wait.dll", "vcruntime140.dll", "vcruntime140_1.dll"];
+const DIRECT_ML_DLLS = ["DirectML.dll", "dxcompiler.dll", "dxil.dll"];
 
 test("runtime manifest directory durability follows platform support", () => {
   const source = fs.readFileSync(path.join(scriptsRoot, "generate-runtime-manifest.mjs"), "utf8");
@@ -160,9 +161,9 @@ function signedBundle(predicate, expected, privateKey, trustPolicy) {
   })}\n`, "utf8");
 }
 
-async function buildCanonicalGroup(stagingRoot, expected, validator, archiveModule, overlayModule) {
-  const workParent = path.join(fixtureRoot, "packs", expected.platform);
-  const packRoot = path.join(workParent, packRootName);
+async function buildCanonicalGroup(stagingRoot, expected, validator, archiveModule, overlayModule, variant = {}) {
+  const workParent = path.join(fixtureRoot, "packs", variant.name ?? expected.platform);
+  const packRoot = path.join(workParent, expected.packRootName);
   fs.mkdirSync(packRoot, { recursive: true });
   const notices = Buffer.from([
     "===== onnxruntime@1.26.0 =====",
@@ -195,6 +196,10 @@ async function buildCanonicalGroup(stagingRoot, expected, validator, archiveModu
     writeFile(packRoot, "node/bin/node.exe", pe32Plus(false));
     writeFile(packRoot, `${nativeRoot}/onnxruntime_binding.node`, pe32Plus(true));
     writeFile(packRoot, `${nativeRoot}/onnxruntime.dll`, pe32Plus(true));
+    // The reviewed Windows profile decides which app-local DLLs ship next to the binding.
+    const vcDlls = expected.windows.visualCppRuntime === "bundled" ? (variant.vcDlls ?? VC_RUNTIME_DLLS) : [];
+    const directMlDlls = expected.windows.directMl === "kept" || variant.keepDirectMl ? DIRECT_ML_DLLS : [];
+    for (const name of [...vcDlls, ...directMlDlls]) writeFile(packRoot, `${nativeRoot}/${name}`, pe32Plus(true));
   }
 
   const nodeCatalog = JSON.parse(fs.readFileSync(path.join(runtimePackageRoot, "node-assets.json"), "utf8"));
@@ -213,10 +218,10 @@ async function buildCanonicalGroup(stagingRoot, expected, validator, archiveModu
     : null;
   const manifest = {
     schemaVersion: 1,
-    id: `embedding-runtime-node22-v1-${expected.platform}`,
+    id: expected.id,
     kind: "embedding-runtime",
     platform: expected.platform,
-    version: "node22-v1",
+    version: expected.version,
     runtimeVersions: validator.RUNTIME_VERSIONS,
     executableRelativePath: expected.internalExecutableRelativePath,
     moduleRootRelativePath: "node_modules",
@@ -243,6 +248,7 @@ async function buildCanonicalGroup(stagingRoot, expected, validator, archiveModu
           files: overlayFiles,
         },
       } : {}),
+      ...(expected.windows?.directMl === "stripped" ? { strippedNativeFiles: DIRECT_ML_DLLS } : {}),
     },
     files,
   };
@@ -304,12 +310,19 @@ test("signed canonical supported-platform chain finalizes, generates, and passes
   }
 
   const generatedPath = path.join(fixtureRoot, "generated-embedding-runtime-manifest.ts");
-  await generator.generateRuntimeManifest({ inputRoot: stagingRoot, outputPath: generatedPath, baseUrl, trustPolicy });
+  await generator.generateRuntimeManifest({ inputRoot: stagingRoot, outputPath: generatedPath, releaseRoot, trustPolicy });
   const releaseManifest = release.verifyRuntimeRelease(stagingRoot, { generatedManifestPath: generatedPath, trustPolicy });
   assert.deepEqual(
     releaseManifest.assets.map((entry) => entry.platform),
     validator.EXPECTED_PACKS.map((entry) => entry.platform),
   );
+  // Each platform is served from the release tagged with its own reviewed version.
+  for (const expected of validator.EXPECTED_PACKS) {
+    const entry = releaseManifest.assets.find((candidate) => candidate.platform === expected.platform);
+    assert.equal(entry.version, expected.version);
+    assert.equal(entry.url, `${releaseRoot}/runtime-${expected.version}/${expected.fileName}`);
+    assert.equal(releaseManifest.platformVersions[expected.platform], expected.version);
+  }
 
   const manifestBinding = await import(pathToFileURL(path.join(scriptsRoot, "runtime-manifest-binding.mjs")).href);
   const publicManifestSha256 = manifestBinding.computePublicRuntimeManifestSha256(releaseManifest);
@@ -356,7 +369,7 @@ test("signed canonical supported-platform chain finalizes, generates, and passes
   );
 
   const canonicalGeneratedSource = fs.readFileSync(generatedPath, "utf8");
-  fs.writeFileSync(generatedPath, `${canonicalGeneratedSource.replace(baseUrl, "https://attacker.invalid/runtime")}\n${releaseManifest.assets.map((entry) => entry.sha256).join("\n")}\n`, "utf8");
+  fs.writeFileSync(generatedPath, `${canonicalGeneratedSource.replace(releaseRoot, "https://attacker.invalid/runtime")}\n${releaseManifest.assets.map((entry) => entry.sha256).join("\n")}\n`, "utf8");
   writeBuiltFixture(`const EMBEDDING_RUNTIME_BUILD_BINDING = "${bindingMarker}";\n`);
   assert.throws(
     () => release.verifyRuntimeRelease(stagingRoot, { generatedManifestPath: generatedPath, mainJsPath, buildInfoPath, trustPolicy }),
@@ -370,5 +383,39 @@ test("signed canonical supported-platform chain finalizes, generates, and passes
   assert.throws(
     () => release.verifyRuntimeRelease(stagingRoot, { generatedManifestPath: generatedPath, trustPolicy }),
     /exact canonical renderer output/,
+  );
+});
+
+test("Windows runtime packs must match the reviewed VC++ and DirectML payload profile", async (t) => {
+  fs.rmSync(fixtureRoot, { recursive: true, force: true });
+  t.after(() => fs.rmSync(fixtureRoot, { recursive: true, force: true }));
+  const validator = await import(pathToFileURL(path.join(scriptsRoot, "runtime-package-validator.mjs")).href);
+  const archiveModule = await import(pathToFileURL(path.join(scriptsRoot, "runtime-archive.mjs")).href);
+  const overlayModule = await import(pathToFileURL(path.join(scriptsRoot, "runtime-native-overlay.mjs")).href);
+  const stripped = validator.createExpectedPack("win32-x64", "node22-v2", { visualCppRuntime: "bundled", directMl: "stripped" });
+  const legacy = validator.createExpectedPack("win32-x64", "node22-v1", { visualCppRuntime: "absent", directMl: "kept" });
+  const cases = [
+    { name: "keeps-directml", expected: stripped, variant: { keepDirectMl: true }, error: /must not ship DirectML files/ },
+    { name: "missing-vc", expected: stripped, variant: { vcDlls: VC_RUNTIME_DLLS.slice(0, 3) }, error: /must bundle every VC\+\+ runtime DLL/ },
+  ];
+  for (const { name, expected, variant, error } of cases) {
+    const stagingRoot = path.join(fixtureRoot, name);
+    fs.mkdirSync(stagingRoot, { recursive: true });
+    await buildCanonicalGroup(stagingRoot, expected, validator, archiveModule, overlayModule, { ...variant, name });
+    assert.throws(() => validator.validateRuntimeArtifactGroup(stagingRoot, expected, { requireCompletion: false }), error, name);
+  }
+  // The published v1 profile (no VC++, DirectML kept) passes the payload checks and only then
+  // stops at the missing native smoke attestation.
+  const legacyRoot = path.join(fixtureRoot, "legacy-v1");
+  fs.mkdirSync(legacyRoot, { recursive: true });
+  await buildCanonicalGroup(legacyRoot, legacy, validator, archiveModule, overlayModule, { name: "legacy-v1" });
+  assert.throws(
+    () => validator.validateRuntimeArtifactGroup(legacyRoot, legacy, { requireCompletion: false }),
+    /Missing runtime native smoke attestation/,
+  );
+  // The v1 pack is not acceptable where the table now expects the v2 profile.
+  assert.throws(
+    () => validator.validateRuntimeArtifactGroup(legacyRoot, stripped, { requireCompletion: false }),
+    /Missing runtime pack|fixed root/,
   );
 });

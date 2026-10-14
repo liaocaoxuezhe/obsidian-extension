@@ -105,13 +105,31 @@ test("checked-in embedding inputs are published and point at the public reposito
   });
 });
 
-test("versioned history registry starts honestly empty and resolver combines active with retained bindings", () => {
+test("versioned history registry retains the superseded Windows v1 runtime exactly and resolver combines active with retained bindings", () => {
   const {
+    createRetainedRuntimeAssetResolver,
     createRuntimeHistoryAssetResolver,
     RUNTIME_HISTORY_BINDING_REGISTRY,
     RUNTIME_MANIFEST,
   } = loadTypeScriptModule("src/runtime/runtime-manifest.ts");
-  assert.deepEqual(RUNTIME_HISTORY_BINDING_REGISTRY, { schemaVersion: 1, retained: [] });
+  const windowsV1 = {
+    id: "embedding-runtime-node22-v1-win32-x64",
+    kind: "embedding-runtime",
+    platform: "win32-x64",
+    sha256: "43f45a5274dd017abafa77ad5ade36d7be87070c1be05e78c6b765073bfa4aa1",
+  };
+  assert.deepEqual(RUNTIME_HISTORY_BINDING_REGISTRY, { schemaVersion: 1, retained: [windowsV1] });
+  // The retained-only resolver accepts the superseded binding on its original platform only.
+  const retainedOnWindows = createRetainedRuntimeAssetResolver(RUNTIME_HISTORY_BINDING_REGISTRY, "win32-x64");
+  assert.deepEqual(retainedOnWindows("embedding-runtime", windowsV1.id), { id: windowsV1.id, sha256: windowsV1.sha256 });
+  assert.equal(retainedOnWindows("chroma", windowsV1.id), null);
+  assert.equal(retainedOnWindows("embedding-runtime", "embedding-runtime-node22-v2-win32-x64"), null);
+  const retainedOnMac = createRetainedRuntimeAssetResolver(RUNTIME_HISTORY_BINDING_REGISTRY, "darwin-arm64");
+  assert.equal(retainedOnMac("embedding-runtime", windowsV1.id), null);
+  assert.throws(() => createRetainedRuntimeAssetResolver(
+    { schemaVersion: 1, retained: [{ ...windowsV1, sha256: "not-a-sha" }] },
+    "win32-x64",
+  ), /RUNTIME_HISTORY_REGISTRY_INVALID_BINDING/);
 
   const retained = {
     id: "chroma-retained-test-fixture-darwin-arm64",

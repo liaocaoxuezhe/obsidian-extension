@@ -4,29 +4,20 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { renderPublishedRuntimeTypeScript } from "./runtime-manifest-binding.mjs";
+import { renderPublishedRuntimeTypeScript, runtimeAssetBaseUrl } from "./runtime-manifest-binding.mjs";
+import { archiveKindFor, loadPlatformVersionTable, packFileName, packRootName, runtimeAssetId } from "./runtime-platform-versions.mjs";
 
-const RUNTIME_VERSION = "node22-v1";
 const RUNTIME_VERSIONS = Object.freeze({
   node: "22.23.2",
   transformers: "4.2.0",
   onnxruntime: "1.26.0",
 });
-const DEFAULT_RUNTIME_RELEASE_ROOT = "https://github.com/liaocaoxuezhe/obsidian-extension/releases/download/runtime-node22-v1";
-const PLATFORM_PACKS = Object.freeze({
-  "darwin-arm64": Object.freeze({
-    fileName: "analogy-embedding-runtime-node22-v1-darwin-arm64.tar.gz",
-    archive: "tar.gz",
-  }),
-  "darwin-x64": Object.freeze({
-    fileName: "analogy-embedding-runtime-node22-v1-darwin-x64.tar.gz",
-    archive: "tar.gz",
-  }),
-  "win32-x64": Object.freeze({
-    fileName: "analogy-embedding-runtime-node22-v1-win32-x64.zip",
-    archive: "zip",
-  }),
-});
+const LOCAL_PLATFORMS = Object.freeze(["darwin-arm64", "darwin-x64", "win32-x64"]);
+
+/** darwin-x64 is not a hosted platform; local Intel builds follow the darwin-arm64 version. */
+function localRuntimeVersion(platform, table) {
+  return (table.platforms[platform] ?? table.platforms["darwin-arm64"]).version;
+}
 
 function fail(code) {
   throw new Error(code);
@@ -103,10 +94,12 @@ function platformFromHost() {
 export function createLocalDevelopmentRuntimeManifest({
   localDataRoot,
   platform = platformFromHost(),
-  baseUrl = DEFAULT_RUNTIME_RELEASE_ROOT,
+  releaseRoot,
 }) {
-  const pack = PLATFORM_PACKS[platform];
-  if (!pack) fail(`LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED:${platform}`);
+  if (!LOCAL_PLATFORMS.includes(platform)) fail(`LOCAL_DEVELOPMENT_PLATFORM_UNSUPPORTED:${platform}`);
+  const table = loadPlatformVersionTable();
+  const RUNTIME_VERSION = localRuntimeVersion(platform, table);
+  const pack = { fileName: packFileName(RUNTIME_VERSION, platform), archive: archiveKindFor(platform) };
   const resolvedDataRoot = path.resolve(localDataRoot);
   const runtimeRoot = path.join(resolvedDataRoot, "runtime");
   const pointerPath = path.join(runtimeRoot, "current", "embedding-runtime.json");
@@ -114,7 +107,7 @@ export function createLocalDevelopmentRuntimeManifest({
   requireRealDirectory(runtimeRoot, "LOCAL_DEVELOPMENT_RUNTIME_ROOT_INVALID");
   requireRegularFile(pointerPath, "LOCAL_DEVELOPMENT_RUNTIME_POINTER_MISSING");
   const pointer = readJson(pointerPath, "LOCAL_DEVELOPMENT_RUNTIME_POINTER_INVALID");
-  const expectedRuntimeId = `embedding-runtime-${RUNTIME_VERSION}-${platform}`;
+  const expectedRuntimeId = runtimeAssetId(RUNTIME_VERSION, platform);
   const expectedInstalledPath = path.join(runtimeRoot, "embedding", expectedRuntimeId);
   if (pointer?.schemaVersion !== 1 || pointer.kind !== "embedding-runtime"
     || pointer.runtimeId !== expectedRuntimeId || !validSha256(pointer.assetSha256)
@@ -124,7 +117,7 @@ export function createLocalDevelopmentRuntimeManifest({
   requireContained(runtimeRoot, expectedInstalledPath, "LOCAL_DEVELOPMENT_RUNTIME_PATH_UNSAFE");
   requireRealDirectory(expectedInstalledPath, "LOCAL_DEVELOPMENT_RUNTIME_INSTALL_MISSING");
 
-  const packRoot = path.join(expectedInstalledPath, `analogy-embedding-runtime-${RUNTIME_VERSION}`);
+  const packRoot = path.join(expectedInstalledPath, packRootName(RUNTIME_VERSION));
   const internalManifestPath = path.join(packRoot, "manifest.json");
   requireRealDirectory(packRoot, "LOCAL_DEVELOPMENT_RUNTIME_PACK_MISSING");
   requireRegularFile(internalManifestPath, "LOCAL_DEVELOPMENT_RUNTIME_MANIFEST_MISSING");
@@ -148,7 +141,8 @@ export function createLocalDevelopmentRuntimeManifest({
     fail("LOCAL_DEVELOPMENT_RUNTIME_ARCHIVE_MISMATCH");
   }
 
-  const normalizedBaseUrl = String(baseUrl).replace(/\/+$/, "");
+  const normalizedReleaseRoot = String(releaseRoot ?? table.releaseRoot).replace(/\/+$/, "");
+  const normalizedBaseUrl = runtimeAssetBaseUrl(normalizedReleaseRoot, RUNTIME_VERSION);
   const asset = {
     id: expectedRuntimeId,
     kind: "embedding-runtime",
@@ -167,9 +161,8 @@ export function createLocalDevelopmentRuntimeManifest({
     internalManifestSha256: sha256File(internalManifestPath),
   };
   const releaseManifest = {
-    schemaVersion: 1,
-    runtimeVersion: RUNTIME_VERSION,
-    baseUrl: normalizedBaseUrl,
+    schemaVersion: 2,
+    releaseRoot: normalizedReleaseRoot,
     assets: [asset],
   };
   return {
@@ -245,7 +238,7 @@ function main() {
     const result = createLocalDevelopmentRuntimeManifest({
       localDataRoot: requiredOption(options, "local-data-root"),
       platform: options.get("platform") || platformFromHost(),
-      baseUrl: options.get("base-url") || DEFAULT_RUNTIME_RELEASE_ROOT,
+      releaseRoot: options.get("release-root") || undefined,
     });
     const output = path.resolve(requiredOption(options, "output"));
     writeAtomic(output, result.source);

@@ -79,15 +79,42 @@ export interface RuntimeHistoryBindingRegistry {
 
 /**
  * Version-controlled compatibility registry for runtime versions removed from the active
- * download manifest. This is intentionally empty for the first managed-runtime release:
- * the repository has no earlier released managed asset/SHA to retain. Before replacing an
- * active asset in a later release, copy its exact id/kind/platform/sha256 into `retained`.
+ * download manifest. Before replacing an active asset, copy its exact
+ * id/kind/platform/sha256 into `retained`; entries are never edited afterwards.
  * See RUNTIME_HISTORY_REGISTRY.md.
  */
 export const RUNTIME_HISTORY_BINDING_REGISTRY: RuntimeHistoryBindingRegistry = Object.freeze({
   schemaVersion: 1,
-  retained: Object.freeze([]),
+  retained: Object.freeze([
+    // Windows node22-v1 (published in runtime-node22-v1) is superseded by node22-v2, which
+    // bundles the Visual C++ runtime. Installed v1 copies are offered an upgrade and then isolated.
+    Object.freeze({
+      id: "embedding-runtime-node22-v1-win32-x64",
+      kind: "embedding-runtime",
+      platform: "win32-x64",
+      sha256: "43f45a5274dd017abafa77ad5ade36d7be87070c1be05e78c6b765073bfa4aa1",
+    }),
+  ]),
 });
+
+/**
+ * Resolves only superseded (retained) bindings for one platform. An installed runtime that
+ * matches one of these is a trusted older version that can be upgraded, never "corrupt".
+ */
+export function createRetainedRuntimeAssetResolver(
+  registry: RuntimeHistoryBindingRegistry,
+  platform: SupportedPlatformKey,
+): (kind: RuntimeAssetKind, runtimeId: string) => { id: string; sha256: string } | null {
+  if (registry.schemaVersion !== 1) throw new Error("RUNTIME_HISTORY_REGISTRY_UNSUPPORTED_SCHEMA");
+  for (const binding of registry.retained) {
+    if (!validHistoryBinding(binding)) throw new Error("RUNTIME_HISTORY_REGISTRY_INVALID_BINDING");
+  }
+  return (kind, runtimeId) => {
+    const binding = registry.retained.find((candidate) => candidate.platform === platform
+      && candidate.kind === kind && candidate.id === runtimeId);
+    return binding ? { id: binding.id, sha256: binding.sha256 } : null;
+  };
+}
 
 function validHistoryBinding(binding: RuntimeHistoryAssetBinding): boolean {
   return /^[A-Za-z0-9][A-Za-z0-9._-]{0,159}$/.test(binding.id)

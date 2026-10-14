@@ -43,7 +43,10 @@ export function SetupSteps({ snapshot, speedBytesPerSecond }: SetupStepsProps): 
 
   return <section className="analogy-onboarding__route" aria-label={t("onboarding.steps.label")}>
     <ol className="analogy-onboarding-steps">
-      {ROUTE_LABEL_KEYS.map((labelKey, index) => {
+      {ROUTE_LABEL_KEYS.map((routeLabelKey, index) => {
+        const labelKey = snapshot.runtimeUpgrade && routeLabelKey === "onboarding.step.runtimes"
+          ? "onboarding.step.upgradeRuntime"
+          : routeLabelKey;
         const state = position > index || snapshot.stage === "ready" ? "complete" : position === index ? "current" : "pending";
         return <li className="analogy-onboarding-step" data-state={state} key={labelKey}>
           <span className="analogy-onboarding-step__lamp" aria-hidden="true">{state === "complete" ? "✓" : index + 1}</span>

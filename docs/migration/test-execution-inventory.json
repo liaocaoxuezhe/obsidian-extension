@@ -500,7 +500,8 @@
         "source-sha256:e248364ef4409f4746e1f7cb0a3c640307d665ed9c8438f1c1efd9c2bf48726b"
       ],
       "testNames": [
-        "generated TypeScript is field-for-field bound to the canonical staging manifest"
+        "generated TypeScript is field-for-field bound to the canonical staging manifest",
+        "per-platform runtime versions bind each asset to the release tagged with its own version"
       ],
       "testNamesSource": "task-1-inventory"
     },
@@ -553,7 +554,10 @@
         "source-sha256:20147e7e16e30c38cd986b7bd27cb7ec54e62927ae841f1b1eb1f658f4b4c8c2"
       ],
       "testNames": [
-        "signed canonical three-platform chain finalizes, generates, and passes runtime-only release verification"
+        "signed canonical three-platform chain finalizes, generates, and passes runtime-only release verification",
+        "runtime manifest directory durability follows platform support",
+        "signed canonical supported-platform chain finalizes, generates, and passes runtime-only release verification",
+        "Windows runtime packs must match the reviewed VC++ and DirectML payload profile"
       ],
       "testNamesSource": "task-1-inventory",
       "testNameRenames": {
@@ -1481,7 +1485,8 @@
       ],
       "testNamesSource": "task-1-inventory",
       "testNameRenames": {
-        "development embedding inputs are explicitly marked and cannot look published": "checked-in embedding inputs are published and point at the public repository"
+        "development embedding inputs are explicitly marked and cannot look published": "checked-in embedding inputs are published and point at the public repository",
+        "versioned history registry starts honestly empty and resolver combines active with retained bindings": "versioned history registry retains the superseded Windows v1 runtime exactly and resolver combines active with retained bindings"
       }
     },
     {
@@ -2207,9 +2212,70 @@
       "sourceEvidence": [],
       "testNames": [
         "the Visual C++ runtime is found in the Visual Studio redistributable folder only",
-        "every VC++ DLL imported by the native payload is copied next to the binding"
+        "every VC++ DLL imported by the native payload is copied next to the binding",
+        "DirectML files are stripped only when no native file imports them at load time"
       ],
       "testNamesSource": "install-reliability-p0-p1"
+    },
+    {
+      "path": "test/runtime-platform-versions.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [],
+      "testNames": [
+        "the reviewed table moves only Windows to node22-v2 and keeps macOS on its published version",
+        "platform version table rejects unsupported platforms, versions and Windows profiles",
+        "runtime names derive from the per-platform version",
+        "a runtime release publishes one version and carries every other platform from its own release",
+        "workflow helper refuses a runtime tag that does not match the selected platforms",
+        "release verification requires the runtime manifest to follow the reviewed version table"
+      ],
+      "testNamesSource": "windows-runtime-v2-1.2.8"
+    },
+    {
+      "path": "test/runtime-upgrade.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "runtime",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [],
+      "testNames": [
+        "an installed superseded runtime asks for a dedicated upgrade consent even after setup was accepted",
+        "declining the upgrade cancels without downloading and asks again next time",
+        "an accepted upgrade that fails is retried without asking for consent again",
+        "a ready runtime never shows an upgrade or downloads anything",
+        "the onboarding store persists a valid upgrade and drops malformed ones",
+        "environment detection reports a trusted superseded Windows runtime as upgradable, never corrupt"
+      ],
+      "testNamesSource": "windows-runtime-v2-1.2.8"
+    },
+    {
+      "path": "test/manual/build-windows-harness.mjs",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "runtime",
+      "conflictAction": "manual-release-check-windows-clean-vm"
+    },
+    {
+      "path": "test/manual/windows-clean-vm.sh",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "runtime",
+      "conflictAction": "manual-release-check-windows-clean-vm"
+    },
+    {
+      "path": "test/manual/windows-runtime-harness.ts",
+      "kind": "support",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "runtime",
+      "conflictAction": "manual-release-check-windows-clean-vm"
     }
   ],
   "platformSkips": [

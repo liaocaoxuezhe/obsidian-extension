@@ -6,18 +6,50 @@ import { compareUtf8Bytes, readRuntimeArchive } from "./runtime-archive.mjs";
 import { validateMachOImage } from "./runtime-native-binary.mjs";
 import { validateOrtNativeOverlayPayload } from "./runtime-native-overlay.mjs";
 import { verifyNativeSmokeBundle } from "./runtime-smoke-attestation.mjs";
+import {
+  DIRECT_ML_FILES,
+  SUPPORTED_RUNTIME_PLATFORMS,
+  archiveKindFor,
+  loadPlatformVersionTable,
+  packFileName,
+  packRootName,
+  runtimeAssetId,
+} from "./runtime-platform-versions.mjs";
+import { VC_RUNTIME_FILES } from "./vc-runtime-bundle.mjs";
 
-export const RUNTIME_VERSION = "node22-v1";
-export const PACK_ROOT_NAME = `analogy-embedding-runtime-${RUNTIME_VERSION}`;
 export const RUNTIME_VERSIONS = Object.freeze({
   node: "22.23.2",
   transformers: "4.2.0",
   onnxruntime: "1.26.0",
 });
-export const EXPECTED_PACKS = Object.freeze([
-  Object.freeze({ platform: "darwin-arm64", fileName: "analogy-embedding-runtime-node22-v1-darwin-arm64.tar.gz", archive: "tar.gz", internalExecutableRelativePath: "node/bin/node" }),
-  Object.freeze({ platform: "win32-x64", fileName: "analogy-embedding-runtime-node22-v1-win32-x64.zip", archive: "zip", internalExecutableRelativePath: "node/bin/node.exe" }),
-]);
+
+/**
+ * Describes one runtime pack. `windows` records the reviewed Windows payload
+ * profile (app-local VC++ runtime, DirectML files) the pack must match.
+ */
+export function createExpectedPack(platform, version, windows = null) {
+  const isWindows = platform.startsWith("win32-");
+  if (isWindows !== Boolean(windows)) throw new Error(`Windows payload profile mismatch for ${platform}`);
+  return Object.freeze({
+    platform,
+    version,
+    id: runtimeAssetId(version, platform),
+    packRootName: packRootName(version),
+    fileName: packFileName(version, platform),
+    archive: archiveKindFor(platform),
+    internalExecutableRelativePath: isWindows ? "node/bin/node.exe" : "node/bin/node",
+    windows: windows ? Object.freeze({ ...windows }) : null,
+  });
+}
+
+export function expectedPacksFromTable(table = loadPlatformVersionTable()) {
+  return Object.freeze(SUPPORTED_RUNTIME_PLATFORMS.map((platform) => {
+    const entry = table.platforms[platform];
+    return createExpectedPack(platform, entry.version, entry.windows);
+  }));
+}
+
+export const EXPECTED_PACKS = expectedPacksFromTable();
 export const LICENSE_CATALOG_SHA256 = "71793f921ffbb1f286175e7823a842f0a8d1c92941702a759dbcd8aa348e2eaa";
 export const SMOKE_MODEL_CATALOG_SHA256 = "5766162e4e8fd00d395a01a2359baa533137be10d5612176c9cae1d9576be9b2";
 
@@ -144,14 +176,14 @@ function verifiedSmokeModel() {
   return { model, bytes };
 }
 
-function fileMapFromEntries(entries) {
-  const root = entries.find((entry) => entry.path === PACK_ROOT_NAME);
-  if (!root?.directory) throw new Error(`Runtime pack must have the fixed root ${PACK_ROOT_NAME}`);
+function fileMapFromEntries(entries, packRoot) {
+  const root = entries.find((entry) => entry.path === packRoot);
+  if (!root?.directory) throw new Error(`Runtime pack must have the fixed root ${packRoot}`);
   const map = new Map();
   for (const entry of entries) {
-    if (entry.path !== PACK_ROOT_NAME && !entry.path.startsWith(`${PACK_ROOT_NAME}/`)) throw new Error(`Archive entry escapes fixed root: ${entry.path}`);
+    if (entry.path !== packRoot && !entry.path.startsWith(`${packRoot}/`)) throw new Error(`Archive entry escapes fixed root: ${entry.path}`);
     if (entry.directory) continue;
-    const relativePath = entry.path.slice(PACK_ROOT_NAME.length + 1);
+    const relativePath = entry.path.slice(packRoot.length + 1);
     if (!relativePath) throw new Error("Runtime pack root cannot be a file");
     map.set(relativePath, entry);
   }
@@ -269,6 +301,38 @@ function validateRuntimePayload(manifest, files, expected) {
   if (binding.length !== 1 || libraries.length === 0) throw new Error(`ONNX Runtime native payload is incomplete for ${expected.platform}`);
   validateNativeBinary(files.get(binding[0]).data, expected.platform, binding[0], "binding");
   for (const library of libraries) validateNativeBinary(files.get(library).data, expected.platform, library, "library");
+  if (expected.windows) validateWindowsNativeProfile(manifest, nativeFiles, nativePrefix, expected);
+}
+
+/**
+ * Enforces the reviewed Windows payload profile: whether the app-local VC++
+ * runtime ships next to the binding and whether the delay-loaded DirectML files
+ * were stripped (recorded in the internal manifest so the change is auditable).
+ */
+function validateWindowsNativeProfile(manifest, nativeFiles, nativePrefix, expected) {
+  const names = new Set(nativeFiles.map((name) => name.slice(nativePrefix.length).toLowerCase()));
+  const vcPresent = VC_RUNTIME_FILES.filter((name) => names.has(name.toLowerCase()));
+  if (expected.windows.visualCppRuntime === "bundled" && vcPresent.length !== VC_RUNTIME_FILES.length) {
+    throw new Error(`Windows runtime ${expected.version} must bundle every VC++ runtime DLL: ${VC_RUNTIME_FILES.join(", ")}`);
+  }
+  if (expected.windows.visualCppRuntime === "absent" && vcPresent.length !== 0) {
+    throw new Error(`Windows runtime ${expected.version} must not contain app-local VC++ runtime DLLs`);
+  }
+  const directMlPresent = DIRECT_ML_FILES.filter((name) => names.has(name.toLowerCase()));
+  const recorded = manifest.inputs?.strippedNativeFiles;
+  if (expected.windows.directMl === "stripped") {
+    if (directMlPresent.length !== 0) {
+      throw new Error(`Windows runtime ${expected.version} must not ship DirectML files: ${directMlPresent.join(", ")}`);
+    }
+    if (JSON.stringify(recorded) !== JSON.stringify(DIRECT_ML_FILES)) {
+      throw new Error("Internal manifest must record the stripped DirectML files");
+    }
+  } else {
+    if (directMlPresent.length !== DIRECT_ML_FILES.length) {
+      throw new Error(`Windows runtime ${expected.version} must keep the DirectML files`);
+    }
+    if (recorded !== undefined) throw new Error("Internal manifest records stripped files that the pack still ships");
+  }
 }
 
 function validateBuildInputs(manifest, expected) {
@@ -412,14 +476,14 @@ export function validateRuntimeArtifactGroup(inputRoot, expected, { requireCompl
     throw new Error(`Runtime release manifest hash/size mismatch for ${expected.fileName}`);
   }
   const entries = readRuntimeArchive(archivePath, expected.archive);
-  const files = fileMapFromEntries(entries);
+  const files = fileMapFromEntries(entries, expected.packRootName);
   const embeddedManifest = files.get("manifest.json")?.data;
   const embeddedNotices = files.get("THIRD_PARTY_NOTICES.txt")?.data;
   if (!embeddedManifest?.equals(manifestBytes)) throw new Error(`Archive internal manifest bytes do not match sidecar for ${expected.fileName}`);
   if (!embeddedNotices?.equals(noticesBytes)) throw new Error(`Archive notices bytes do not match sidecar for ${expected.fileName}`);
   const manifest = readJsonBytes(manifestBytes, "runtime internal manifest");
-  if (manifest.schemaVersion !== 1 || manifest.id !== `embedding-runtime-${RUNTIME_VERSION}-${expected.platform}`
-    || manifest.kind !== "embedding-runtime" || manifest.platform !== expected.platform || manifest.version !== RUNTIME_VERSION) {
+  if (manifest.schemaVersion !== 1 || manifest.id !== expected.id
+    || manifest.kind !== "embedding-runtime" || manifest.platform !== expected.platform || manifest.version !== expected.version) {
     throw new Error(`Internal manifest identity mismatch for ${expected.fileName}`);
   }
   assertExactObject(manifest.runtimeVersions, RUNTIME_VERSIONS, `Runtime versions for ${expected.fileName}`);

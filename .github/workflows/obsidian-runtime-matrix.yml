@@ -29,9 +29,12 @@ on:
         type: boolean
         default: false
       runtime_tag:
-        description: Immutable runtime release tag
+        description: Immutable runtime release tag; must equal runtime-<version> of the selected platforms in runtime-package/platform-versions.json
         required: true
-        default: runtime-node22-v1
+      platforms:
+        description: Comma separated platforms to build and publish (others keep their published version)
+        required: true
+        default: win32-x64
 
 permissions:
   contents: read
@@ -41,20 +44,41 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  plan:
+    name: Resolve platforms from the reviewed version table
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      platforms: ${{ steps.plan.outputs.platforms }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22.23.2
+      - name: Plan runtime matrix
+        id: plan
+        shell: bash
+        env:
+          REQUESTED_PLATFORMS: ${{ github.event_name == 'workflow_dispatch' && inputs.platforms || 'darwin-arm64,win32-x64' }}
+          RUNTIME_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.runtime_tag || '' }}
+          PUBLISH: ${{ github.event_name == 'workflow_dispatch' && inputs.publish || false }}
+        run: |
+          if [ "$PUBLISH" = "true" ]; then
+            node scripts/runtime-platform-versions.mjs plan --platforms "$REQUESTED_PLATFORMS" --tag "$RUNTIME_TAG"
+          else
+            node scripts/runtime-platform-versions.mjs plan --platforms "$REQUESTED_PLATFORMS"
+          fi
+          echo "matrix=$(node scripts/runtime-platform-versions.mjs matrix --platforms "$REQUESTED_PLATFORMS")" >> "$GITHUB_OUTPUT"
+          echo "platforms=$REQUESTED_PLATFORMS" >> "$GITHUB_OUTPUT"
+
   native-runtime:
-    name: ${{ matrix.platform }} native pack and contracts
+    name: ${{ matrix.key }} native pack and contracts
+    needs: [plan]
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os: macos-14
-            platform: darwin
-            arch: arm64
-            key: darwin-arm64
-          - os: windows-2025
-            platform: win32
-            arch: x64
-            key: win32-x64
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -124,27 +148,37 @@ jobs:
         env:
           COSIGN_YES: "true"
         run: |
-          archive=$(node -e "const p=require('./runtime-package/package.json'); const key='${{ matrix.key }}'; const ext=key==='win32-x64'?'.zip':'.tar.gz'; process.stdout.write('dist/runtime/analogy-embedding-runtime-node22-v1-'+key+ext)")
+          archive="dist/runtime/$(node scripts/runtime-platform-versions.mjs archive --platform ${{ matrix.key }})"
           bundle="$archive.smoke-attestation.json"
           cosign attest-blob --yes --new-bundle-format=true --statement dist/runtime/native-smoke-statement.json --bundle "$bundle" "$archive"
           node scripts/finalize-runtime-artifact.mjs --platform ${{ matrix.key }} --input dist/runtime --attestation "$bundle"
           rm dist/runtime/native-smoke-statement.json
+      - name: Resolve the versioned archive name
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        id: archive
+        shell: bash
+        run: echo "name=$(node scripts/runtime-platform-versions.mjs archive --platform ${{ matrix.key }})" >> "$GITHUB_OUTPUT"
       - name: Upload completed native generation
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: completed-runtime-${{ matrix.key }}
-          path: dist/runtime/analogy-embedding-runtime-node22-v1-${{ matrix.key }}*
+          path: dist/runtime/${{ steps.archive.outputs.name }}*
           if-no-files-found: error
           retention-days: 14
 
   release-gate:
-    name: Merge, publish and redownload-verify all native generations
+    name: Merge, publish and redownload-verify the per-platform runtime manifest
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish
-    needs: [native-runtime]
+    needs: [plan, native-runtime]
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RUNTIME_TAG: ${{ inputs.runtime_tag }}
+      PLATFORMS: ${{ needs.plan.outputs.platforms }}
+      RELEASE_ROOT: https://github.com/${{ github.repository }}/releases/download
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
@@ -157,23 +191,45 @@ jobs:
           pattern: completed-runtime-*
           path: dist/runtime
           merge-multiple: true
-      - name: Merge and validate the supported-platform manifest
-        run: |
-          node scripts/generate-runtime-manifest.mjs --input dist/runtime --output src/runtime/generated-embedding-runtime-manifest.ts --base-url "https://github.com/${{ github.repository }}/releases/download/${{ inputs.runtime_tag }}"
-          node scripts/prepare-release.mjs --runtime-only --runtime-staging dist/runtime
-      - name: Publish immutable runtime assets only after the matrix gate
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Download carried platforms from their own immutable releases
         shell: bash
         run: |
-          gh release view "${{ inputs.runtime_tag }}" >/dev/null 2>&1 || gh release create "${{ inputs.runtime_tag }}" --title "Analogy managed runtime ${{ inputs.runtime_tag }}" --notes "Native runner verified runtime assets."
-          gh release upload "${{ inputs.runtime_tag }}" dist/runtime/analogy-embedding-runtime-node22-v1-* dist/runtime/embedding-runtime-manifest.json --clobber
-      - name: Redownload published assets and re-verify every SHA and attestation
-        env:
-          GH_TOKEN: ${{ github.token }}
+          node scripts/runtime-platform-versions.mjs plan --platforms "$PLATFORMS" --tag "$RUNTIME_TAG" > plan.json
+          node -e "for (const c of require('./plan.json').carried) console.log(c.tag + ' ' + c.fileName)" | while read -r tag file; do
+            gh release download "$tag" --repo "$GITHUB_REPOSITORY" --dir dist/runtime --pattern "$file*"
+          done
+      - name: Merge and validate the per-platform manifest
+        run: |
+          node scripts/generate-runtime-manifest.mjs --input dist/runtime --output src/runtime/generated-embedding-runtime-manifest.ts --release-root "$RELEASE_ROOT"
+          node scripts/prepare-release.mjs --runtime-only --runtime-staging dist/runtime
+      - name: Refuse to overwrite any published runtime asset
+        shell: bash
+        run: |
+          if gh release view "$RUNTIME_TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' > existing.txt 2>/dev/null; then
+            for platform in $(node -e "console.log(require('./plan.json').platforms.join(' '))"); do
+              archive=$(node scripts/runtime-platform-versions.mjs archive --platform "$platform")
+              if grep -q "^$archive" existing.txt; then echo "::error::$RUNTIME_TAG already contains $archive; runtime releases are immutable"; exit 1; fi
+            done
+            if grep -qx "embedding-runtime-manifest.json" existing.txt; then echo "::error::$RUNTIME_TAG already has a manifest"; exit 1; fi
+          fi
+      - name: Publish only the newly built platforms and the merged manifest
+        shell: bash
+        run: |
+          gh release view "$RUNTIME_TAG" >/dev/null 2>&1 || gh release create "$RUNTIME_TAG" --title "Analogy managed runtime $RUNTIME_TAG" --notes "Native runner verified runtime assets for $PLATFORMS. Other platforms keep their published runtime release."
+          files=(dist/runtime/embedding-runtime-manifest.json)
+          for platform in $(node -e "console.log(require('./plan.json').platforms.join(' '))"); do
+            archive=$(node scripts/runtime-platform-versions.mjs archive --platform "$platform")
+            files+=(dist/runtime/"$archive"*)
+          done
+          gh release upload "$RUNTIME_TAG" "${files[@]}"
+      - name: Redownload every platform from its own release and re-verify every SHA and attestation
+        shell: bash
         run: |
           mkdir redownload
-          gh release download "${{ inputs.runtime_tag }}" --dir redownload
+          gh release download "$RUNTIME_TAG" --dir redownload
+          node -e "for (const c of require('./plan.json').carried) console.log(c.tag + ' ' + c.fileName)" | while read -r tag file; do
+            gh release download "$tag" --dir redownload --pattern "$file*"
+          done
           node scripts/prepare-release.mjs --runtime-only --runtime-staging redownload
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:

@@ -50,9 +50,9 @@ test("generated TypeScript is field-for-field bound to the canonical staging man
   assert.equal(typeof computePublicRuntimeManifestSha256, "function", "public runtime manifest digest must be exported");
   assert.equal(typeof extractGeneratedRuntimeManifestSha256, "function", "build must use the shared generated digest parser");
   assert.equal(typeof renderPublishedRuntimeTypeScript, "function", "generator renderer must be shared with release verification");
-  const releaseManifest = { schemaVersion: 1, runtimeVersion: "node22-v1", baseUrl: "https://github.com/Nixum/analogy/releases/download/runtime-node22-v1", assets: [asset] };
+  const releaseManifest = { schemaVersion: 2, releaseRoot: "https://github.com/Nixum/analogy/releases/download", assets: [asset] };
   const source = renderPublishedRuntimeTypeScript(releaseManifest);
-  const expectedDigest = "28bc6f7d8529317cf40a3657f91223afd0a8bf423e075680ac55b25fd6ecdda5";
+  const expectedDigest = "68a5cedcd291fcb2a29813095d46815602b0d7d40b510a4d33e3bc8dd74a683a";
   assert.equal(computePublicRuntimeManifestSha256(releaseManifest), expectedDigest);
   assert.match(source, new RegExp(`export const EMBEDDING_RUNTIME_PUBLIC_MANIFEST_SHA256 = "${expectedDigest}" as const;`));
   assert.match(source, new RegExp(`export const EMBEDDING_RUNTIME_BUILD_BINDING = "ANALOGY_EMBEDDING_RUNTIME_MANIFEST_SHA256:${expectedDigest}" as const;`));
@@ -106,11 +106,70 @@ test("generated TypeScript is field-for-field bound to the canonical staging man
     ["runtimeVersions", { ...runtimeVersions, onnxruntime: "1.25.0" }],
   ];
   for (const [field, value] of mutations) {
-    const forgedSource = renderPublishedRuntimeTypeScript({ ...releaseManifest, assets: [{ ...asset, [field]: value }] });
+    let forgedSource;
+    try {
+      forgedSource = renderPublishedRuntimeTypeScript({ ...releaseManifest, assets: [{ ...asset, [field]: value }] });
+    } catch (error) {
+      // URL and file name changes are already refused by the per-version release binding.
+      assert.match(String(error?.message), /not served from its own versioned release/, field);
+      continue;
+    }
     assert.throws(
       () => assertGeneratedRuntimeBinding(forgedSource, releaseManifest),
       /exact canonical renderer output/,
       field,
     );
   }
+});
+
+test("per-platform runtime versions bind each asset to the release tagged with its own version", async () => {
+  const {
+    computePublicRuntimeManifestSha256,
+    extractGeneratedRuntimeManifestSha256,
+    renderPublishedRuntimeTypeScript,
+  } = await loadModule();
+  const releaseRoot = "https://github.com/Nixum/analogy/releases/download";
+  const windowsV2 = {
+    ...asset,
+    id: "embedding-runtime-node22-v2-win32-x64",
+    platform: "win32-x64",
+    version: "node22-v2",
+    fileName: "analogy-embedding-runtime-node22-v2-win32-x64.zip",
+    url: `${releaseRoot}/runtime-node22-v2/analogy-embedding-runtime-node22-v2-win32-x64.zip`,
+    archive: "zip",
+    executableRelativePath: "analogy-embedding-runtime-node22-v2/node/bin/node.exe",
+    licenseUrl: `${releaseRoot}/runtime-node22-v2/analogy-embedding-runtime-node22-v2-win32-x64.zip.THIRD_PARTY_NOTICES.txt`,
+  };
+  const mixed = {
+    schemaVersion: 2,
+    releaseRoot,
+    platformVersions: { "darwin-x64": "node22-v1", "win32-x64": "node22-v2" },
+    assets: [asset, windowsV2],
+  };
+  const source = renderPublishedRuntimeTypeScript(mixed);
+  assert.equal(extractGeneratedRuntimeManifestSha256(source), computePublicRuntimeManifestSha256(mixed));
+  assert.match(source, /runtime-node22-v1\/analogy-embedding-runtime-node22-v1-darwin-x64\.tar\.gz/);
+  assert.match(source, /runtime-node22-v2\/analogy-embedding-runtime-node22-v2-win32-x64\.zip/);
+
+  assert.throws(
+    () => renderPublishedRuntimeTypeScript({
+      ...mixed,
+      assets: [asset, { ...windowsV2, url: `${releaseRoot}/runtime-node22-v1/${windowsV2.fileName}` }],
+    }),
+    /not served from its own versioned release/,
+    "a v2 asset must never be served from the v1 release",
+  );
+  assert.throws(
+    () => renderPublishedRuntimeTypeScript({ ...mixed, platformVersions: { "darwin-x64": "node22-v1", "win32-x64": "node22-v1" } }),
+    /platformVersions disagree/,
+  );
+  assert.throws(
+    () => renderPublishedRuntimeTypeScript({ ...mixed, assets: [asset, { ...asset }] }),
+    /more than once/,
+  );
+  assert.throws(
+    () => computePublicRuntimeManifestSha256({ schemaVersion: 1, runtimeVersion: "node22-v1", baseUrl: `${releaseRoot}/runtime-node22-v1`, assets: [asset] }),
+    /no complete public asset matrix/,
+    "the single-version schema 1 manifest is no longer accepted",
+  );
 });
