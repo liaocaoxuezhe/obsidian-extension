@@ -6,7 +6,7 @@ const path = require("path");
 const root = path.resolve(__dirname, "..");
 const mainPath = path.join(root, "main.js");
 const mainMapPath = path.join(root, "main.js.map");
-const originalMain = fs.readFileSync(mainPath);
+const originalMain = fs.existsSync(mainPath) ? fs.readFileSync(mainPath) : null;
 const originalMainMap = fs.existsSync(mainMapPath) ? fs.readFileSync(mainMapPath) : null;
 const version = require(path.join(root, "package.json")).version;
 const buildId = `${version}+test.community-worker.${process.pid}`;
@@ -33,7 +33,8 @@ try {
     "production builds must not leave a standalone worker source map",
   );
 } finally {
-  fs.writeFileSync(mainPath, originalMain);
+  if (originalMain) fs.writeFileSync(mainPath, originalMain);
+  else fs.rmSync(mainPath, { force: true });
   if (originalMainMap) fs.writeFileSync(mainMapPath, originalMainMap);
   else fs.rmSync(mainMapPath, { force: true });
   fs.rmSync(artifactDir, { recursive: true, force: true });

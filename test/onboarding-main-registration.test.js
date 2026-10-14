@@ -12,6 +12,25 @@ const ts = require("typescript");
 const extensionRoot = process.cwd();
 const loaded = new Map();
 
+// The plugin derives its local data root from the home directory (macOS layout) or LOCALAPPDATA
+// (Windows layout). Point all of them at a throwaway root so no test touches real Analogy data.
+const isolatedHome = fs.mkdtempSync(path.join(os.tmpdir(), "analogy-main-home-"));
+process.env.HOME = isolatedHome;
+process.env.USERPROFILE = isolatedHome;
+process.env.LOCALAPPDATA = path.join(isolatedHome, "AppData", "Local");
+test.after(() => fs.rmSync(isolatedHome, { recursive: true, force: true }));
+
+// Linux CI has no supported plugin platform, so the bundle emulates macOS there. A Windows host
+// runs its own platform instead: macOS rules (such as directory fsync) cannot hold on NTFS.
+const emulatedPlatform = process.platform === "win32" ? "win32" : "darwin";
+const emulatedPlatformKey = emulatedPlatform === "win32" ? "win32-x64" : "darwin-arm64";
+
+function emulatedLocalDataRoot(home) {
+  return emulatedPlatform === "win32"
+    ? path.join(home, "AppData", "Local", "Analogy")
+    : path.join(home, "Library", "Application Support", "Analogy");
+}
+
 function loadTypeScriptFile(filename) {
   if (loaded.has(filename)) return loaded.get(filename);
   const output = ts.transpileModule(fs.readFileSync(filename, "utf8"), {
@@ -571,7 +590,7 @@ async function loadMainBoundary() {
     define: {
       __ANALOGY_BUILD_ID__: JSON.stringify("test-build"),
       __ANALOGY_EMBEDDING_WORKER_SOURCE__: JSON.stringify("worker-source"),
-      "process.platform": JSON.stringify("darwin"),
+      "process.platform": JSON.stringify(emulatedPlatform),
     },
     plugins: [{
       name: "task-10-diagnostic-recorder",
@@ -584,7 +603,7 @@ async function loadMainBoundary() {
         }));
         build.onLoad({ filter: /^platform-detector$/, namespace: "task-10" }, () => ({
           loader: "js",
-          contents: 'exports.detectSupportedPlatform = () => "darwin-arm64";',
+          contents: `exports.detectSupportedPlatform = () => ${JSON.stringify(emulatedPlatformKey)};`,
         }));
         build.onLoad({ filter: /^diagnostic-recorder$/, namespace: "task-10" }, () => ({
           loader: "js",
@@ -727,11 +746,15 @@ test("onload registers UI before layout detection and missing runtime never star
 test("main settings persistence strips device-local Chroma port and index state from data.json", async (t) => {
   const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "analogy-settings-local-"));
   t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
-  const previousHome = process.env.HOME;
+  const previousEnvironment = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE, LOCALAPPDATA: process.env.LOCALAPPDATA };
   process.env.HOME = root;
+  process.env.USERPROFILE = root;
+  process.env.LOCALAPPDATA = path.join(root, "AppData", "Local");
   t.after(() => {
-    if (previousHome === undefined) delete process.env.HOME;
-    else process.env.HOME = previousHome;
+    for (const [name, value] of Object.entries(previousEnvironment)) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
   });
   const boundary = await loadMainBoundary();
   const harness = mainHarness();
@@ -756,11 +779,15 @@ test("main settings persistence strips device-local Chroma port and index state 
 test("port-only legacy settings persist device-local state before sanitizing synchronized data", async (t) => {
   const root = await fs.promises.mkdtemp(path.join(os.tmpdir(), "analogy-port-only-"));
   t.after(() => fs.promises.rm(root, { recursive: true, force: true }));
-  const previousHome = process.env.HOME;
+  const previousEnvironment = { HOME: process.env.HOME, USERPROFILE: process.env.USERPROFILE, LOCALAPPDATA: process.env.LOCALAPPDATA };
   process.env.HOME = root;
+  process.env.USERPROFILE = root;
+  process.env.LOCALAPPDATA = path.join(root, "AppData", "Local");
   t.after(() => {
-    if (previousHome === undefined) delete process.env.HOME;
-    else process.env.HOME = previousHome;
+    for (const [name, value] of Object.entries(previousEnvironment)) {
+      if (value === undefined) delete process.env[name];
+      else process.env[name] = value;
+    }
   });
   const boundary = await loadMainBoundary();
   const harness = mainHarness();
@@ -771,11 +798,12 @@ test("port-only legacy settings persist device-local state before sanitizing syn
   });
   let sanitized = false;
   plugin.saveData = async (value) => {
+    const canonicalVaultPath = path.resolve(harness.app.vault.adapter.basePath).normalize("NFC");
     const runtimeVaultId = `vault-v2-${crypto.createHash("sha256")
-      .update(path.resolve(harness.app.vault.adapter.basePath).normalize("NFC"), "utf8")
+      .update(emulatedPlatform === "win32" ? canonicalVaultPath.toLowerCase() : canonicalVaultPath, "utf8")
       .digest("hex").slice(0, 16)}`;
     const runtimeStatePath = path.join(
-      root, "Library", "Application Support", "Analogy", "vaults", runtimeVaultId, "runtime-state.json",
+      emulatedLocalDataRoot(root), "vaults", runtimeVaultId, "runtime-state.json",
     );
     const state = JSON.parse(await fs.promises.readFile(runtimeStatePath, "utf8"));
     assert.equal(state.activeGeneration, "legacy");
