@@ -38,6 +38,7 @@ import {DEFAULT_SUMMARY_MODEL_KEY, formatModelBytes, SUMMARY_MODELS} from "./loc
 import {setLocale, onLocaleChange, t, type Locale, SUPPORTED_LOCALES} from "./util/i18n";
 import {
   deactivateLicense,
+  getLicenseErrorReason,
   refreshCachedLicense,
   validateLicense,
   DEFAULT_BUY_LICENSE_URL,
@@ -201,6 +202,10 @@ type StatusFilter = "all" | "indexed" | "outdated" | "unindexed";
 
 function formatPageLimit(limit: number): string {
   return limit >= Number.MAX_SAFE_INTEGER ? t("settings.license.unlimited") : String(limit);
+}
+
+function formatLicenseError(code: number): string {
+  return t(`settings.license.error.${getLicenseErrorReason(code)}`, { code });
 }
 
 function formatLicensePlan(plan: LicenseState["plan"] | undefined): string {
@@ -805,6 +810,8 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
       setLicenseKeyInput("");
       if (nextState.status === "active") {
         new Notice(t("settings.license.activated"));
+      } else if (nextState.errorCode !== undefined) {
+        new Notice(formatLicenseError(nextState.errorCode), 15_000);
       } else {
         new Notice(t("settings.license.invalid"));
       }
@@ -1182,6 +1189,14 @@ function SettingDetail({plugin, setting}:{plugin:Analogy, setting:AnalogySetting
             <div className="analogy-settings-row flex items-center justify-between mt-2">
               <span className="text-sm text-[#444444]">{t("settings.license.key")}</span>
               <span className="text-sm font-medium">{licenseState.licenseKeyMasked}</span>
+            </div>
+          )}
+          {licenseState.status !== "active" && licenseState.errorCode !== undefined && (
+            <div className="analogy-settings-row mt-2" role="alert">
+              <span className="text-sm text-[#444444]">{t("settings.license.lastError")}</span>
+              <p className="text-sm mt-1" style={{ color: "var(--text-error)" }}>
+                {formatLicenseError(licenseState.errorCode)}
+              </p>
             </div>
           )}
 

@@ -490,6 +490,31 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
   "settings.license.enterKey": { en: "Enter a license key first", zh: "请先输入许可证密钥" },
   "settings.license.activated": { en: "License activated", zh: "许可证已激活" },
   "settings.license.invalid": { en: "License is invalid or inactive", zh: "许可证无效或未激活" },
+  "settings.license.error.invalid": {
+    en: "License key not recognized. Check that it was copied completely. (Error {code})",
+    zh: "无法识别此许可证密钥，请确认是否完整复制。（错误码 {code}）",
+  },
+  "settings.license.error.revoked": {
+    en: "This license has been revoked. Contact support via the email under User Feedback. (Error {code})",
+    zh: "此许可证已被吊销，请通过「用户反馈」中的客服邮箱联系我们。（错误码 {code}）",
+  },
+  "settings.license.error.activationLimit": {
+    en: "This license is already active on the maximum number of devices. Deactivate it on a device you no longer use, then try again. (Error {code})",
+    zh: "此许可证同时激活的设备数已达上限。请先在不再使用的设备上停用，再重试。（错误码 {code}）",
+  },
+  "settings.license.error.expired": {
+    en: "This license has expired. (Error {code})",
+    zh: "此许可证已过期。（错误码 {code}）",
+  },
+  "settings.license.error.redemptionLimit": {
+    en: "This license cannot be activated on another device or vault. Deactivating it elsewhere will not help. Contact support via the email under User Feedback. (Error {code})",
+    zh: "此许可证无法在新的设备或仓库上激活，在其他设备上停用也无法释放名额。请通过「用户反馈」中的客服邮箱联系我们。（错误码 {code}）",
+  },
+  "settings.license.error.unknown": {
+    en: "License activation failed. (Error {code})",
+    zh: "许可证激活失败。（错误码 {code}）",
+  },
+  "settings.license.lastError": { en: "Last activation error", zh: "上次激活错误" },
   "settings.license.localCleared": { en: "Local license cleared", zh: "本地许可证已清除" },
   "settings.license.deactivated": {
     en: "License deactivated on this device",

@@ -78,6 +78,47 @@ async function loadModule(requestUrl) {
   assert.strictEqual(inactive.plan, "free");
   assert.strictEqual(inactive.maxPages, 2500);
   assert.strictEqual(inactive.licenseKey, "BAD-KEY");
+  assert.strictEqual(inactive.errorCode, 4001);
+  assert.strictEqual(state.errorCode, undefined);
+
+  // 4003：服务端 data.status 仍是 active（license 本身有效），本设备不能被视为已激活
+  const activationLimited = mapValidationResponseToLicenseState({
+    code: 4003,
+    message: "License activation limit exceeded",
+    data: {status: "active", plan: "free", max_pages: 2500, grace_days: 0},
+  }, "ANALOGY-1234-5678-9K2Q", now);
+  assert.strictEqual(activationLimited.status, "inactive");
+  assert.strictEqual(activationLimited.plan, "free");
+  assert.strictEqual(activationLimited.maxPages, 2500);
+  assert.strictEqual(activationLimited.errorCode, 4003);
+
+  const redemptionLimited = mapValidationResponseToLicenseState({
+    code: 4009,
+    message: "License redemption limit exceeded",
+    data: {status: "inactive", plan: "free", max_pages: 2500, grace_days: 0},
+  }, "ANALOGY-1234-5678-9K2Q", now);
+  assert.strictEqual(redemptionLimited.status, "inactive");
+  assert.strictEqual(redemptionLimited.errorCode, 4009);
+  assert.strictEqual(redemptionLimited.licenseKeyMasked, "ANALOGY-****-9K2Q");
+
+  const revoked = mapValidationResponseToLicenseState({
+    code: 4002,
+    data: {status: "revoked", plan: "free"},
+  }, "ANALOGY-1234-5678-9K2Q", now);
+  assert.strictEqual(revoked.status, "revoked");
+  assert.strictEqual(revoked.errorCode, 4002);
+
+  const {getLicenseErrorReason} = await loadModule(requestUrl);
+  const reasons = {4001: "invalid", 4002: "revoked", 4003: "activationLimit", 4004: "expired", 4009: "redemptionLimit"};
+  for (const [code, reason] of Object.entries(reasons)) {
+    assert.strictEqual(getLicenseErrorReason(Number(code)), reason);
+  }
+  assert.strictEqual(getLicenseErrorReason(4999), "unknown");
+  assert.strictEqual(getLicenseErrorReason(undefined), "unknown");
+  const i18nSource = require("fs").readFileSync(path.join(__dirname, "..", "src", "util", "i18n.ts"), "utf8");
+  for (const reason of [...Object.values(reasons), "unknown"]) {
+    assert(i18nSource.includes(`"settings.license.error.${reason}"`), `missing i18n key for ${reason}`);
+  }
 
   assert.strictEqual(LICENSE_REFRESH_INTERVAL_DAYS, 7);
   assert.strictEqual(shouldRefreshLicense({

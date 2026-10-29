@@ -11,6 +11,8 @@ export interface LicenseState {
 	graceUntil?: string | null;
 	licenseKeyMasked?: string;
 	licenseKey?: string;
+	// 最近一次校验失败时服务端返回的业务码，成功后清空
+	errorCode?: number;
 }
 
 export interface LicenseValidationRequest {
