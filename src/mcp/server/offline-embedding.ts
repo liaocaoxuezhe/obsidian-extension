@@ -2,6 +2,7 @@ import { createRequire } from "module";
 import * as fs from "fs";
 import * as path from "path";
 import type { EmbeddingModelConfig } from "../../../mcp-server/src/embedding";
+import { loadSentenceEmbeddingModel } from "../../local-vector/sentence-embedding-model";
 
 /**
  * Query embedding for the bundled MCP server. Transformers and ONNX Runtime come from the
@@ -25,7 +26,7 @@ export class OfflineQueryEmbedder {
       throw new Error(`The embedding model "${this.model.shortName}" is not downloaded yet. Open Obsidian and let the Analogy plugin finish setup.`);
     }
     const runtimeRequire = createRequire(path.join(this.moduleRoot, "package.json"));
-    runtimeRequire(path.join(this.moduleRoot, "onnxruntime-node"));
+    const ort = runtimeRequire(path.join(this.moduleRoot, "onnxruntime-node"));
     const transformers = runtimeRequire(path.join(this.moduleRoot, "@huggingface", "transformers"));
     transformers.env.allowRemoteModels = false;
     transformers.env.allowLocalModels = true;
@@ -33,6 +34,11 @@ export class OfflineQueryEmbedder {
     transformers.env.cacheDir = this.modelCacheDir;
     transformers.env.useFSCache = false;
     if (transformers.env.backends?.onnx) transformers.env.backends.onnx.logLevel = "error";
+    if (this.model.pooling === "sentence_embedding") {
+      const model = await loadSentenceEmbeddingModel(transformers, ort, this.modelCacheDir, this.model.id, this.model.dtype);
+      this.extractor = (input) => model([input]);
+      return;
+    }
     this.extractor = await transformers.pipeline("feature-extraction", this.model.id, {
       dtype: this.model.dtype,
       cache_dir: this.modelCacheDir,

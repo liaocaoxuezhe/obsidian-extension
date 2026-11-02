@@ -1,7 +1,8 @@
 /**
  * Pinned model files for every selectable embedding model (generated from the
- * Hugging Face API on 2026-10-13). Each file is verified by size and SHA-256 after
- * download, so any mirror serving identical bytes is trusted equally.
+ * Hugging Face API on 2026-10-13; Harrier, Qwen3 and EmbeddingGemma 2 entries on
+ * 2026-11-02). Each file is verified by size and SHA-256 after download, so any
+ * mirror serving identical bytes is trusted equally.
  */
 export interface ModelFileEntry {
   path: string;
@@ -89,6 +90,49 @@ export const MODEL_FILE_MANIFESTS: Readonly<Record<string, ModelFileManifest>> =
       { path: "tokenizer_config.json", size: 20839, sha256: "ce06781b38bb393db68c9e0709bddd31ef5d88f2c6fbb3fd9f369778fb85e451" },
       { path: "onnx/model_quantized.onnx", size: 598902, sha256: "a3fad524afc3f060216a8ddbb1ac89c9b6498fba8995b5718bde879076a2e9ba" },
       { path: "onnx/model_quantized.onnx_data", size: 51885568, sha256: "1f4cf47e4adec7f7ae09db03d071ba8667e07f9a4203142c7efa8d37fe453597" },
+    ],
+  },
+  "harrier-oss-v1-270m": {
+    id: "onnx-community/harrier-oss-v1-270m-ONNX",
+    revision: "d59c919d0159aea2c19ed7d04288fcdd048d0f9c",
+    files: [
+      { path: "config.json", size: 1608, sha256: "5366f9919a82aaeceb6707bf218c5769f414d60f5dbaf781fa07e5465487fd7c" },
+      { path: "tokenizer.json", size: 20323311, sha256: "ec95be298bea26f90370854faa650744c9fb0a04ca5e5ff95dd3913393ac5e45" },
+      { path: "tokenizer_config.json", size: 702, sha256: "135405f3479eaebc473e2e78593f2195c7598948a215ee748758def426b30f59" },
+      { path: "onnx/model_quantized.onnx", size: 243493, sha256: "44fe93efec64ac3446703403634fd8410c7dabf3814bf00dc0825f1e2dde75c0" },
+      { path: "onnx/model_quantized.onnx_data", size: 343702016, sha256: "a81e3db98eaedd77deafe07d7c3c03b254b7e012790a7a1774295aff03d4fbdf" },
+    ],
+  },
+  "harrier-oss-v1-0.6b": {
+    id: "onnx-community/harrier-oss-v1-0.6b-ONNX",
+    revision: "e4daffa011e666dcd2ff2a3c6c05084090ac314d",
+    files: [
+      { path: "config.json", size: 1530, sha256: "c55e075ac57223f7442ef1755051e9bd212e0d4ff2ed68694037f5a21dba7eeb" },
+      { path: "tokenizer.json", size: 9117473, sha256: "2320ebaed2032c36f5c539cb8531d0642a10024e164f1d81ebbe163b259e3ba5" },
+      { path: "tokenizer_config.json", size: 4650, sha256: "e1c8a5341a350885510d652a3a303beabf3a76ef745af6c6b4c3f0d815ccfb5c" },
+      { path: "onnx/model_quantized.onnx", size: 393942, sha256: "3c7c03247bf681338ea079ca3875fa48d6b339bacd3abb6b7ce81afa5a357861" },
+      { path: "onnx/model_quantized.onnx_data", size: 706117632, sha256: "95e9e447398ba3ef59d54888c820ee8c1b80e4373c56cc5d09b2358ee25d893c" },
+    ],
+  },
+  "qwen3-embedding-0.6b": {
+    id: "onnx-community/Qwen3-Embedding-0.6B-ONNX",
+    revision: "c25a394dd583836952667c12f008335071b3f43d",
+    files: [
+      { path: "config.json", size: 1576, sha256: "66a10929782f3c9a3cd5dec90e2a95c60e05736134a63cd54479eeae80bed175" },
+      { path: "tokenizer.json", size: 11423705, sha256: "def76fb086971c7867b829c23a26261e38d9d74e02139253b38aeb9df8b4b50a" },
+      { path: "tokenizer_config.json", size: 9731, sha256: "977648852447cb6587327ff3205b0a84cf2fc9f05621d6c8e88a497caafab2e1" },
+      { path: "onnx/model_quantized.onnx", size: 613527631, sha256: "87cd124e0ef1fd1f223ebc283efccbaeac386d0b08344701c46975d0657b591f" },
+    ],
+  },
+  "embedding-gemma-2": {
+    id: "onnx-community/embeddinggemma-2-ONNX",
+    revision: "daa72c51243991dfcaf9f9137d2c573d8f7790c0",
+    files: [
+      { path: "config.json", size: 5031, sha256: "8d011bfe08b5e345bbe0b81e5c6fd02c381920b345b986047bc2a33ce7b90d1d" },
+      { path: "tokenizer.json", size: 32170510, sha256: "4d777ef5bdc1aa36227abdfb77c3e49e7b9c892d16e1b6bda41c393504828be4" },
+      { path: "tokenizer_config.json", size: 1599, sha256: "17bd5d6e9364ca49a534e1502076593317c298d4a663623091ed45388f004874" },
+      { path: "onnx/model_quantized.onnx", size: 495165, sha256: "d06edd601f851c633a2519304cbeb8dc6170d7ceb61b436625c17fb9b6e74953" },
+      { path: "onnx/model_quantized.onnx_data", size: 313724928, sha256: "278a7ff1248c3618e4bd11a607fc54f7bdc7778854230f3956d3f86bd9db4f3b" },
     ],
   },
 };

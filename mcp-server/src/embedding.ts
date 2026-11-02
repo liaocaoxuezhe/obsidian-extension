@@ -11,7 +11,7 @@ export interface EmbeddingModelConfig {
   localModelDir?: string;
   maxInputChars: number;
   /** Must match the plugin's indexing pooling, or query vectors land in a different space. */
-  pooling: "mean" | "cls" | "last_token";
+  pooling: "mean" | "cls" | "last_token" | "sentence_embedding";
 }
 
 /** Mirrors the plugin's EMBEDDING_MODELS (src/local-vector/embedding.ts) for query embedding. */
@@ -73,6 +73,38 @@ export const EMBEDDING_MODELS: Record<string, EmbeddingModelConfig> = {
     maxInputChars: 8000,
     pooling: "cls",
   },
+  "embedding-gemma-2": {
+    id: "onnx-community/embeddinggemma-2-ONNX",
+    shortName: "embedding-gemma-2",
+    queryPrefix: "task: search result | query: ",
+    dtype: "q8",
+    maxInputChars: 4000,
+    pooling: "sentence_embedding",
+  },
+  "harrier-oss-v1-270m": {
+    id: "onnx-community/harrier-oss-v1-270m-ONNX",
+    shortName: "harrier-oss-v1-270m",
+    queryPrefix: "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery: ",
+    dtype: "q8",
+    maxInputChars: 4000,
+    pooling: "last_token",
+  },
+  "harrier-oss-v1-0.6b": {
+    id: "onnx-community/harrier-oss-v1-0.6b-ONNX",
+    shortName: "harrier-oss-v1-0.6b",
+    queryPrefix: "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery: ",
+    dtype: "q8",
+    maxInputChars: 4000,
+    pooling: "last_token",
+  },
+  "qwen3-embedding-0.6b": {
+    id: "onnx-community/Qwen3-Embedding-0.6B-ONNX",
+    shortName: "qwen3-embedding-0.6b",
+    queryPrefix: "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery:",
+    dtype: "q8",
+    maxInputChars: 4000,
+    pooling: "last_token",
+  },
 };
 
 type TransformersModule = typeof import("@huggingface/transformers");
@@ -127,6 +159,9 @@ export class EmbeddingService {
   }
 
   async initialize(): Promise<void> {
+    if (this.modelConfig.pooling === "sentence_embedding") {
+      throw new Error(`${this.modelConfig.shortName} is supported only by the MCP server bundled with the Analogy plugin.`);
+    }
     const { env, pipeline } = (await import("@huggingface/transformers")) as TransformersModule;
     env.backends.onnx.logLevel = "error";
     (env as any).allowLocalModels = true;

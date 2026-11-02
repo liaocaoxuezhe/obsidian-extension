@@ -2300,6 +2300,20 @@
       "testNamesSource": "model-tiers-1.3.0"
     },
     {
+      "path": "test/sentence-embedding-model.test.js",
+      "kind": "test",
+      "runner": "public",
+      "ciJob": "public-ci",
+      "domain": "embedding",
+      "conflictAction": "not-applicable",
+      "sourceEvidence": [],
+      "testNames": [
+        "sentence-embedding models run the text graph only and return unit vectors",
+        "unsupported dtypes fail before anything is loaded"
+      ],
+      "testNamesSource": "sentence-embedding-model-1.3.2"
+    },
+    {
       "path": "test/hybrid-search.test.js",
       "kind": "test",
       "runner": "public",
