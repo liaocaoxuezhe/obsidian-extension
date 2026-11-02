@@ -41,6 +41,20 @@ test("download sizes come from the exact pinned file manifest", () => {
   assert.equal(modelTierInfo("embedding-gemma-300m").heavy, true);
   assert.equal(modelTierInfo("jina-nano").heavy, true);
   assert.equal(modelTierInfo("granite-97m-multilingual-r2").heavy, false);
+  for (const key of ["embedding-gemma-2", "harrier-oss-v1-270m", "harrier-oss-v1-0.6b", "qwen3-embedding-0.6b"]) {
+    assert.ok(MODEL_FILE_MANIFESTS[key], `${key} has a pinned manifest`);
+    assert.equal(modelTierInfo(key).heavy, true, key);
+  }
+});
+
+test("every selectable model has a pinned manifest for the same repository", () => {
+  const { MODEL_FILE_MANIFESTS } = manifest();
+  const { EMBEDDING_MODELS } = loadTypeScriptFile(path.join(process.cwd(), "src/local-vector/embedding.ts"));
+  for (const [key, model] of Object.entries(EMBEDDING_MODELS)) {
+    assert.equal(MODEL_FILE_MANIFESTS[key]?.id, model.id, key);
+    const weights = MODEL_FILE_MANIFESTS[key].files.filter((file) => /\.onnx(?:_data)?$/.test(file.path));
+    assert.ok(weights.some((file) => file.path === "onnx/model_quantized.onnx"), `${key} pins the q8 graph`);
+  }
 });
 
 test("memory estimate is calibrated on the measured jina-nano worker (about 1.06 GB)", () => {
@@ -60,6 +74,8 @@ test("low-memory devices do not see 200M+ models unless one is already selected"
   assert.ok(selectableModelKeys(4, "jina-nano").includes("jina-nano"), "the current choice is never hidden");
   assert.ok(selectableModelKeys(16, "bge-small-en-v1.5").includes("jina-nano"));
   assert.ok(selectableModelKeys(null, "bge-small-en-v1.5").includes("jina-nano"), "unknown memory hides nothing");
+  assert.equal(lowMemory.includes("harrier-oss-v1-0.6b"), false);
+  assert.equal(lowMemory.includes("qwen3-embedding-0.6b"), false);
 });
 
 test("switching to a heavy or large model requires confirmation", () => {

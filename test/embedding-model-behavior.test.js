@@ -115,6 +115,42 @@ function runWorker(workerPath, moduleRoot, requests) {
     assert.strictEqual(graniteEnglish.pooling, "cls");
     assert.strictEqual(EMBEDDING_MODELS["jina-nano"].pooling, "last_token");
 
+    // Decoder embedding models: last-token pooling, an instruction on the query side only.
+    for (const [key, id] of [
+      ["harrier-oss-v1-270m", "onnx-community/harrier-oss-v1-270m-ONNX"],
+      ["harrier-oss-v1-0.6b", "onnx-community/harrier-oss-v1-0.6b-ONNX"],
+      ["qwen3-embedding-0.6b", "onnx-community/Qwen3-Embedding-0.6B-ONNX"],
+    ]) {
+      const model = EMBEDDING_MODELS[key];
+      assert(model, `${key} must be selectable`);
+      assert.strictEqual(model.id, id);
+      assert.strictEqual(model.pooling, "last_token");
+      assert.match(model.queryPrefix, /^Instruct: .+\nQuery:/);
+      assert.strictEqual(model.documentPrefix, "");
+      assert(model.description && model.descriptionZh, `${key} must be described in both languages`);
+    }
+
+    const gemma2 = EMBEDDING_MODELS["embedding-gemma-2"];
+    assert.strictEqual(gemma2.id, "onnx-community/embeddinggemma-2-ONNX");
+    assert.strictEqual(gemma2.pooling, "sentence_embedding", "Gemma 2 uses its own pooled output");
+    assert.strictEqual(gemma2.queryPrefix, "task: search result | query: ");
+    assert.strictEqual(gemma2.documentPrefix, "title: none | text: ");
+    const inProcessGemma2 = new LocalEmbeddingService({
+      pluginDir: path.join(tmpDir, "unused"),
+      cacheDir: path.join(tmpDir, "unused-cache"),
+      modelConfig: gemma2,
+    });
+    await assert.rejects(inProcessGemma2.initialize(), /managed embedding worker/);
+
+    const { padLeftForLastTokenPooling } = await bundle("embedding.ts");
+    const rightPadded = { tokenizer: { padding_side: "right" } };
+    padLeftForLastTokenPooling(rightPadded, "last_token");
+    assert.strictEqual(rightPadded.tokenizer.padding_side, "left", "last-token pooling must pool each text's own EOS");
+    const clsModel = { tokenizer: { padding_side: "right" } };
+    padLeftForLastTokenPooling(clsModel, "cls");
+    assert.strictEqual(clsModel.tokenizer.padding_side, "right", "other pooling modes keep the tokenizer default");
+    padLeftForLastTokenPooling(null, "last_token");
+
     const gemma = EMBEDDING_MODELS["embedding-gemma-300m"];
     assert.strictEqual(gemma.queryPrefix, "task: search result | query: ");
     assert.strictEqual(gemma.documentPrefix, "title: none | text: ");

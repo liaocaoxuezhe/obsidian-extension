@@ -89,6 +89,7 @@ test/*
 !test/runtime-platform-versions.test.js
 !test/runtime-upgrade.test.js
 !test/model-tiers.test.js
+!test/sentence-embedding-model.test.js
 !test/hybrid-search.test.js
 !test/parallel-scan.test.js
 !test/mcp-bundled-server.test.js

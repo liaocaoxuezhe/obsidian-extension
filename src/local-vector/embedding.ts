@@ -26,7 +26,8 @@ export interface EmbeddingModelConfig {
   descriptionZh: string;
 }
 
-export type EmbeddingPooling = "mean" | "cls" | "last_token";
+/** `sentence_embedding`: the graph pools itself (see sentence-embedding-model.ts). */
+export type EmbeddingPooling = "mean" | "cls" | "last_token" | "sentence_embedding";
 
 type EmbeddingDType =
   | "auto"
@@ -159,9 +160,86 @@ export const EMBEDDING_MODELS: Record<string, EmbeddingModelConfig> = {
     descriptionZh:
       "高效的英文检索模型，支持 8K 上下文。适合英文知识库和配置较低的电脑。",
   },
+  "embedding-gemma-2": {
+    id: "onnx-community/embeddinggemma-2-ONNX",
+    shortName: "embedding-gemma-2",
+    displayName: "EmbeddingGemma 2 (Google) — Code notes",
+    pooling: "sentence_embedding",
+    queryPrefix: "task: search result | query: ",
+    documentPrefix: "title: none | text: ",
+    dtype: "q8",
+    maxInputChars: 4000,
+    size: "271M",
+    description:
+      "Google's 2026 successor to EmbeddingGemma (271M text encoder, Apache 2.0 license). Google reports clearly better code retrieval, so consider it for vaults full of code snippets. In Analogy's own test on real Chinese and English notes it ranked below EmbeddingGemma-300M (section search about 9 points lower) and indexed 1.4–1.8× slower, so EmbeddingGemma-300M remains the better pick for ordinary notes.",
+    descriptionZh:
+      "Google 2026 年推出的 EmbeddingGemma 新版（文本编码器 271M，Apache 2.0 许可）。官方称代码检索明显提升，代码片段多的知识库可以考虑。但在 Analogy 用真实中英文笔记做的测试中，它不如 EmbeddingGemma-300M（小节检索约低 9 个点），建索引也慢 1.4–1.8 倍；普通笔记仍建议选 EmbeddingGemma-300M。",
+  },
+  "harrier-oss-v1-270m": {
+    id: "onnx-community/harrier-oss-v1-270m-ONNX",
+    shortName: "harrier-oss-v1-270m",
+    displayName: "Harrier OSS v1 270M (Microsoft) — Multilingual",
+    pooling: "last_token",
+    queryPrefix: "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery: ",
+    documentPrefix: "",
+    dtype: "q8",
+    maxInputChars: 4000,
+    size: "268M",
+    description:
+      "Microsoft's 2026 open model (268M, MIT license). The best multilingual model under 300M on the MTEB leaderboard (multilingual 66.5), and far stronger on Chinese than Granite or BGE (Chinese retrieval 68.0). A quality upgrade for mixed Chinese/English vaults on machines with 8 GB+ RAM.",
+    descriptionZh:
+      "微软 2026 年开源（268M，MIT 许可）。MTEB 榜单上 300M 以下最强的多语言模型（多语言总分 66.5），中文检索明显强于 Granite 和 BGE（中文检索 68.0）。适合中英混合笔记、8 GB 以上内存的电脑，是精度上的升级之选。",
+  },
+  "harrier-oss-v1-0.6b": {
+    id: "onnx-community/harrier-oss-v1-0.6b-ONNX",
+    shortName: "harrier-oss-v1-0.6b",
+    displayName: "Harrier OSS v1 0.6B (Microsoft) — Highest accuracy",
+    pooling: "last_token",
+    queryPrefix: "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery: ",
+    documentPrefix: "",
+    dtype: "q8",
+    maxInputChars: 4000,
+    size: "596M",
+    description:
+      "Microsoft's 2026 open model (0.6B, MIT license). The most accurate model in Analogy for multilingual and Chinese notes (multilingual MTEB 69.0, Chinese retrieval 71.4). A large download with noticeably slower indexing; best on recent machines with 16 GB RAM.",
+    descriptionZh:
+      "微软 2026 年开源（0.6B，MIT 许可）。Analogy 中多语言与中文精度最高的模型（多语言 MTEB 69.0，中文检索 71.4）。体积较大，建索引明显更慢，建议在 16 GB 内存的较新电脑上使用。",
+  },
+  "qwen3-embedding-0.6b": {
+    id: "onnx-community/Qwen3-Embedding-0.6B-ONNX",
+    shortName: "qwen3-embedding-0.6b",
+    displayName: "Qwen3 Embedding 0.6B (Alibaba) — Chinese & English",
+    pooling: "last_token",
+    queryPrefix: "Instruct: Given a web search query, retrieve relevant passages that answer the query\nQuery:",
+    documentPrefix: "",
+    dtype: "q8",
+    maxInputChars: 4000,
+    size: "596M",
+    description:
+      "Alibaba Qwen's open model (0.6B, Apache 2.0 license). The strongest English retrieval among Analogy's models (English retrieval 61.8) with top-tier Chinese (Chinese retrieval 71.0). A large download with noticeably slower indexing; best on recent machines with 16 GB RAM.",
+    descriptionZh:
+      "阿里通义千问开源（0.6B，Apache 2.0 许可）。英文检索在 Analogy 可选模型中最强（英文检索 61.8），中文同样一流（中文检索 71.0）。体积较大，建索引明显更慢，建议在 16 GB 内存的较新电脑上使用。",
+  },
 };
 
 export const DEFAULT_MODEL_KEY = "bge-small-en-v1.5";
+
+/** Self-pooling graphs need the loader in sentence-embedding-model.ts, which only the worker runs. */
+function assertPipelineModel(modelConfig: EmbeddingModelConfig): void {
+  if (modelConfig.pooling === "sentence_embedding") {
+    throw new Error(`${modelConfig.displayName} runs only in the managed embedding worker`);
+  }
+}
+
+/**
+ * Feature-extraction `last_token` pooling reads the final position of the padded batch, so
+ * right padding would pool a pad token for every shorter text in the batch. Left padding
+ * keeps that position on each text's own closing EOS token.
+ */
+export function padLeftForLastTokenPooling(extractor: unknown, pooling: EmbeddingPooling): void {
+  const tokenizer = (extractor as { tokenizer?: { padding_side?: string } } | null)?.tokenizer;
+  if (pooling === "last_token" && tokenizer) tokenizer.padding_side = "left";
+}
 
 function finiteNonNegative(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : null;
@@ -253,6 +331,7 @@ export class LocalEmbeddingService {
   }
 
   private async loadPipeline(): Promise<FeatureExtractionPipeline> {
+    assertPipelineModel(this.options.modelConfig);
     const { env, pipeline } = await loadTransformers(this.options.pluginDir);
     env.cacheDir = this.options.cacheDir;
     env.remoteHost = normalizeRemoteHost(this.options.remoteHost || DEFAULT_MODEL_HOST);
@@ -261,13 +340,16 @@ export class LocalEmbeddingService {
 
     const modelConfig = this.options.modelConfig;
 
-    return await pipeline("feature-extraction", modelConfig.id, {
+    const extractor = await pipeline("feature-extraction", modelConfig.id, {
       dtype: modelConfig.dtype,
     }) as unknown as FeatureExtractionPipeline;
+    padLeftForLastTokenPooling(extractor, modelConfig.pooling);
+    return extractor;
   }
 
   async initialize(onProgress?: (progress: number) => void): Promise<void> {
     if (this.ready) return;
+    assertPipelineModel(this.options.modelConfig);
     try {
       const { env, pipeline } = await loadTransformers(this.options.pluginDir);
       env.cacheDir = this.options.cacheDir;
@@ -291,6 +373,7 @@ export class LocalEmbeddingService {
         EMBEDDING_TIMEOUT_MS,
         `Embedding model ${modelConfig.shortName} initialization`,
       ) as unknown as FeatureExtractionPipeline;
+      padLeftForLastTokenPooling(this.embedder, modelConfig.pooling);
       this.ready = true;
       this.inferenceCount = 0;
       onProgress?.(100);

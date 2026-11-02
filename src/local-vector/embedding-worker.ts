@@ -9,7 +9,8 @@ import {
   type WorkerResponse,
   type WorkerProgressResponse,
 } from "./embedding-worker-protocol";
-import { normalizeEmbeddingInitializationProgress } from "./embedding";
+import { normalizeEmbeddingInitializationProgress, padLeftForLastTokenPooling } from "./embedding";
+import { loadSentenceEmbeddingModel } from "./sentence-embedding-model";
 import type { EmbeddingPooling } from "./embedding";
 import { createRequire } from "module";
 import * as path from "path";
@@ -42,7 +43,7 @@ async function handleInitialize(req: WorkerInitializeRequest): Promise<WorkerRes
       throw new Error("ANALOGY_RUNTIME_MODULE_ROOT is required");
     }
     const runtimeRequire = createRequire(path.join(moduleRoot, "package.json"));
-    runtimeRequire(path.join(moduleRoot, "onnxruntime-node"));
+    const ort = runtimeRequire(path.join(moduleRoot, "onnxruntime-node"));
     const transformers = runtimeRequire(path.join(moduleRoot, "@huggingface", "transformers"));
     stage = req.localFilesOnly ? "session-build" : "model-download";
     if (req.localFilesOnly) {
@@ -55,18 +56,25 @@ async function handleInitialize(req: WorkerInitializeRequest): Promise<WorkerRes
       transformers.env.remotePathTemplate = "{model}/resolve/{revision}/";
     }
     transformers.env.cacheDir = req.cacheDir;
-    extractor = await transformers.pipeline("feature-extraction", req.modelId, {
-      dtype: req.dtype || "q8",
-      cache_dir: req.cacheDir,
-      ...(req.localFilesOnly ? { local_files_only: true } : {}),
-      ...(req.modelRevision && !req.localFilesOnly ? { revision: req.modelRevision } : {}),
-      progress_callback: (progressInfo: unknown) => {
-        const progress = normalizeEmbeddingInitializationProgress(progressInfo);
-        if (!progress) return;
-        const event: WorkerProgressResponse = { id: req.id, type: "progress", progress };
-        process.stdout.write(encodeMessage(event));
-      },
-    });
+    if (req.pooling === "sentence_embedding") {
+      // These graphs are loaded straight from the verified, pinned model files.
+      if (!req.localFilesOnly) throw new Error("Sentence-embedding models load only from verified local files");
+      extractor = await loadSentenceEmbeddingModel(transformers, ort, req.cacheDir, req.modelId, req.dtype || "q8");
+    } else {
+      extractor = await transformers.pipeline("feature-extraction", req.modelId, {
+        dtype: req.dtype || "q8",
+        cache_dir: req.cacheDir,
+        ...(req.localFilesOnly ? { local_files_only: true } : {}),
+        ...(req.modelRevision && !req.localFilesOnly ? { revision: req.modelRevision } : {}),
+        progress_callback: (progressInfo: unknown) => {
+          const progress = normalizeEmbeddingInitializationProgress(progressInfo);
+          if (!progress) return;
+          const event: WorkerProgressResponse = { id: req.id, type: "progress", progress };
+          process.stdout.write(encodeMessage(event));
+        },
+      });
+    }
+    padLeftForLastTokenPooling(extractor, req.pooling);
     currentModelId = req.modelId;
     currentPooling = req.pooling;
     process.stdout.write(encodeMessage({

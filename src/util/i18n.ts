@@ -578,8 +578,8 @@ const TRANSLATIONS: Record<string, Record<Locale, string>> = {
     zh: "切换模型后会重新加载插件，并使用该模型独立的索引。如果这个模型还没有索引，请执行 Build/Rebuild Index。",
   },
   "settings.embedding.pickerHelp": {
-    en: "Can your machine run 200M+ parameters?\n├── Yes → Jina v5 Nano (239M, best STS)\n│    More focused on analogical reasoning → EmbeddingGemma-300M\n└── No (only <100M) → Need Chinese?\n     ├── Yes → bge-small-en-v1.5 (33M, mild Chinese support) or bge-small-zh\n     └── No → Speed first? all-MiniLM-L6-v2 (22M)   Precision first? bge-small-en-v1.5 (33M)",
-    zh: "你的机器能跑 200M+ 参数？\n├── 是 → Jina v5 Nano（239M，STS 最强）\n│    更关注类比关系判断 → EmbeddingGemma-300M\n└── 否（只能跑 <100M）→ 需要中文？\n     ├── 是 → bge-small-en-v1.5（33M，中文友好）或 bge-small-zh\n     └── 否 → 追求速度？all-MiniLM-L6-v2（22M）  追求精度？bge-small-en-v1.5（33M）",
+    en: "Recent machine with 16 GB+ RAM, accuracy first?\n├── Mostly Chinese or multilingual → Harrier OSS v1 0.6B (highest accuracy)\n└── Mostly English → Qwen3 Embedding 0.6B (best English retrieval)\n8 GB+ RAM (can run 200M+ parameters)?\n├── Chinese / mixed languages → Harrier OSS v1 270M (best under 300M)\n├── Strong semantic matching (non-commercial) → Jina v5 Nano (239M)\n├── Many code snippets → EmbeddingGemma 2 (271M)\n└── More focused on analogical reasoning → EmbeddingGemma-300M\nLighter machine (<200M only)?\n├── Need Chinese → Granite 97M Multilingual R2 or bge-small-zh\n└── English only → Speed first? all-MiniLM-L6-v2 (22M)   Precision first? Granite Small English R2 (47M) or bge-small-en-v1.5 (33M)",
+    zh: "较新电脑、16 GB 以上内存，精度优先？\n├── 主要是中文或多语言 → Harrier OSS v1 0.6B（精度最高）\n└── 主要是英文 → Qwen3 Embedding 0.6B（英文检索最强）\n8 GB 以上内存（能跑 200M+ 参数）？\n├── 中文 / 中英混合 → Harrier OSS v1 270M（300M 以下最强）\n├── 语义匹配强（仅限非商业）→ Jina v5 Nano（239M）\n├── 代码片段多 → EmbeddingGemma 2（271M）\n└── 更关注类比关系判断 → EmbeddingGemma-300M\n配置较低（只能跑 <200M）？\n├── 需要中文 → Granite 97M 多语言 R2 或 bge-small-zh\n└── 只有英文 → 追求速度？all-MiniLM-L6-v2（22M）  追求精度？Granite Small English R2（47M）或 bge-small-en-v1.5（33M）",
   },
   "settings.embedding.statusLabel": { en: "Status", zh: "状态" },
   "settings.embedding.ready": { en: "Ready", zh: "就绪" },
