@@ -11,7 +11,8 @@ permissions:
 
 concurrency:
   group: validate-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseded PR pushes are cancelled; every main commit keeps a complete run before release.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   validate:
@@ -31,7 +32,8 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # npm ci's audit is report-only but refetches registry metadata for every advisory (~30s per job).
+        run: npm ci --no-audit --no-fund
 
       - name: Run official Obsidian lint
         run: npm run lint
@@ -80,7 +82,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
 
       - name: Run public regression tests
         env:

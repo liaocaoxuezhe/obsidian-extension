@@ -44,7 +44,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
 
       - name: Verify release metadata
         run: node scripts/verify-release-version.mjs "$RELEASE_TAG"

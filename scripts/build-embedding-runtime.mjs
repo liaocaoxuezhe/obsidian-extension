@@ -637,7 +637,8 @@ async function main() {
       "--registry=https://registry.npmjs.org",
     ], {
       cwd: npmInstallRoot,
-      env: sanitizedNpmEnvironment({ bundledToolDirectory, privateRoot: npmInstallRoot, cacheRoot: path.join(workRoot, "npm-private") }),
+      // Lockfile integrity pins every tarball, so a shared content-addressed cache cannot change the pack.
+      env: sanitizedNpmEnvironment({ bundledToolDirectory, privateRoot: npmInstallRoot, cacheRoot }),
       timeout: 420_000,
     });
 

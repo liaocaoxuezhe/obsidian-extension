@@ -619,8 +619,12 @@ test("Windows cached Node ZIP extraction is PATH-independent and retries into a 
 });
 
 test("native runtime archive is byte-reproducible with normalized metadata", { skip: !supportedHost, timeout: 1_200_000 }, (t) => {
-  const firstBuild = runNativeBuilder();
-  assert.equal(firstBuild.status, 0, `${firstBuild.stdout}${firstBuild.stderr}`);
+  // Earlier tests already built this host's archive (last under a hostile npm environment);
+  // reuse it as the first build so one more build proves byte reproducibility.
+  if (!fs.existsSync(hostArchivePath)) {
+    const firstBuild = runNativeBuilder();
+    assert.equal(firstBuild.status, 0, `${firstBuild.stdout}${firstBuild.stderr}`);
+  }
   const firstSha256 = sha256File(hostArchivePath);
   const entries = process.platform === "win32" ? parseZipMetadata(hostArchivePath) : parseUstarMetadata(hostArchivePath);
   const names = entries.map((entry) => entry.name);
