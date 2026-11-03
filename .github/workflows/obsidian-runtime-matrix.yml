@@ -94,7 +94,7 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - name: Install reviewed plugin dependencies
-        run: npm ci --ignore-scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Download and verify pinned Chroma CLI 1.4.4
         shell: bash
         run: |
@@ -186,7 +186,7 @@ jobs:
         with:
           node-version: 22.23.2
       - name: Install reviewed plugin dependencies
-        run: npm ci --ignore-scripts
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: completed-runtime-*
