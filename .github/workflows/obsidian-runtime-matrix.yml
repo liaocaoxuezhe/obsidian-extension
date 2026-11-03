@@ -41,7 +41,8 @@ permissions:
 
 concurrency:
   group: obsidian-runtime-${{ github.ref }}
-  cancel-in-progress: false
+  # Only superseded PR pushes are cancelled; main and publish runs always finish.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   plan:
